@@ -1,0 +1,130 @@
+# =========================
+# .NET / C# / ASP.NET Core
+# =========================
+
+# Build results
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+bld/
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.csproj.user
+
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# =========================
+# Publish / Deployment
+# =========================
+Deployment/publish/
+Deployment/*.zip
+Deployment/Update/
+Deployment/Backup/
+
+# =========================
+# NuGet
+# =========================
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# =========================
+# Logs & Temp Files
+# =========================
+*.log
+*.tmp
+*.temp
+*.cache
+Logs/
+
+# =========================
+# Database
+# =========================
+*.mdf
+*.ldf
+*.ndf
+*.db
+*.sqlite
+
+# =========================
+# OS Files
+# =========================
+# Windows
+Thumbs.db
+Desktop.ini
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+.directory
+
+# =========================
+# Secrets / Config
+# =========================
+appsettings.Production.json
+secrets.json
+*.pfx
+*.key
+*.pem
+
+# =========================
+# User-specific files
+# =========================
+*.rsuser
+*.DotSettings.user
+
+# =========================
+# Test Results
+# =========================
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+TestResult.xml
+
+# =========================
+# Code Coverage
+# =========================
+coverage/
+*.coverage
+*.coveragexml
+
+# =========================
+# Entity Framework
+# =========================
+# Keep migrations, ignore migration designer if needed
+# Migrations/*.Designer.cs
+
+# =========================
+# Other
+# =========================
+*.bak
+*.swp
+*.orig
+node_modules/
+wwwroot/lib/
+!wwwroot/lib/.gitkeep

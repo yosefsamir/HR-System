@@ -1,0 +1,940 @@
+@{
+    ViewData["Title"] = "الرواتب المحفوظة";
+    ViewData["PageTitle"] = "عرض الرواتب المحفوظة";
+    ViewData["PageIcon"] = "bi-archive";
+}
+
+<style>
+    .param-card {
+        background: linear-gradient(145deg, #1a1d21, #212529);
+        border: 1px solid #333;
+    }
+    .result-card {
+        transition: all 0.3s ease;
+    }
+    .result-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+    }
+    .summary-box {
+        background: linear-gradient(145deg, #212529, #2c3034);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        text-align: center;
+    }
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    .employee-row {
+        transition: background 0.2s;
+    }
+    .employee-row:hover {
+        background: rgba(13, 110, 253, 0.1) !important;
+    }
+    .positive { color: #198754; }
+    .negative { color: #dc3545; }
+    .paid-input {
+        width: 120px;
+        background: #2c3034;
+        border: 1px solid #444;
+        color: #fff;
+    }
+    .paid-input:focus {
+        background: #343a40;
+        border-color: #0d6efd;
+        color: #fff;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Parameters Card -->
+    <div class="card param-card mb-4">
+        <div class="card-header border-secondary">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-archive me-2"></i>
+                عرض الرواتب المحفوظة
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label">الشهر <span class="text-danger">*</span></label>
+                    <select id="monthSelect" class="form-select">
+                        <option value="1">يناير</option>
+                        <option value="2">فبراير</option>
+                        <option value="3">مارس</option>
+                        <option value="4">أبريل</option>
+                        <option value="5">مايو</option>
+                        <option value="6">يونيو</option>
+                        <option value="7">يوليو</option>
+                        <option value="8">أغسطس</option>
+                        <option value="9">سبتمبر</option>
+                        <option value="10">أكتوبر</option>
+                        <option value="11">نوفمبر</option>
+                        <option value="12">ديسمبر</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">السنة <span class="text-danger">*</span></label>
+                    <select id="yearSelect" class="form-select">
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-primary w-100" id="loadBtn">
+                        <i class="bi bi-download me-2"></i>
+                        تحميل البيانات
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-danger w-100" id="deleteBtn" disabled>
+                        <i class="bi bi-trash me-2"></i>
+                        حذف الشهر
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-outline-success w-100" id="printBtn" disabled>
+                        <i class="bi bi-printer me-2"></i>
+                        طباعة
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <a href="/PayRoll" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-calculator me-2"></i>
+                        حساب جديد
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    <!-- Loading -->
+    <div id="loadingMessage" class="text-center py-5 d-none">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">جاري التحميل...</span>
+        </div>
+        <p class="text-muted mt-3 fs-5">جاري تحميل البيانات...</p>
+    </div>
+
+    <!-- No Data Message -->
+    <div id="noDataMessage" class="text-center py-5">
+        <i class="bi bi-archive display-1 text-muted"></i>
+        <p class="text-muted mt-3 fs-5">اختر الشهر والسنة ثم اضغط "تحميل البيانات"</p>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="d-none">
+        <!-- Summary Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-2">
+                <div class="summary-box border border-primary">
+                    <i class="bi bi-people text-primary fs-4"></i>
+                    <div class="summary-value text-white" id="totalEmployees">0</div>
+                    <small class="text-muted">عدد الموظفين</small>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="summary-box border border-info">
+                    <i class="bi bi-wallet2 text-info fs-4"></i>
+                    <div class="summary-value text-info" id="totalNetSalaries">0</div>
+                    <small class="text-muted">إجمالي صافي الرواتب</small>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="summary-box border border-success">
+                    <i class="bi bi-cash-coin text-success fs-4"></i>
+                    <div class="summary-value text-success" id="totalPaidSalaries">0</div>
+                    <small class="text-muted">إجمالي المبالغ المدفوعة</small>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="summary-box border border-success">
+                    <i class="bi bi-check-circle text-success fs-4"></i>
+                    <div class="summary-value text-success" id="paidCount">0</div>
+                    <small class="text-muted">تم الدفع</small>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="summary-box border border-warning">
+                    <i class="bi bi-clock text-warning fs-4"></i>
+                    <div class="summary-value text-warning" id="unpaidCount">0</div>
+                    <small class="text-muted">لم يتم الدفع</small>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="summary-box border border-secondary">
+                    <i class="bi bi-calendar-check text-secondary fs-4"></i>
+                    <div class="summary-value text-white" id="dateSaved">-</div>
+                    <small class="text-muted">تاريخ الحفظ</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Period Info -->
+        <div class="card bg-dark border-secondary mb-4">
+            <div class="card-body py-2">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <span class="text-muted">الفترة:</span>
+                        <strong id="periodDisplay" class="text-white ms-2">-</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-muted">أيام العمل:</span>
+                        <strong id="workingDaysDisplay" class="text-white ms-2">-</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-muted">الإجازات:</span>
+                        <strong id="holidaysDisplay" class="text-white ms-2">-</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employees Table -->
+        <div class="card bg-dark border-secondary">
+            <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="bi bi-table me-2"></i>
+                    تفاصيل رواتب الموظفين
+                </h6>
+                <button type="button" class="btn btn-outline-info btn-sm" id="printSlipsBtn">
+                    <i class="bi bi-printer me-2"></i>
+                    طباعة إيصالات الرواتب
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-dark table-striped table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>الموظف</th>
+                                <th>القسم</th>
+                                <th>الحضور</th>
+                                <th>ساعات العمل</th>
+                                <th>ساعات إضافية</th>
+                                <th>ساعات تأخير</th>
+                                <th>راتب ساعات العمل</th>
+                                <th>الإضافي</th>
+                                <th>التأخير</th>
+                                <th>المكافآت</th>
+                                <th>الخصومات</th>
+                                <th>السلف</th>
+                                <th>صافي الراتب</th>
+                                <th>المبلغ المدفوع</th>
+                                <th>الحالة</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeesTableBody">
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <td colspan="3"><strong>الإجمالي</strong></td>
+                                <td>-</td>
+                                <td id="footTotalHours">0</td>
+                                <td id="footOvertimeHours">0</td>
+                                <td id="footLateHours">0</td>
+                                <td id="footWorkedSalary">0</td>
+                                <td id="footOvertime">0</td>
+                                <td id="footLateTime">0</td>
+                                <td id="footBonuses">0</td>
+                                <td id="footDeductions">0</td>
+                                <td id="footAdvances">0</td>
+                                <td id="footNetSalary">0</td>
+                                <td id="footPaidSalary">0</td>
+                                <td>-</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Employee Details Modal -->
+<div class="modal fade" id="employeeDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-lines-fill me-2"></i>
+                    تفاصيل راتب الموظف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="employeeDetailsBody">
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let savedData = null;
+    const arabicMonths = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set current month and year
+        const now = new Date();
+        document.getElementById('monthSelect').value = now.getMonth() + 1;
+        
+        // Populate years
+        const yearSelect = document.getElementById('yearSelect');
+        for (let y = now.getFullYear(); y >= now.getFullYear() - 5; y--) {
+            const option = document.createElement('option');
+            option.value = y;
+            option.textContent = y;
+            yearSelect.appendChild(option);
+        }
+
+        // Event listeners
+        document.getElementById('loadBtn').addEventListener('click', loadSavedData);
+        document.getElementById('deleteBtn').addEventListener('click', deleteMonth);
+        document.getElementById('printBtn').addEventListener('click', printResults);
+        document.getElementById('printSlipsBtn').addEventListener('click', printSalarySlips);
+    });
+
+    async function loadSavedData() {
+        const month = parseInt(document.getElementById('monthSelect').value);
+        const year = parseInt(document.getElementById('yearSelect').value);
+
+        // Show loading
+        document.getElementById('noDataMessage').classList.add('d-none');
+        document.getElementById('resultsSection').classList.add('d-none');
+        document.getElementById('loadingMessage').classList.remove('d-none');
+
+        try {
+            const response = await fetch(`/PayRoll/GetSaved?month=${month}&year=${year}`);
+            const result = await response.json();
+            document.getElementById('loadingMessage').classList.add('d-none');
+
+            if (result.success) {
+                savedData = result.data;
+                renderResults();
+                document.getElementById('resultsSection').classList.remove('d-none');
+                document.getElementById('printBtn').disabled = false;
+                document.getElementById('deleteBtn').disabled = false;
+            } else {
+                showAlert(result.message || 'لا يوجد بيانات محفوظة لهذا الشهر', 'warning');
+                document.getElementById('noDataMessage').classList.remove('d-none');
+            }
+        } catch (error) {
+            document.getElementById('loadingMessage').classList.add('d-none');
+            document.getElementById('noDataMessage').classList.remove('d-none');
+            showAlert('حدث خطأ في تحميل البيانات', 'danger');
+            console.error(error);
+        }
+    }
+
+    function renderResults() {
+        const data = savedData;
+
+        // Summary
+        document.getElementById('totalEmployees').textContent = data.totalEmployees;
+        document.getElementById('totalNetSalaries').textContent = formatCurrency(data.totalNetSalaries);
+        document.getElementById('totalPaidSalaries').textContent = formatCurrency(data.totalPaidSalaries);
+        document.getElementById('paidCount').textContent = data.paidCount;
+        document.getElementById('unpaidCount').textContent = data.unpaidCount;
+        document.getElementById('dateSaved').textContent = data.dateSaved ? new Date(data.dateSaved).toLocaleDateString('ar-EG') : '-';
+
+        // Period Info
+        document.getElementById('periodDisplay').textContent = `${data.monthName} ${data.year}`;
+        document.getElementById('workingDaysDisplay').textContent = `${data.workingDays} يوم`;
+        document.getElementById('holidaysDisplay').textContent = `${data.holidays} يوم`;
+
+        // Table
+        const tbody = document.getElementById('employeesTableBody');
+        tbody.innerHTML = data.employees.map((emp, index) => `
+            <tr class="employee-row" data-id="${emp.id}">
+                <td>${index + 1}</td>
+                <td>
+                    <strong>${emp.employeeName}</strong>
+                    <br><small class="text-muted">${emp.employeeCode}</small>
+                </td>
+                <td>${emp.departmentName || '-'}</td>
+                <td>
+                    <span class="badge bg-success">${emp.presentDays}</span>
+                    <span class="badge bg-danger">${emp.absentDays}</span>
+                </td>
+                <td>${emp.actualWorkedHours_Display}</td>
+                <td class="text-success">${emp.overtimeHours_Display}</td>
+                <td class="text-danger">${emp.lateTimeHours_Display}</td>
+                <td>${formatCurrency(emp.workedHoursSalary)}</td>
+                <td class="positive">+${formatCurrency(emp.overtimeAmount)}</td>
+                <td class="negative">-${formatCurrency(emp.lateTimeDeduction)}</td>
+                <td class="positive">+${formatCurrency(emp.bonuses)}</td>
+                <td class="negative">-${formatCurrency(emp.deductions)}</td>
+                <td class="negative">-${formatCurrency(emp.advances)}</td>
+                <td><strong>${formatCurrency(emp.netSalary)}</strong></td>
+                <td>
+                    <input type="number" class="form-control form-control-sm paid-input" 
+                           value="${emp.paidSalary}" data-id="${emp.id}" 
+                           onchange="updatePaidSalary(${emp.id}, this.value)">
+                </td>
+                <td class="text-center">
+                    <input type="checkbox" class="form-check-input" 
+                           ${emp.isPaid ? 'checked' : ''} data-id="${emp.id}"
+                           onchange="updatePaidStatus(${emp.id}, this.checked)">
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-info" onclick="showDetails(${index})" title="التفاصيل">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+
+        // Footer totals
+        document.getElementById('footTotalHours').textContent = formatHours(data.employees.reduce((sum, e) => sum + e.actualWorkedMinutes, 0));
+        document.getElementById('footOvertimeHours').textContent = formatHours(data.employees.reduce((sum, e) => sum + e.overtimeMinutes, 0));
+        document.getElementById('footLateHours').textContent = formatHours(data.employees.reduce((sum, e) => sum + e.lateTimeMinutes, 0));
+        document.getElementById('footWorkedSalary').textContent = formatCurrency(data.employees.reduce((sum, e) => sum + e.workedHoursSalary, 0));
+        document.getElementById('footOvertime').textContent = formatCurrency(data.totalOvertimeAmount);
+        document.getElementById('footLateTime').textContent = formatCurrency(data.totalLateTimeDeduction);
+        document.getElementById('footBonuses').textContent = formatCurrency(data.totalBonuses);
+        document.getElementById('footDeductions').textContent = formatCurrency(data.totalDeductions);
+        document.getElementById('footAdvances').textContent = formatCurrency(data.totalAdvances);
+        document.getElementById('footNetSalary').textContent = formatCurrency(data.totalNetSalaries);
+        document.getElementById('footPaidSalary').textContent = formatCurrency(data.totalPaidSalaries);
+    }
+
+    function showDetails(index) {
+        const emp = savedData.employees[index];
+        
+        const html = `
+            <div class="row g-3">
+                <!-- Employee Info -->
+                <div class="col-12">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary rounded-circle p-3 me-3">
+                            <i class="bi bi-person-fill text-white fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">${emp.employeeName}</h5>
+                            <small class="text-muted">${emp.employeeCode} | ${emp.departmentName || '-'}</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Attendance Summary -->
+                <div class="col-md-6">
+                    <div class="card bg-secondary h-100">
+                        <div class="card-header py-2">
+                            <i class="bi bi-calendar-check me-2"></i>الحضور
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <span class="badge bg-success fs-6">${emp.presentDays}</span>
+                                    <p class="mb-0 small">أيام الحضور</p>
+                                </div>
+                                <div class="col-6">
+                                    <span class="badge bg-danger fs-6">${emp.absentDays}</span>
+                                    <p class="mb-0 small">أيام الغياب</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Hours Summary -->
+                <div class="col-md-6">
+                    <div class="card bg-secondary h-100">
+                        <div class="card-header py-2">
+                            <i class="bi bi-clock me-2"></i>ساعات العمل
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <span class="badge bg-info fs-6">${emp.actualWorkedHours_Display}</span>
+                                    <p class="mb-0 small">العمل</p>
+                                </div>
+                                <div class="col-4">
+                                    <span class="badge bg-success fs-6">${emp.overtimeHours_Display}</span>
+                                    <p class="mb-0 small">إضافي</p>
+                                </div>
+                                <div class="col-4">
+                                    <span class="badge bg-danger fs-6">${emp.lateTimeHours_Display}</span>
+                                    <p class="mb-0 small">تأخير</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Salary Breakdown -->
+                <div class="col-12">
+                    <div class="card bg-secondary">
+                        <div class="card-header py-2">
+                            <i class="bi bi-wallet2 me-2"></i>تفاصيل الراتب
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-dark table-sm mb-0">
+                                <tbody>
+                                    <tr>
+                                        <td>الراتب الأساسي</td>
+                                        <td class="text-end">${formatCurrency(emp.baseSalary)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>سعر الساعة</td>
+                                        <td class="text-end">${formatCurrency(emp.salaryPerHour)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>راتب ساعات العمل</td>
+                                        <td class="text-end">${formatCurrency(emp.workedHoursSalary)}</td>
+                                    </tr>
+                                    <tr class="text-success">
+                                        <td>+ الساعات الإضافية</td>
+                                        <td class="text-end">+${formatCurrency(emp.overtimeAmount)}</td>
+                                    </tr>
+                                    <tr class="text-danger">
+                                        <td>- خصم التأخير</td>
+                                        <td class="text-end">-${formatCurrency(emp.lateTimeDeduction)}</td>
+                                    </tr>
+                                    <tr class="text-success">
+                                        <td>+ المكافآت</td>
+                                        <td class="text-end">+${formatCurrency(emp.bonuses)}</td>
+                                    </tr>
+                                    <tr class="text-danger">
+                                        <td>- الخصومات</td>
+                                        <td class="text-end">-${formatCurrency(emp.deductions)}</td>
+                                    </tr>
+                                    <tr class="text-warning">
+                                        <td>- السلف</td>
+                                        <td class="text-end">-${formatCurrency(emp.advances)}</td>
+                                    </tr>
+                                    <tr class="table-primary">
+                                        <td><strong>صافي الراتب</strong></td>
+                                        <td class="text-end"><strong>${formatCurrency(emp.netSalary)}</strong></td>
+                                    </tr>
+                                    <tr class="table-success">
+                                        <td><strong>المبلغ المدفوع</strong></td>
+                                        <td class="text-end"><strong>${formatCurrency(emp.paidSalary)}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>حالة الدفع</td>
+                                        <td class="text-end">
+                                            ${emp.isPaid ? '<span class="badge bg-success">تم الدفع</span>' : '<span class="badge bg-warning">لم يتم الدفع</span>'}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('employeeDetailsBody').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('employeeDetailsModal')).show();
+    }
+
+    async function updatePaidSalary(payRollId, newValue) {
+        const emp = savedData.employees.find(e => e.id === payRollId);
+        if (!emp) return;
+
+        try {
+            const response = await fetch('/PayRoll/UpdatePaid', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    payRollId: payRollId,
+                    paidSalary: parseFloat(newValue) || 0,
+                    isPaid: emp.isPaid
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                emp.paidSalary = parseFloat(newValue) || 0;
+                updateTotals();
+                showAlert('تم تحديث المبلغ المدفوع', 'success');
+            } else {
+                showAlert('حدث خطأ في التحديث', 'danger');
+            }
+        } catch (error) {
+            console.error('Error updating paid salary:', error);
+            showAlert('حدث خطأ في التحديث', 'danger');
+        }
+    }
+
+    async function updatePaidStatus(payRollId, isPaid) {
+        const emp = savedData.employees.find(e => e.id === payRollId);
+        if (!emp) return;
+
+        try {
+            const response = await fetch('/PayRoll/UpdatePaid', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    payRollId: payRollId,
+                    paidSalary: emp.paidSalary,
+                    isPaid: isPaid
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                emp.isPaid = isPaid;
+                updateCounts();
+                showAlert(isPaid ? 'تم تحديد كمدفوع' : 'تم إلغاء التحديد', 'success');
+            } else {
+                showAlert('حدث خطأ في التحديث', 'danger');
+            }
+        } catch (error) {
+            console.error('Error updating paid status:', error);
+            showAlert('حدث خطأ في التحديث', 'danger');
+        }
+    }
+
+    function updateTotals() {
+        const totalPaid = savedData.employees.reduce((sum, e) => sum + e.paidSalary, 0);
+        document.getElementById('totalPaidSalaries').textContent = formatCurrency(totalPaid);
+        document.getElementById('footPaidSalary').textContent = formatCurrency(totalPaid);
+        savedData.totalPaidSalaries = totalPaid;
+    }
+
+    function updateCounts() {
+        const paidCount = savedData.employees.filter(e => e.isPaid).length;
+        const unpaidCount = savedData.employees.filter(e => !e.isPaid).length;
+        document.getElementById('paidCount').textContent = paidCount;
+        document.getElementById('unpaidCount').textContent = unpaidCount;
+        savedData.paidCount = paidCount;
+        savedData.unpaidCount = unpaidCount;
+    }
+
+    async function deleteMonth() {
+        if (!savedData) return;
+
+        if (!confirm(`هل أنت متأكد من حذف بيانات رواتب ${savedData.monthName} ${savedData.year}؟\nسيتم حذف جميع البيانات ولن تتمكن من استعادتها.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/PayRoll/Delete?month=${savedData.month}&year=${savedData.year}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                showAlert('تم حذف بيانات الشهر بنجاح', 'success');
+                savedData = null;
+                document.getElementById('resultsSection').classList.add('d-none');
+                document.getElementById('noDataMessage').classList.remove('d-none');
+                document.getElementById('deleteBtn').disabled = true;
+                document.getElementById('printBtn').disabled = true;
+            } else {
+                showAlert(result.message || 'حدث خطأ في الحذف', 'danger');
+            }
+        } catch (error) {
+            console.error('Error deleting month:', error);
+            showAlert('حدث خطأ في الحذف', 'danger');
+        }
+    }
+
+    function printResults() {
+        if (!savedData) return;
+        
+        const data = savedData;
+        const tableRows = data.employees.map((emp, index) => `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${emp.employeeName}<br><small>${emp.employeeCode}</small></td>
+                <td>${emp.departmentName || '-'}</td>
+                <td>${emp.presentDays}/${emp.absentDays}</td>
+                <td>${emp.actualWorkedHours_Display}</td>
+                <td>${emp.overtimeHours_Display}</td>
+                <td>${emp.lateTimeHours_Display}</td>
+                <td>${formatCurrency(emp.workedHoursSalary)}</td>
+                <td>${formatCurrency(emp.overtimeAmount)}</td>
+                <td>${formatCurrency(emp.lateTimeDeduction)}</td>
+                <td>${formatCurrency(emp.bonuses)}</td>
+                <td>${formatCurrency(emp.deductions)}</td>
+                <td>${formatCurrency(emp.advances)}</td>
+                <td><strong>${formatCurrency(emp.netSalary)}</strong></td>
+                <td>${formatCurrency(emp.paidSalary)}</td>
+                <td>${emp.isPaid ? '✓' : '-'}</td>
+            </tr>
+        `).join('');
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html dir="rtl" lang="ar">
+            <head>
+                <meta charset="UTF-8">
+                <title>كشف رواتب ${data.monthName} ${data.year}</title>
+                <style>
+                    body { font-family: 'Cairo', sans-serif; padding: 20px; }
+                    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                    th, td { border: 1px solid #333; padding: 6px; text-align: center; }
+                    th { background: #333; color: white; }
+                    .header { text-align: center; margin-bottom: 20px; }
+                    .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #666; }
+                    @@media print { body { padding: 0; } }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h2>كشف الرواتب المحفوظ</h2>
+                    <p>${data.monthName} ${data.year} | أيام العمل: ${data.workingDays} | الإجازات: ${data.holidays}</p>
+                    <p>تاريخ الحفظ: ${data.dateSaved ? new Date(data.dateSaved).toLocaleDateString('ar-EG') : '-'}</p>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الموظف</th>
+                            <th>القسم</th>
+                            <th>حضور/غياب</th>
+                            <th>ساعات العمل</th>
+                            <th>إضافي</th>
+                            <th>تأخير</th>
+                            <th>راتب الساعات</th>
+                            <th>الإضافي</th>
+                            <th>التأخير</th>
+                            <th>المكافآت</th>
+                            <th>الخصومات</th>
+                            <th>السلف</th>
+                            <th>صافي الراتب</th>
+                            <th>المبلغ المدفوع</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tableRows}</tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3">الإجمالي</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>${formatCurrency(data.totalOvertimeAmount)}</td>
+                            <td>${formatCurrency(data.totalLateTimeDeduction)}</td>
+                            <td>${formatCurrency(data.totalBonuses)}</td>
+                            <td>${formatCurrency(data.totalDeductions)}</td>
+                            <td>${formatCurrency(data.totalAdvances)}</td>
+                            <td>${formatCurrency(data.totalNetSalaries)}</td>
+                            <td>${formatCurrency(data.totalPaidSalaries)}</td>
+                            <td>${data.paidCount}/${data.totalEmployees}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <div class="footer">
+                    تم الطباعة بتاريخ: ${new Date().toLocaleDateString('ar-EG')} - نظام إدارة الموارد البشرية
+                </div>
+            </body>
+            </html>
+        `);
+        
+        printWindow.document.close();
+        printWindow.onload = function() { printWindow.print(); };
+    }
+
+    function formatCurrency(value) {
+        return Number(value || 0).toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ج.م';
+    }
+
+    function formatHours(totalMinutes) {
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = Math.abs(totalMinutes % 60);
+        return `${hours}:${minutes.toString().padStart(2, '0')}`;
+    }
+
+    function showAlert(message, type) {
+        const container = document.getElementById('alertContainer');
+        const alertId = 'alert-' + Date.now();
+        
+        container.innerHTML = `
+            <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'exclamation-circle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) alert.remove();
+        }, 5000);
+    }
+
+    function printSalarySlips() {
+        if (!savedData) {
+            showAlert('يجب تحميل البيانات أولاً', 'warning');
+            return;
+        }
+
+        const data = savedData;
+        const printWindow = window.open('', '_blank');
+        
+        // Generate compact salary slips - 4 per A4 page
+        const slips = data.employees.map((emp, index) => `
+            <div class="salary-slip">
+                <div class="slip-header">
+                    <span class="title">إيصال راتب - ${data.monthName} ${data.year}</span>
+                    <span class="slip-num">#${index + 1}</span>
+                </div>
+                <div class="emp-row">
+                    <span><b>${emp.employeeName}</b> (${emp.employeeCode})</span>
+                    <span>${emp.departmentName || '-'} | حضور: ${emp.presentDays} يوم</span>
+                </div>
+                <table class="mini-table">
+                    <tr>
+                        <td class="lbl">الراتب الشهري</td><td class="val">${formatCurrency(emp.baseSalary)}</td>
+                        <td class="lbl">ساعات العمل</td><td class="val">${emp.actualWorkedHours_Display}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">ساعات إضافي</td><td class="val">${emp.overtimeHours_Display}</td>
+                        <td class="lbl">راتب إضافي</td><td class="val add">+${formatCurrency(emp.overtimeAmount)}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">ساعات تأخير</td><td class="val">${emp.lateTimeHours_Display}</td>
+                        <td class="lbl">خصم تأخير</td><td class="val ded">-${formatCurrency(emp.lateTimeDeduction)}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">مكافآت</td><td class="val add">+${formatCurrency(emp.bonuses)}</td>
+                        <td class="lbl">خصومات</td><td class="val ded">-${formatCurrency(emp.deductions)}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">المرتب المستحق</td><td class="val">${formatCurrency(emp.workedHoursSalary)}</td>
+                        <td class="lbl">سحوبات</td><td class="val ded">-${formatCurrency(emp.advances)}</td>
+                    </tr>
+                </table>
+                <div class="net-row">
+                    <span class="net-lbl">صافي:</span>
+                    <span class="net-val">${formatCurrency(emp.netSalary)}</span>
+                    <span class="paid-lbl">المدفوع:</span>
+                    <span class="paid-val">${formatCurrency(emp.paidSalary)}</span>
+                </div>
+                <div class="sign-row">
+                    <span>التوقيع: ..................</span>
+                    <span>${new Date().toLocaleDateString('ar-EG')}</span>
+                </div>
+            </div>
+        `).join('');
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html dir="rtl" lang="ar">
+            <head>
+                <meta charset="UTF-8">
+                <title>إيصالات الرواتب - ${data.monthName} ${data.year}</title>
+                <style>
+                    * { box-sizing: border-box; margin: 0; padding: 0; }
+                    body { 
+                        font-family: Arial, sans-serif; 
+                        font-size: 10px;
+                        direction: rtl;
+                        padding: 5px;
+                    }
+                    
+                    .salary-slip {
+                        width: 48%;
+                        float: right;
+                        margin: 0.5%;
+                        padding: 6px;
+                        border: 1px solid #000;
+                        background: #fff;
+                        page-break-inside: avoid;
+                        min-height: 180px;
+                    }
+                    
+                    .slip-header {
+                        display: flex;
+                        justify-content: space-between;
+                        border-bottom: 1px solid #333;
+                        padding-bottom: 3px;
+                        margin-bottom: 4px;
+                        font-weight: bold;
+                    }
+                    
+                    .title { font-size: 11px; }
+                    .slip-num { background: #333; color: #fff; padding: 1px 6px; border-radius: 3px; font-size: 9px; }
+                    
+                    .emp-row {
+                        display: flex;
+                        justify-content: space-between;
+                        background: #eee;
+                        padding: 3px 5px;
+                        margin-bottom: 4px;
+                        font-size: 9px;
+                    }
+                    
+                    .mini-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-bottom: 4px;
+                    }
+                    
+                    .mini-table td {
+                        padding: 2px 3px;
+                        border: 1px solid #ccc;
+                        font-size: 9px;
+                    }
+                    
+                    .lbl { background: #f5f5f5; width: 22%; }
+                    .val { width: 28%; text-align: left; font-weight: bold; }
+                    .add { color: #155724; }
+                    .ded { color: #721c24; }
+                    
+                    .net-row {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        background: #333;
+                        color: #fff;
+                        padding: 4px 6px;
+                        margin-bottom: 4px;
+                        font-size: 10px;
+                    }
+                    
+                    .net-lbl, .paid-lbl { font-weight: bold; }
+                    .net-val { color: #90EE90; font-weight: bold; font-size: 12px; }
+                    .paid-val { color: #87CEEB; font-weight: bold; font-size: 11px; }
+                    
+                    .sign-row {
+                        display: flex;
+                        justify-content: space-between;
+                        font-size: 8px;
+                        color: #666;
+                        border-top: 1px dashed #999;
+                        padding-top: 3px;
+                    }
+                    
+                    /* 4 slips per page (2x2) */
+                    .salary-slip:nth-child(4n+1) { clear: both; }
+                    
+                    @@media print {
+                        body { padding: 0; }
+                        .salary-slip { 
+                            border: 1px solid #000;
+                        }
+                        @@page {
+                            size: A4;
+                            margin: 5mm;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                ${slips}
+            </body>
+            </html>
+        `);
+        
+        printWindow.document.close();
+        printWindow.onload = function() { printWindow.print(); };
+    }
+</script>
+}

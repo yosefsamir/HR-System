@@ -1,0 +1,170 @@
+@model HR_system.ViewModels.DepartmentsIndexViewModel
+
+@{
+    ViewData["Title"] = "الأقسام";
+    ViewData["PageTitle"] = "إدارة الأقسام";
+    ViewData["PageIcon"] = "bi-building";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Add Department Card -->
+        <div class="col-lg-4 col-md-5 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        إضافة قسم جديد
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label asp-for="NewDepartment.Department_name" class="form-label">اسم القسم</label>
+                            <input asp-for="NewDepartment.Department_name" class="form-control" placeholder="أدخل اسم القسم" />
+                            <span asp-validation-for="NewDepartment.Department_name" class="text-danger"></span>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-plus-lg me-2"></i>
+                            إضافة القسم
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Departments List Card -->
+        <div class="col-lg-8 col-md-7 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-list-ul me-2"></i>
+                        قائمة الأقسام
+                    </h5>
+                    <span class="badge bg-primary">@Model.Departments.Count() قسم</span>
+                </div>
+                <div class="card-body p-0">
+                    @if (!Model.Departments.Any())
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-inbox display-1 text-muted"></i>
+                            <p class="text-muted mt-3">لا توجد أقسام حتى الآن</p>
+                            <p class="text-muted small">ابدأ بإضافة قسم جديد من النموذج المجاور</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;">#</th>
+                                        <th>اسم القسم</th>
+                                        <th style="width: 120px;">عدد الموظفين</th>
+                                        <th style="width: 150px;">الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{ int counter = 1; }
+                                    @foreach (var dept in Model.Departments)
+                                    {
+                                        <tr>
+                                            @if (Model.EditingDepartmentId == dept.Id)
+                                            {
+                                                <!-- Edit Mode -->
+                                                <td>@counter</td>
+                                                <td colspan="2">
+                                                    <form asp-action="Edit" asp-route-id="@dept.Id" method="post" class="d-flex gap-2">
+                                                        @Html.AntiForgeryToken()
+                                                        <input asp-for="EditDepartment!.Department_name" class="form-control form-control-sm" />
+                                                        <button type="submit" class="btn btn-success btn-sm">
+                                                            <i class="bi bi-check-lg"></i>
+                                                        </button>
+                                                        <a asp-action="Index" class="btn btn-secondary btn-sm">
+                                                            <i class="bi bi-x-lg"></i>
+                                                        </a>
+                                                    </form>
+                                                </td>
+                                                <td></td>
+                                            }
+                                            else
+                                            {
+                                                <!-- View Mode -->
+                                                <td>@counter</td>
+                                                <td>
+                                                    <i class="bi bi-building me-2 text-primary"></i>
+                                                    @dept.Department_name
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-secondary">
+                                                        <i class="bi bi-people me-1"></i>
+                                                        @dept.EmployeeCount
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a asp-action="Index" asp-route-editId="@dept.Id" 
+                                                           class="btn btn-outline-warning" title="تعديل">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </a>
+                                                        <button type="button" class="btn btn-outline-danger" 
+                                                                title="حذف"
+                                                                data-bs-toggle="modal" 
+                                                                data-bs-target="#deleteModal-@dept.Id">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+
+                                                    <!-- Delete Confirmation Modal -->
+                                                    <div class="modal fade" id="deleteModal-@dept.Id" tabindex="-1">
+                                                        <div class="modal-dialog modal-dialog-centered">
+                                                            <div class="modal-content bg-dark">
+                                                                <div class="modal-header border-secondary">
+                                                                    <h5 class="modal-title">
+                                                                        <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                                                                        تأكيد الحذف
+                                                                    </h5>
+                                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                                </div>
+                                                                <div class="modal-body">
+                                                                    <p>هل أنت متأكد من حذف قسم <strong>@dept.Department_name</strong>؟</p>
+                                                                    @if (dept.EmployeeCount > 0)
+                                                                    {
+                                                                        <div class="alert alert-warning">
+                                                                            <i class="bi bi-info-circle me-2"></i>
+                                                                            هذا القسم يحتوي على @dept.EmployeeCount موظف
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                                <div class="modal-footer border-secondary">
+                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                                                    <form asp-action="Delete" asp-route-id="@dept.Id" method="post" class="d-inline">
+                                                                        @Html.AntiForgeryToken()
+                                                                        <button type="submit" class="btn btn-danger">
+                                                                            <i class="bi bi-trash me-2"></i>
+                                                                            حذف
+                                                                        </button>
+                                                                    </form>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            }
+                                        </tr>
+                                        counter++;
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,606 @@
+@{
+    ViewData["Title"] = "حساب الرواتب";
+    ViewData["PageTitle"] = "حساب الرواتب الشهرية";
+    ViewData["PageIcon"] = "bi-calculator";
+}
+
+<style>
+    .param-card {
+        background: linear-gradient(145deg, #1a1d21, #212529);
+        border: 1px solid #333;
+    }
+    .result-card {
+        transition: all 0.3s ease;
+    }
+    .result-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+    }
+    .summary-box {
+        background: linear-gradient(145deg, #212529, #2c3034);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        text-align: center;
+    }
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    .employee-row {
+        transition: background 0.2s;
+    }
+    .employee-row:hover {
+        background: rgba(13, 110, 253, 0.1) !important;
+    }
+    .positive { color: #198754; }
+    .negative { color: #dc3545; }
+    .details-section {
+        background: #1a1d21;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-top: 0.5rem;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Parameters Card -->
+    <div class="card param-card mb-4">
+        <div class="card-header border-secondary">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-sliders me-2"></i>
+                إعدادات حساب الرواتب
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label">الشهر <span class="text-danger">*</span></label>
+                    <select id="monthSelect" class="form-select">
+                        <option value="1">يناير</option>
+                        <option value="2">فبراير</option>
+                        <option value="3">مارس</option>
+                        <option value="4">أبريل</option>
+                        <option value="5">مايو</option>
+                        <option value="6">يونيو</option>
+                        <option value="7">يوليو</option>
+                        <option value="8">أغسطس</option>
+                        <option value="9">سبتمبر</option>
+                        <option value="10">أكتوبر</option>
+                        <option value="11">نوفمبر</option>
+                        <option value="12">ديسمبر</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">السنة <span class="text-danger">*</span></label>
+                    <select id="yearSelect" class="form-select">
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">أيام العمل <span class="text-danger">*</span></label>
+                    <input type="number" id="workingDays" class="form-control" value="26" min="1" max="31" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">الإجازات الرسمية</label>
+                    <input type="number" id="holidays" class="form-control" value="0" min="0" max="10" />
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-primary w-100" id="calculateBtn">
+                        <i class="bi bi-calculator me-2"></i>
+                        حساب الرواتب
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-success w-100" id="saveBtn" disabled>
+                        <i class="bi bi-save me-2"></i>
+                        حفظ الرواتب
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Saved Warning -->
+            <div id="savedWarning" class="alert alert-warning mt-3 d-none">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>تنبيه:</strong> تم حفظ رواتب هذا الشهر من قبل. لا يمكن إعادة حسابها. 
+                <a href="/PayRoll/Saved" class="alert-link">اضغط هنا لعرض البيانات المحفوظة</a>
+                أو احذف البيانات أولاً لإعادة الحساب.
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    <!-- Loading -->
+    <div id="loadingMessage" class="text-center py-5 d-none">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">جاري الحساب...</span>
+        </div>
+        <p class="text-muted mt-3 fs-5">جاري حساب الرواتب...</p>
+    </div>
+
+    <!-- No Data Message -->
+    <div id="noDataMessage" class="text-center py-5">
+        <i class="bi bi-calculator display-1 text-muted"></i>
+        <p class="text-muted mt-3 fs-5">أدخل البيانات ثم اضغط "حساب الرواتب"</p>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="d-none">
+        <!-- Summary Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-2">
+                <div class="summary-box border border-primary">
+                    <i class="bi bi-people text-primary fs-4"></i>
+                    <div class="summary-value text-white" id="totalEmployees">0</div>
+                    <small class="text-muted">عدد الموظفين</small>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="summary-box border border-info">
+                    <i class="bi bi-cash-stack text-info fs-4"></i>
+                    <div class="summary-value text-white" id="totalBaseSalaries">0</div>
+                    <small class="text-muted">إجمالي الرواتب الأساسية</small>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="summary-box border border-success">
+                    <i class="bi bi-gift text-success fs-4"></i>
+                    <div class="summary-value text-success" id="totalBonuses">0</div>
+                    <small class="text-muted">إجمالي المكافآت</small>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="summary-box border border-danger">
+                    <i class="bi bi-dash-circle text-danger fs-4"></i>
+                    <div class="summary-value text-danger" id="totalDeductions">0</div>
+                    <small class="text-muted">إجمالي الخصومات</small>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="summary-box border border-warning">
+                    <i class="bi bi-cash text-warning fs-4"></i>
+                    <div class="summary-value text-warning" id="totalAdvances">0</div>
+                    <small class="text-muted">إجمالي السلف</small>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="summary-box border border-primary">
+                    <i class="bi bi-wallet2 text-primary fs-4"></i>
+                    <div class="summary-value text-primary" id="totalNetSalaries">0</div>
+                    <small class="text-muted">صافي الرواتب</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Period Info -->
+        <div class="alert alert-info d-flex align-items-center mb-4">
+            <i class="bi bi-info-circle me-2 fs-5"></i>
+            <div>
+                <strong>الفترة:</strong> <span id="periodDisplay">-</span>
+                <span class="mx-3">|</span>
+                <strong>أيام العمل:</strong> <span id="workingDaysDisplay">-</span>
+                <span class="mx-3">|</span>
+                <strong>الإجازات:</strong> <span id="holidaysDisplay">-</span>
+            </div>
+        </div>
+
+        <!-- Employees Table -->
+        <div class="card">
+            <div class="card-header border-secondary">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-table me-2"></i>
+                    تفاصيل الرواتب
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">#</th>
+                                <th>الموظف</th>
+                                <th>القسم</th>
+                                <th>الحضور</th>
+                                <th>ساعات العمل</th>
+                                <th>ساعات إضافية</th>
+                                <th>ساعات تأخير</th>
+                                <th>راتب ساعات العمل</th>
+                                <th>الإضافي</th>
+                                <th>التأخير</th>
+                                <th>المكافآت</th>
+                                <th>الخصومات</th>
+                                <th>السلف</th>
+                                <th>صافي الراتب</th>
+                                <th style="width: 50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeesTableBody">
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <td colspan="3"><strong>الإجمالي</strong></td>
+                                <td>-</td>
+                                <td id="footTotalHours">0</td>
+                                <td id="footOvertimeHours">0</td>
+                                <td id="footLateHours">0</td>
+                                <td id="footWorkedSalary">0</td>
+                                <td id="footOvertime">0</td>
+                                <td id="footLateTime">0</td>
+                                <td id="footBonuses">0</td>
+                                <td id="footDeductions">0</td>
+                                <td id="footAdvances">0</td>
+                                <td id="footNetSalary">0</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Employee Details Modal -->
+<div class="modal fade" id="employeeDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-lines-fill me-2"></i>
+                    تفاصيل راتب الموظف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="employeeDetailsBody">
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let salaryData = null;
+    const arabicMonths = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set current month and year
+        const now = new Date();
+        document.getElementById('monthSelect').value = now.getMonth() + 1;
+        
+        // Populate years
+        const yearSelect = document.getElementById('yearSelect');
+        for (let y = now.getFullYear(); y >= now.getFullYear() - 5; y--) {
+            const option = document.createElement('option');
+            option.value = y;
+            option.textContent = y;
+            yearSelect.appendChild(option);
+        }
+
+        // Event listeners
+        document.getElementById('calculateBtn').addEventListener('click', calculateSalaries);
+        document.getElementById('saveBtn').addEventListener('click', savePayRoll);
+        
+        // Check saved status when month/year changes
+        document.getElementById('monthSelect').addEventListener('change', checkSavedStatus);
+        document.getElementById('yearSelect').addEventListener('change', checkSavedStatus);
+        
+        // Check on load
+        checkSavedStatus();
+    });
+
+    async function checkSavedStatus() {
+        const month = parseInt(document.getElementById('monthSelect').value);
+        const year = parseInt(document.getElementById('yearSelect').value);
+        
+        try {
+            const response = await fetch(`/PayRoll/Check?month=${month}&year=${year}`);
+            const result = await response.json();
+            
+            const warning = document.getElementById('savedWarning');
+            const calculateBtn = document.getElementById('calculateBtn');
+            
+            if (result.exists) {
+                warning.classList.remove('d-none');
+                calculateBtn.disabled = true;
+                calculateBtn.classList.add('btn-secondary');
+                calculateBtn.classList.remove('btn-primary');
+            } else {
+                warning.classList.add('d-none');
+                calculateBtn.disabled = false;
+                calculateBtn.classList.remove('btn-secondary');
+                calculateBtn.classList.add('btn-primary');
+            }
+        } catch (error) {
+            console.error('Error checking saved status:', error);
+        }
+    }
+
+    async function calculateSalaries() {
+        const month = parseInt(document.getElementById('monthSelect').value);
+        const year = parseInt(document.getElementById('yearSelect').value);
+        const workingDays = parseInt(document.getElementById('workingDays').value);
+        const holidays = parseInt(document.getElementById('holidays').value) || 0;
+
+        if (workingDays <= 0 || workingDays > 31) {
+            showAlert('أيام العمل يجب أن تكون بين 1 و 31', 'danger');
+            return;
+        }
+
+        // Show loading
+        document.getElementById('noDataMessage').classList.add('d-none');
+        document.getElementById('resultsSection').classList.add('d-none');
+        document.getElementById('loadingMessage').classList.remove('d-none');
+        document.getElementById('savedWarning').classList.add('d-none');
+
+        try {
+            const response = await fetch('/PayRoll/Calculate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    month: month,
+                    year: year,
+                    workingDaysInMonth: workingDays,
+                    holidaysInMonth: holidays
+                })
+            });
+
+            const result = await response.json();
+            document.getElementById('loadingMessage').classList.add('d-none');
+
+            if (result.success) {
+                salaryData = result.data;
+                renderResults();
+                document.getElementById('resultsSection').classList.remove('d-none');
+                document.getElementById('saveBtn').disabled = false;
+            } else {
+                showAlert(result.message, 'danger');
+                document.getElementById('noDataMessage').classList.remove('d-none');
+            }
+        } catch (error) {
+            document.getElementById('loadingMessage').classList.add('d-none');
+            document.getElementById('noDataMessage').classList.remove('d-none');
+            showAlert('حدث خطأ في حساب الرواتب', 'danger');
+            console.error(error);
+        }
+    }
+
+    async function savePayRoll() {
+        if (!salaryData) {
+            showAlert('يجب حساب الرواتب أولاً', 'warning');
+            return;
+        }
+
+        const employees = salaryData.employees.map(emp => ({
+            employeeId: emp.employeeId,
+            paidSalary: Math.round(emp.netSalary),
+            isPaid: false
+        }));
+
+        const requestData = {
+            month: salaryData.month,
+            year: salaryData.year,
+            workingDaysInMonth: salaryData.workingDaysInMonth,
+            holidaysInMonth: salaryData.holidaysInMonth,
+            employees: employees
+        };
+
+        try {
+            const response = await fetch('/PayRoll/Save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert('تم حفظ بيانات الرواتب بنجاح', 'success');
+                document.getElementById('saveBtn').disabled = true;
+                checkSavedStatus();
+            } else {
+                showAlert(result.message || 'حدث خطأ أثناء الحفظ', 'danger');
+            }
+        } catch (error) {
+            console.error('Error saving payroll:', error);
+            showAlert('حدث خطأ أثناء الحفظ', 'danger');
+        }
+    }
+
+    function renderResults() {
+        const data = salaryData;
+
+        // Summary
+        document.getElementById('totalEmployees').textContent = data.totalEmployeesCount;
+        document.getElementById('totalBaseSalaries').textContent = formatCurrency(data.totalBaseSalaries);
+        document.getElementById('totalBonuses').textContent = formatCurrency(data.totalBonuses);
+        document.getElementById('totalDeductions').textContent = formatCurrency(data.totalDeductions);
+        document.getElementById('totalAdvances').textContent = formatCurrency(data.totalAdvances);
+        document.getElementById('totalNetSalaries').textContent = formatCurrency(data.totalNetSalaries);
+
+        // Period info
+        document.getElementById('periodDisplay').textContent = `${data.monthName} ${data.year}`;
+        document.getElementById('workingDaysDisplay').textContent = `${data.workingDaysInMonth} يوم`;
+        document.getElementById('holidaysDisplay').textContent = `${data.holidaysInMonth} يوم`;
+
+        // Table
+        const tbody = document.getElementById('employeesTableBody');
+        tbody.innerHTML = data.employees.map((emp, index) => `
+            <tr class="employee-row">
+                <td>${index + 1}</td>
+                <td>
+                    <strong>${emp.employeeName}</strong>
+                    <br><small class="text-muted">${emp.employeeCode}</small>
+                </td>
+                <td>${emp.departmentName || '-'}</td>
+                <td>
+                    <span class="badge bg-success">${emp.actualPresentDays}</span>
+                    <span class="badge bg-danger">${emp.absentDays}</span>
+                </td>
+                <td>${emp.actualWorkedHours_Display}</td>
+                <td class="text-success">${emp.overtimeHours_Display}</td>
+                <td class="text-danger">${emp.lateTimeHours_Display}</td>
+                <td>${formatCurrency(emp.workedHoursSalary)}</td>
+                <td class="positive">+${formatCurrency(emp.overtimeAmount)}</td>
+                <td class="negative">-${formatCurrency(emp.lateTimeDeduction)}</td>
+                <td class="positive">+${formatCurrency(emp.totalBonuses)}</td>
+                <td class="negative">-${formatCurrency(emp.totalDeductions)}</td>
+                <td class="negative">-${formatCurrency(emp.totalAdvances)}</td>
+                <td><strong>${formatCurrency(emp.netSalary)}</strong></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-info" onclick="showDetails(${index})" title="التفاصيل">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+
+        // Footer totals
+        document.getElementById('footWorkedSalary').textContent = formatCurrency(data.employees.reduce((sum, e) => sum + e.workedHoursSalary, 0));
+        document.getElementById('footTotalHours').textContent = data.totalWorkedHours_Display;
+        document.getElementById('footOvertimeHours').textContent = data.totalOvertimeHours_Display;
+        document.getElementById('footLateHours').textContent = data.totalLateTimeHours_Display;
+        document.getElementById('footOvertime').textContent = formatCurrency(data.totalOvertimeAmount);
+        document.getElementById('footLateTime').textContent = formatCurrency(data.totalLateTimeDeduction);
+        document.getElementById('footBonuses').textContent = formatCurrency(data.totalBonuses);
+        document.getElementById('footDeductions').textContent = formatCurrency(data.totalDeductions);
+        document.getElementById('footAdvances').textContent = formatCurrency(data.totalAdvances);
+        document.getElementById('footNetSalary').textContent = formatCurrency(data.totalNetSalaries);
+    }
+
+    function showDetails(index) {
+        const emp = salaryData.employees[index];
+        
+        const html = `
+            <div class="row g-3">
+                <!-- Employee Info -->
+                <div class="col-12">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary rounded-circle p-3 me-3">
+                            <i class="bi bi-person-fill text-white fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">${emp.employeeName}</h5>
+                            <small class="text-muted">${emp.employeeCode} | ${emp.departmentName || '-'} | ${emp.shiftName || '-'}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Salary Info -->
+                <div class="col-md-4">
+                    <div class="details-section">
+                        <h6 class="text-primary mb-3"><i class="bi bi-cash-stack me-2"></i>معلومات الراتب</h6>
+                        <p class="mb-1"><span class="text-muted">الراتب الأساسي (شهري):</span> <strong>${formatCurrency(emp.baseSalary)}</strong></p>
+                        <p class="mb-1"><span class="text-muted">الراتب بالساعة:</span> ${formatCurrency(emp.salaryPerHour)}</p>
+                        <p class="mb-0"><span class="text-muted">راتب ساعات العمل:</span> <span class="text-info">${formatCurrency(emp.workedHoursSalary)}</span></p>
+                    </div>
+                </div>
+
+                <!-- Attendance -->
+                <div class="col-md-4">
+                    <div class="details-section">
+                        <h6 class="text-success mb-3"><i class="bi bi-calendar-check me-2"></i>الحضور</h6>
+                        <p class="mb-1"><span class="text-muted">أيام الحضور:</span> <strong>${emp.actualPresentDays}</strong></p>
+                        <p class="mb-1"><span class="text-muted">أيام الغياب:</span> <span class="text-danger">${emp.absentDays}</span></p>
+                        <p class="mb-0"><span class="text-muted">ساعات العمل:</span> ${emp.actualWorkedHours_Display}</p>
+                    </div>
+                </div>
+
+                <!-- Time Difference -->
+                <div class="col-md-4">
+                    <div class="details-section">
+                        <h6 class="text-warning mb-3"><i class="bi bi-clock me-2"></i>الوقت الإضافي/التأخير</h6>
+                        <p class="mb-1"><span class="text-muted">الإضافي:</span> <span class="text-success">${emp.overtimeHours_Display} (×${emp.overtimeMultiplier})</span></p>
+                        <p class="mb-1"><span class="text-muted">التأخير:</span> <span class="text-danger">${emp.lateTimeHours_Display} (×${emp.lateTimeMultiplier})</span></p>
+                        <p class="mb-0"><span class="text-muted">الأذونات:</span> ${Math.round(emp.permissionMinutes)} دقيقة</p>
+                    </div>
+                </div>
+
+                <!-- Financial Details -->
+                <div class="col-12">
+                    <div class="details-section">
+                        <h6 class="text-info mb-3"><i class="bi bi-wallet2 me-2"></i>التفاصيل المالية</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-sm table-dark mb-0">
+                                    <tr class="text-info">
+                                        <td>راتب ساعات العمل</td>
+                                        <td class="text-end">${formatCurrency(emp.workedHoursSalary)}</td>
+                                    </tr>
+                                    <tr class="text-success">
+                                        <td>مكافأة الإضافي</td>
+                                        <td class="text-end">+${formatCurrency(emp.overtimeAmount)}</td>
+                                    </tr>
+                                    <tr class="text-success">
+                                        <td>المكافآت</td>
+                                        <td class="text-end">+${formatCurrency(emp.totalBonuses)}</td>
+                                    </tr>
+                                    <tr class="table-success">
+                                        <td><strong>إجمالي الإضافات</strong></td>
+                                        <td class="text-end"><strong>+${formatCurrency(emp.overtimeAmount + emp.totalBonuses)}</strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-sm table-dark mb-0">
+                                    <tr class="text-danger">
+                                        <td>خصم التأخير</td>
+                                        <td class="text-end">-${formatCurrency(emp.lateTimeDeduction)}</td>
+                                    </tr>
+                                    <tr class="text-danger">
+                                        <td>الخصومات</td>
+                                        <td class="text-end">-${formatCurrency(emp.totalDeductions)}</td>
+                                    </tr>
+                                    <tr class="text-warning">
+                                        <td>السلف</td>
+                                        <td class="text-end">-${formatCurrency(emp.totalAdvances)}</td>
+                                    </tr>
+                                    <tr class="table-danger">
+                                        <td><strong>إجمالي الخصومات</strong></td>
+                                        <td class="text-end"><strong>-${formatCurrency(emp.totalDeductionsAmount)}</strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Net Salary -->
+                <div class="col-12">
+                    <div class="alert alert-primary d-flex justify-content-between align-items-center mb-0">
+                        <span class="fs-5">صافي الراتب</span>
+                        <span class="fs-3 fw-bold">${formatCurrency(emp.netSalary)}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('employeeDetailsBody').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('employeeDetailsModal')).show();
+    }
+
+    function formatCurrency(value) {
+        return Number(value || 0).toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ج.م';
+    }
+
+    function showAlert(message, type) {
+        const container = document.getElementById('alertContainer');
+        const alertId = 'alert-' + Date.now();
+        
+        container.innerHTML = `
+            <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) alert.remove();
+        }, 5000);
+    }
+</script>
+}

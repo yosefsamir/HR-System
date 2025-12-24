@@ -1,0 +1,992 @@
+@{
+    ViewData["Title"] = "ملخص الحضور الشهري";
+    ViewData["PageTitle"] = "ملخص الحضور الشهري";
+    ViewData["PageIcon"] = "bi-graph-up";
+}
+
+<style>
+    .autocomplete-container {
+        position: relative;
+    }
+    .autocomplete-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1050;
+        max-height: 250px;
+        overflow-y: auto;
+        background: #212529;
+        border: 1px solid #495057;
+        border-radius: 0.375rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
+        display: none;
+    }
+    .autocomplete-results.show {
+        display: block;
+    }
+    .autocomplete-item {
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid #495057;
+        transition: background 0.15s;
+    }
+    .autocomplete-item:last-child {
+        border-bottom: none;
+    }
+    .autocomplete-item:hover,
+    .autocomplete-item.active {
+        background: #0d6efd;
+        color: white;
+    }
+    .autocomplete-item .employee-code {
+        font-size: 0.8rem;
+        opacity: 0.7;
+    }
+    .stat-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3) !important;
+    }
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+    }
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+    .progress-bar-animated {
+        animation: progress-bar-stripes 1s linear infinite;
+    }
+    .summary-section {
+        border-right: 4px solid;
+        padding-right: 1rem;
+    }
+    .summary-section.primary { border-color: #0d6efd; }
+    .summary-section.success { border-color: #198754; }
+    .summary-section.warning { border-color: #ffc107; }
+    .summary-section.danger { border-color: #dc3545; }
+    .summary-section.info { border-color: #0dcaf0; }
+</style>
+
+<div class="container-fluid">
+    <!-- Filter Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-funnel me-2"></i>
+                اختيار الموظف والفترة
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">الموظف <span class="text-danger">*</span></label>
+                    <div class="autocomplete-container">
+                        <input type="hidden" id="employeeId" />
+                        <input type="text" id="employeeSearch" class="form-control form-control-lg" 
+                               placeholder="ابحث عن موظف بالاسم أو الكود..." autocomplete="off" />
+                        <div id="employeeResults" class="autocomplete-results"></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الشهر</label>
+                    <select id="monthSelect" class="form-select form-select-lg">
+                        <option value="1">يناير</option>
+                        <option value="2">فبراير</option>
+                        <option value="3">مارس</option>
+                        <option value="4">أبريل</option>
+                        <option value="5">مايو</option>
+                        <option value="6">يونيو</option>
+                        <option value="7">يوليو</option>
+                        <option value="8">أغسطس</option>
+                        <option value="9">سبتمبر</option>
+                        <option value="10">أكتوبر</option>
+                        <option value="11">نوفمبر</option>
+                        <option value="12">ديسمبر</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">السنة</label>
+                    <select id="yearSelect" class="form-select form-select-lg">
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-primary btn-lg w-100" id="loadSummaryBtn">
+                        <i class="bi bi-bar-chart me-2"></i>
+                        عرض الملخص
+                    </button>
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-outline-secondary btn-lg w-100" id="printBtn" disabled title="طباعة">
+                        <i class="bi bi-printer"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    <!-- Loading -->
+    <div id="loadingMessage" class="text-center py-5 d-none">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">جاري التحميل...</span>
+        </div>
+        <p class="text-muted mt-3 fs-5">جاري تحميل البيانات...</p>
+    </div>
+
+    <!-- No Data Message -->
+    <div id="noDataMessage" class="text-center py-5">
+        <i class="bi bi-person-lines-fill display-1 text-muted"></i>
+        <p class="text-muted mt-3 fs-5">اختر موظف وشهر ثم اضغط "عرض الملخص"</p>
+    </div>
+
+    <!-- Summary Content (Hidden by default) -->
+    <div id="summaryContent" class="d-none">
+        <!-- Employee Header -->
+        <div class="card mb-4 border-primary">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <div class="avatar bg-primary rounded-circle p-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-person-fill text-white" style="font-size: 2.5rem;"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <h3 class="mb-1" id="empName">-</h3>
+                        <div class="row">
+                            <div class="col-auto">
+                                <span class="badge bg-dark fs-6" id="empCode">-</span>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-diagram-3 me-1"></i>
+                                <span id="empDept">-</span>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-clock me-1"></i>
+                                <span id="empShift">-</span>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-wallet2 me-1"></i>
+                                <span id="empSalary">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto text-end">
+                        <h4 class="text-muted mb-0" id="periodDisplay">-</h4>
+                        <span class="badge fs-5 mt-2" id="performanceBadge">-</span>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-outline-info btn-sm" id="viewDetailsBtn" data-bs-toggle="modal" data-bs-target="#attendanceDetailsModal">
+                                <i class="bi bi-list-ul me-1"></i>
+                                عرض التفاصيل
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Stats Cards -->
+        <div class="row g-4 mb-4">
+            <!-- Attendance Rate -->
+            <div class="col-md-3">
+                <div class="card stat-card h-100 border-0 shadow">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <p class="stat-label text-muted mb-1">نسبة الحضور</p>
+                                <h2 class="stat-value text-primary mb-0" id="attendanceRate">0%</h2>
+                            </div>
+                            <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                                <i class="bi bi-pie-chart-fill"></i>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height: 8px;">
+                            <div class="progress-bar bg-primary" id="attendanceRateBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Present Days -->
+            <div class="col-md-3">
+                <div class="card stat-card h-100 border-0 shadow">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <p class="stat-label text-muted mb-1">أيام الحضور</p>
+                                <h2 class="stat-value text-success mb-0"><span id="presentDays">0</span> <small class="fs-6">يوم</small></h2>
+                            </div>
+                            <div class="stat-icon bg-success bg-opacity-10 text-success">
+                                <i class="bi bi-calendar-check-fill"></i>
+                            </div>
+                        </div>
+                        <small class="text-muted">من أصل <span id="workingDays">0</span> يوم عمل</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Absent Days -->
+            <div class="col-md-3">
+                <div class="card stat-card h-100 border-0 shadow">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <p class="stat-label text-muted mb-1">أيام الغياب</p>
+                                <h2 class="stat-value text-danger mb-0"><span id="absentDays">0</span> <small class="fs-6">يوم</small></h2>
+                            </div>
+                            <div class="stat-icon bg-danger bg-opacity-10 text-danger">
+                                <i class="bi bi-calendar-x-fill"></i>
+                            </div>
+                        </div>
+                        <small class="text-muted">غير مكتمل: <span id="incompleteDays">0</span> يوم</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Work Efficiency -->
+            <div class="col-md-3">
+                <div class="card stat-card h-100 border-0 shadow">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <p class="stat-label text-muted mb-1">كفاءة العمل</p>
+                                <h2 class="stat-value text-info mb-0" id="workEfficiency">0%</h2>
+                            </div>
+                            <div class="stat-icon bg-info bg-opacity-10 text-info">
+                                <i class="bi bi-speedometer2"></i>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height: 8px;">
+                            <div class="progress-bar bg-info" id="workEfficiencyBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hours Summary -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow">
+                    <div class="card-header bg-transparent border-0">
+                        <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>ملخص الساعات</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="summary-section primary">
+                                    <small class="text-muted d-block">ساعات العمل الفعلية</small>
+                                    <h4 class="mb-0" id="totalWorkedHours">0h 0m</h4>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="summary-section info">
+                                    <small class="text-muted d-block">الساعات المتوقعة</small>
+                                    <h4 class="mb-0" id="expectedHours">0h 0m</h4>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="summary-section success">
+                                    <small class="text-muted d-block">ساعات إضافية</small>
+                                    <h4 class="mb-0 text-success" id="overtimeHours">0h 0m</h4>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="summary-section warning">
+                                    <small class="text-muted d-block">ساعات تأخير</small>
+                                    <h4 class="mb-0 text-warning" id="lateHours">0h 0m</h4>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="summary-section danger">
+                                    <small class="text-muted d-block">ساعات الإذن</small>
+                                    <h4 class="mb-0 text-muted" id="permissionHours">0h 0m</h4>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="summary-section primary">
+                                    <small class="text-muted d-block">صافي الساعات</small>
+                                    <h4 class="mb-0 text-primary" id="netHours">0h 0m</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow">
+                    <div class="card-header bg-transparent border-0">
+                        <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>إحصائيات التواجد</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="summary-section success">
+                                    <small class="text-muted d-block">حضور في الوقت</small>
+                                    <h4 class="mb-0"><span id="onTimeCount">0</span> <small>يوم</small></h4>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="summary-section info">
+                                    <small class="text-muted d-block">حضور مبكر</small>
+                                    <h4 class="mb-0"><span id="earlyCount">0</span> <small>يوم</small></h4>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="summary-section warning">
+                                    <small class="text-muted d-block">أيام التأخير</small>
+                                    <h4 class="mb-0"><span id="lateDaysCount">0</span> <small>يوم</small></h4>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="summary-section success">
+                                    <small class="text-muted d-block">أيام الإضافي</small>
+                                    <h4 class="mb-0"><span id="overtimeDaysCount">0</span> <small>يوم</small></h4>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="summary-section danger">
+                                    <small class="text-muted d-block">انصراف مبكر</small>
+                                    <h4 class="mb-0"><span id="earlyLeaveCount">0</span> <small>يوم</small></h4>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="summary-section primary">
+                                    <small class="text-muted d-block">متوسط العمل اليومي</small>
+                                    <h4 class="mb-0" id="avgDailyHours">0h 0m</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visual Charts Row -->
+        <div class="row g-4 mb-4">
+            <!-- Attendance Breakdown -->
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow">
+                    <div class="card-header bg-transparent border-0">
+                        <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>توزيع أيام الشهر</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-center mb-3">
+                            <div class="position-relative" style="width: 200px; height: 200px;">
+                                <svg viewBox="0 0 36 36" class="circular-chart">
+                                    <path class="circle-bg" 
+                                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                          fill="none" stroke="#2d3238" stroke-width="3"/>
+                                    <path id="presentArc" class="circle" 
+                                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                          fill="none" stroke="#198754" stroke-width="3" stroke-dasharray="0, 100"/>
+                                    <path id="absentArc" class="circle" 
+                                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                          fill="none" stroke="#dc3545" stroke-width="3" stroke-dasharray="0, 100" stroke-dashoffset="-0"/>
+                                </svg>
+                                <div class="position-absolute top-50 start-50 translate-middle text-center">
+                                    <h3 class="mb-0" id="chartTotal">0</h3>
+                                    <small class="text-muted">يوم</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row text-center">
+                            <div class="col">
+                                <span class="badge bg-success fs-6"><i class="bi bi-circle-fill me-1"></i> حضور</span>
+                                <h4 id="chartPresent">0</h4>
+                            </div>
+                            <div class="col">
+                                <span class="badge bg-danger fs-6"><i class="bi bi-circle-fill me-1"></i> غياب</span>
+                                <h4 id="chartAbsent">0</h4>
+                            </div>
+                            <div class="col">
+                                <span class="badge bg-secondary fs-6"><i class="bi bi-circle-fill me-1"></i> متبقي</span>
+                                <h4 id="chartRemaining">0</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Time Distribution -->
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow">
+                    <div class="card-header bg-transparent border-0">
+                        <h5 class="mb-0"><i class="bi bi-clock me-2"></i>توزيع الساعات</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>العمل الفعلي</span>
+                                <span id="workedPercent">0%</span>
+                            </div>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-primary progress-bar-striped" id="workedBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>الإضافي</span>
+                                <span id="overtimePercent">0%</span>
+                            </div>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-success progress-bar-striped" id="overtimeBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>التأخير</span>
+                                <span id="latePercent">0%</span>
+                            </div>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-warning progress-bar-striped" id="lateBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-0">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>الأذونات</span>
+                                <span id="permissionPercent">0%</span>
+                            </div>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-secondary progress-bar-striped" id="permissionBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Details Modal -->
+<div class="modal fade" id="attendanceDetailsModal" tabindex="-1" aria-labelledby="attendanceDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="attendanceDetailsModalLabel">
+                    <i class="bi bi-calendar-check me-2"></i>
+                    تفاصيل الحضور
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalEmployeeInfo" class="mb-3 p-3 bg-secondary bg-opacity-25 rounded">
+                    <strong id="modalEmpName">-</strong>
+                    <span class="text-muted mx-2">|</span>
+                    <span id="modalPeriod">-</span>
+                </div>
+                
+                <div id="modalLoading" class="text-center py-4 d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                </div>
+                
+                <div id="modalNoData" class="text-center py-4 d-none">
+                    <i class="bi bi-inbox display-4 text-muted"></i>
+                    <p class="text-muted mt-2">لا توجد سجلات حضور</p>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover" id="attendanceDetailsTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>التاريخ</th>
+                                <th>اليوم</th>
+                                <th>وقت الحضور</th>
+                                <th>وقت الانصراف</th>
+                                <th>ساعات العمل</th>
+                                <th>التأخير</th>
+                                <th>الإضافي</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceDetailsBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-info" id="printDetailsBtn">
+                    <i class="bi bi-printer me-1"></i>
+                    طباعة PDF
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>
+                    إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const baseUrl = '/Attendence';
+    let allEmployees = [];
+    let currentSummary = null;
+
+    document.addEventListener('DOMContentLoaded', async function() {
+        // Set current month and year
+        const now = new Date();
+        document.getElementById('monthSelect').value = now.getMonth() + 1;
+        
+        // Populate years
+        const yearSelect = document.getElementById('yearSelect');
+        for (let y = now.getFullYear(); y >= now.getFullYear() - 5; y--) {
+            const option = document.createElement('option');
+            option.value = y;
+            option.textContent = y;
+            yearSelect.appendChild(option);
+        }
+
+        // Load employees
+        await loadEmployees();
+
+        // Setup autocomplete
+        setupAutocomplete('employeeSearch', 'employeeResults', 'employeeId');
+
+        // Event listeners
+        document.getElementById('loadSummaryBtn').addEventListener('click', loadSummary);
+        document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+        // Close autocomplete when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.autocomplete-container')) {
+                document.querySelectorAll('.autocomplete-results').forEach(r => r.classList.remove('show'));
+            }
+        });
+    });
+
+    async function loadEmployees() {
+        try {
+            const response = await fetch(`${baseUrl}/GetEmployees`);
+            const result = await response.json();
+            if (result.success) {
+                allEmployees = result.data;
+            }
+        } catch (error) {
+            console.error('Error loading employees:', error);
+        }
+    }
+
+    function setupAutocomplete(inputId, resultsId, hiddenId) {
+        const input = document.getElementById(inputId);
+        const results = document.getElementById(resultsId);
+        const hidden = document.getElementById(hiddenId);
+        let activeIndex = -1;
+
+        input.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            activeIndex = -1;
+            hidden.value = '';
+            
+            if (query.length < 1) {
+                results.classList.remove('show');
+                return;
+            }
+
+            const filtered = allEmployees.filter(emp => 
+                emp.name.toLowerCase().includes(query) || 
+                emp.code.toLowerCase().includes(query)
+            );
+
+            if (filtered.length === 0) {
+                results.innerHTML = '<div class="autocomplete-item text-muted">لا توجد نتائج</div>';
+            } else {
+                results.innerHTML = filtered.map((emp, idx) => `
+                    <div class="autocomplete-item" data-id="${emp.id}" data-name="${emp.name}" data-code="${emp.code}">
+                        <div><strong>${emp.name}</strong></div>
+                        <div class="employee-code">${emp.code}</div>
+                    </div>
+                `).join('');
+            }
+            
+            results.classList.add('show');
+
+            results.querySelectorAll('.autocomplete-item[data-id]').forEach(item => {
+                item.addEventListener('click', function() {
+                    hidden.value = this.dataset.id;
+                    input.value = `${this.dataset.code} - ${this.dataset.name}`;
+                    results.classList.remove('show');
+                });
+            });
+        });
+
+        input.addEventListener('keydown', function(e) {
+            const items = results.querySelectorAll('.autocomplete-item[data-id]');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeIndex = Math.min(activeIndex + 1, items.length - 1);
+                items.forEach((item, idx) => item.classList.toggle('active', idx === activeIndex));
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeIndex = Math.max(activeIndex - 1, 0);
+                items.forEach((item, idx) => item.classList.toggle('active', idx === activeIndex));
+            } else if (e.key === 'Enter' && activeIndex >= 0 && items[activeIndex]) {
+                e.preventDefault();
+                items[activeIndex].click();
+            } else if (e.key === 'Escape') {
+                results.classList.remove('show');
+            }
+        });
+    }
+
+    async function loadSummary() {
+        const employeeId = document.getElementById('employeeId').value;
+        const month = document.getElementById('monthSelect').value;
+        const year = document.getElementById('yearSelect').value;
+
+        if (!employeeId) {
+            showAlert('الرجاء اختيار موظف', 'danger');
+            return;
+        }
+
+        // Show loading
+        document.getElementById('noDataMessage').classList.add('d-none');
+        document.getElementById('summaryContent').classList.add('d-none');
+        document.getElementById('loadingMessage').classList.remove('d-none');
+
+        try {
+            const response = await fetch(`${baseUrl}/GetSummary?employeeId=${employeeId}&month=${month}&year=${year}`);
+            const result = await response.json();
+
+            document.getElementById('loadingMessage').classList.add('d-none');
+
+            if (result.success) {
+                currentSummary = result.data;
+                renderSummary();
+                document.getElementById('summaryContent').classList.remove('d-none');
+                document.getElementById('printBtn').disabled = false;
+            } else {
+                showAlert(result.message, 'danger');
+                document.getElementById('noDataMessage').classList.remove('d-none');
+            }
+        } catch (error) {
+            document.getElementById('loadingMessage').classList.add('d-none');
+            document.getElementById('noDataMessage').classList.remove('d-none');
+            showAlert('حدث خطأ في تحميل البيانات', 'danger');
+            console.error(error);
+        }
+    }
+
+    function renderSummary() {
+        const s = currentSummary;
+
+        // Employee Header
+        document.getElementById('empName').textContent = s.employee_name;
+        document.getElementById('empCode').textContent = s.employee_code;
+        document.getElementById('empDept').textContent = s.department_name || 'غير محدد';
+        document.getElementById('empShift').textContent = s.shift_name || 'غير محدد';
+        document.getElementById('empSalary').textContent = s.salary.toLocaleString() + 'ج.م';
+        document.getElementById('periodDisplay').textContent = `${s.monthName} ${s.year}`;
+        
+        const perfBadge = document.getElementById('performanceBadge');
+        perfBadge.textContent = s.performanceStatus;
+        perfBadge.className = `badge fs-5 mt-2 ${s.performanceBadgeClass}`;
+
+        // Main Stats
+        document.getElementById('attendanceRate').textContent = s.attendanceRate + '%';
+        document.getElementById('attendanceRateBar').style.width = s.attendanceRate + '%';
+        document.getElementById('presentDays').textContent = s.totalPresentDays;
+        document.getElementById('workingDays').textContent = s.totalWorkingDays;
+        document.getElementById('absentDays').textContent = s.totalAbsentDays;
+        document.getElementById('incompleteDays').textContent = s.totalIncompleteDays;
+        document.getElementById('workEfficiency').textContent = s.workEfficiency + '%';
+        document.getElementById('workEfficiencyBar').style.width = Math.min(s.workEfficiency, 100) + '%';
+
+        // Hours Summary
+        document.getElementById('totalWorkedHours').textContent = s.totalWorkedHours_Display;
+        document.getElementById('expectedHours').textContent = s.expectedWorkHours_Display;
+        document.getElementById('overtimeHours').textContent = s.totalOvertimeHours_Display;
+        document.getElementById('lateHours').textContent = s.totalLateHours_Display;
+        document.getElementById('permissionHours').textContent = s.totalPermissionHours_Display;
+        document.getElementById('netHours').textContent = s.netWorkedHours_Display;
+
+        // Statistics
+        document.getElementById('onTimeCount').textContent = s.onTimeArrivals;
+        document.getElementById('earlyCount').textContent = s.earlyArrivals;
+        document.getElementById('lateDaysCount').textContent = s.lateDaysCount;
+        document.getElementById('overtimeDaysCount').textContent = s.overtimeDaysCount;
+        document.getElementById('earlyLeaveCount').textContent = s.earlyLeaveDaysCount;
+        document.getElementById('avgDailyHours').textContent = s.averageWorkedHoursPerDay_Display;
+
+        // Chart - Days breakdown
+        const totalRecordedDays = s.totalPresentDays + s.totalAbsentDays;
+        const presentPercent = s.totalWorkingDays > 0 ? (s.totalPresentDays / s.totalWorkingDays * 100) : 0;
+        const absentPercent = s.totalWorkingDays > 0 ? (s.totalAbsentDays / s.totalWorkingDays * 100) : 0;
+        const remainingDays = Math.max(0, s.totalWorkingDays - totalRecordedDays);
+        
+        document.getElementById('presentArc').setAttribute('stroke-dasharray', `${presentPercent}, 100`);
+        document.getElementById('absentArc').setAttribute('stroke-dasharray', `${absentPercent}, 100`);
+        document.getElementById('absentArc').setAttribute('stroke-dashoffset', `-${presentPercent}`);
+        
+        document.getElementById('chartTotal').textContent = s.totalWorkingDays;
+        document.getElementById('chartPresent').textContent = s.totalPresentDays;
+        document.getElementById('chartAbsent').textContent = s.totalAbsentDays;
+        document.getElementById('chartRemaining').textContent = remainingDays;
+
+        // Hours Progress Bars
+        const expectedMinutes = s.expectedWorkMinutes || 1;
+        const workedPct = Math.min(100, (s.totalWorkedMinutes / expectedMinutes) * 100).toFixed(1);
+        const overtimePct = Math.min(100, (s.totalOvertimeMinutes / expectedMinutes) * 100).toFixed(1);
+        const latePct = Math.min(100, (s.totalLateMinutes / expectedMinutes) * 100).toFixed(1);
+        const permPct = Math.min(100, (s.totalPermissionMinutes / expectedMinutes) * 100).toFixed(1);
+
+        document.getElementById('workedPercent').textContent = workedPct + '%';
+        document.getElementById('workedBar').style.width = workedPct + '%';
+        document.getElementById('overtimePercent').textContent = overtimePct + '%';
+        document.getElementById('overtimeBar').style.width = Math.min(overtimePct * 5, 100) + '%'; // Scale for visibility
+        document.getElementById('latePercent').textContent = latePct + '%';
+        document.getElementById('lateBar').style.width = Math.min(latePct * 5, 100) + '%';
+        document.getElementById('permissionPercent').textContent = permPct + '%';
+        document.getElementById('permissionBar').style.width = Math.min(permPct * 5, 100) + '%';
+    }
+
+    function showAlert(message, type) {
+        const container = document.getElementById('alertContainer');
+        const alertId = 'alert-' + Date.now();
+        
+        container.innerHTML = `
+            <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) alert.remove();
+        }, 5000);
+    }
+
+    // Load attendance details when modal opens
+    document.getElementById('attendanceDetailsModal').addEventListener('show.bs.modal', async function() {
+        const employeeId = document.getElementById('employeeId').value;
+        const month = parseInt(document.getElementById('monthSelect').value);
+        const year = parseInt(document.getElementById('yearSelect').value);
+        
+        if (!employeeId || !currentSummary) return;
+        
+        // Update modal header info
+        document.getElementById('modalEmpName').textContent = currentSummary.employee_name;
+        document.getElementById('modalPeriod').textContent = `${currentSummary.monthName} ${currentSummary.year}`;
+        
+        // Show loading
+        document.getElementById('modalLoading').classList.remove('d-none');
+        document.getElementById('modalNoData').classList.add('d-none');
+        document.getElementById('attendanceDetailsBody').innerHTML = '';
+        
+        try {
+            // Calculate start and end dates for the month
+            const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+            const lastDay = new Date(year, month, 0).getDate();
+            const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
+            
+            const response = await fetch(`${baseUrl}/GetAll?employeeId=${employeeId}&startDate=${startDate}&endDate=${endDate}`);
+            const result = await response.json();
+            
+            document.getElementById('modalLoading').classList.add('d-none');
+            
+            if (result.success && result.data && result.data.length > 0) {
+                const tbody = document.getElementById('attendanceDetailsBody');
+                const arabicDays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+                
+                tbody.innerHTML = result.data.map((record, index) => {
+                    const date = new Date(record.work_date);
+                    const dayName = arabicDays[date.getDay()];
+                    
+                    // Format times
+                    const checkIn = record.check_In_time ? formatTime(record.check_In_time) : '-';
+                    const checkOut = record.check_out_time ? formatTime(record.check_out_time) : '-';
+                    
+                    // Calculate status
+                    let statusBadge = '';
+                    if (record.is_Absent) {
+                        statusBadge = '<span class="badge bg-danger">غائب</span>';
+                    } else if (!record.check_out_time) {
+                        statusBadge = '<span class="badge bg-warning">غير مكتمل</span>';
+                    } else if (record.lateTime_minutes > 0) {
+                        statusBadge = '<span class="badge bg-warning">متأخر</span>';
+                    } else {
+                        statusBadge = '<span class="badge bg-success">حاضر</span>';
+                    }
+                    
+                    // Format hours
+                    const workedHours = record.worked_minutes ? formatMinutes(record.worked_minutes) : '-';
+                    const lateMinutes = record.lateTime_minutes > 0 ? `<span class="text-warning">${formatMinutes(record.lateTime_minutes)}</span>` : '-';
+                    const overtimeMinutes = record.overTime_minutes > 0 ? `<span class="text-success">${formatMinutes(record.overTime_minutes)}</span>` : '-';
+                    
+                    return `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${date.toLocaleDateString('ar-EG')}</td>
+                            <td>${dayName}</td>
+                            <td>${checkIn}</td>
+                            <td>${checkOut}</td>
+                            <td>${workedHours}</td>
+                            <td>${lateMinutes}</td>
+                            <td>${overtimeMinutes}</td>
+                            <td>${statusBadge}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                document.getElementById('modalNoData').classList.remove('d-none');
+            }
+        } catch (error) {
+            document.getElementById('modalLoading').classList.add('d-none');
+            document.getElementById('modalNoData').classList.remove('d-none');
+            console.error('Error loading attendance details:', error);
+        }
+    });
+    
+    function formatTime(timeStr) {
+        if (!timeStr) return '-';
+        // Handle both DateTime and TimeSpan formats
+        if (timeStr.includes('T')) {
+            const date = new Date(timeStr);
+            return date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+        }
+        // TimeSpan format (HH:mm:ss)
+        const parts = timeStr.split(':');
+        let hours = parseInt(parts[0]);
+        const minutes = parts[1];
+        const ampm = hours >= 12 ? 'م' : 'ص';
+        hours = hours % 12 || 12;
+        return `${hours}:${minutes} ${ampm}`;
+    }
+    
+    function formatHoursMinutes(hours) {
+        const h = Math.floor(hours);
+        const m = Math.round((hours - h) * 60);
+        return `${h}س ${m}د`;
+    }
+    
+    function formatMinutes(minutes) {
+        const h = Math.floor(minutes / 60);
+        const m = minutes % 60;
+        if (h > 0) {
+            return `${h}س ${m}د`;
+        }
+        return `${m}د`;
+    }
+
+    // Print attendance details as PDF
+    document.getElementById('printDetailsBtn').addEventListener('click', function() {
+        const empName = document.getElementById('modalEmpName').textContent;
+        const period = document.getElementById('modalPeriod').textContent;
+        const tableContent = document.getElementById('attendanceDetailsTable').outerHTML;
+        
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html dir="rtl" lang="ar">
+            <head>
+                <meta charset="UTF-8">
+                <title>تفاصيل الحضور - ${empName}</title>
+                <style>
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
+                    body {
+                        font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+                        padding: 20px;
+                        direction: rtl;
+                    }
+                    .header {
+                        text-align: center;
+                        margin-bottom: 30px;
+                        padding-bottom: 15px;
+                        border-bottom: 2px solid #333;
+                    }
+                    .header h1 {
+                        font-size: 24px;
+                        margin-bottom: 10px;
+                    }
+                    .header p {
+                        font-size: 16px;
+                        color: #666;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 20px;
+                    }
+                    th, td {
+                        border: 1px solid #333;
+                        padding: 10px 8px;
+                        text-align: center;
+                        font-size: 12px;
+                    }
+                    th {
+                        background-color: #333;
+                        color: white;
+                        font-weight: bold;
+                    }
+                    tr:nth-child(even) {
+                        background-color: #f5f5f5;
+                    }
+                    .badge {
+                        padding: 4px 8px;
+                        border-radius: 4px;
+                        font-size: 11px;
+                        font-weight: bold;
+                    }
+                    .bg-success { background-color: #198754; color: white; }
+                    .bg-danger { background-color: #dc3545; color: white; }
+                    .bg-warning { background-color: #ffc107; color: #000; }
+                    .text-warning { color: #856404; }
+                    .text-success { color: #155724; }
+                    .footer {
+                        margin-top: 30px;
+                        text-align: center;
+                        font-size: 12px;
+                        color: #666;
+                    }
+                    @@media print {
+                        body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>تفاصيل الحضور</h1>
+                    <p><strong>الموظف:</strong> ${empName} | <strong>الفترة:</strong> ${period}</p>
+                </div>
+                ${tableContent}
+                <div class="footer">
+                    <p>تم الطباعة بتاريخ: ${new Date().toLocaleDateString('ar-EG')} - نظام إدارة الموارد البشرية</p>
+                </div>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        
+        // Wait for content to load then print
+        printWindow.onload = function() {
+            printWindow.print();
+        };
+    });
+</script>
+}

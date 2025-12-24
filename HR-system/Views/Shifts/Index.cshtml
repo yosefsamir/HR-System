@@ -1,0 +1,230 @@
+@model HR_system.ViewModels.ShiftsIndexViewModel
+
+@{
+    ViewData["Title"] = "الورديات";
+    ViewData["PageTitle"] = "إدارة الورديات";
+    ViewData["PageIcon"] = "bi-clock";
+}
+
+<div class="container-fluid">
+    <!-- Add Shift Card - Inline Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-plus-circle me-2"></i>
+                إضافة وردية جديدة
+            </h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label asp-for="NewShift.Shift_name" class="form-label">اسم الوردية</label>
+                        <input asp-for="NewShift.Shift_name" class="form-control" placeholder="مثال: الوردية الصباحية" />
+                    </div>
+                    <div class="col-md-2">
+                        <label asp-for="NewShift.Start_time" class="form-label">وقت البداية</label>
+                        <input asp-for="NewShift.Start_time" type="time" class="form-control" />
+                    </div>
+                    <div class="col-md-2">
+                        <label asp-for="NewShift.End_time" class="form-label">وقت الانتهاء</label>
+                        <input asp-for="NewShift.End_time" type="time" class="form-control" />
+                    </div>
+                    <div class="col-md-2">
+                        <label asp-for="NewShift.Minutes_allow_attendence" class="form-label">
+                            <span title="الدقائق المسموحة للتأخير بعد وقت البداية">سماح الحضور (دقيقة)</span>
+                        </label>
+                        <input asp-for="NewShift.Minutes_allow_attendence" type="number" class="form-control" min="0" max="60" />
+                    </div>
+                    <div class="col-md-2">
+                        <label asp-for="NewShift.Minutes_allow_departure" class="form-label">
+                            <span title="الدقائق المسموحة للخروج المبكر قبل وقت الانتهاء">سماح الانصراف (دقيقة)</span>
+                        </label>
+                        <input asp-for="NewShift.Minutes_allow_departure" type="number" class="form-control" min="0" max="60" />
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Shifts List Card -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-list-ul me-2"></i>
+                قائمة الورديات
+            </h5>
+            <span class="badge bg-primary">@Model.Shifts.Count() وردية</span>
+        </div>
+        <div class="card-body p-0">
+            @if (!Model.Shifts.Any())
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-clock-history display-1 text-muted"></i>
+                    <p class="text-muted mt-3">لا توجد ورديات حتى الآن</p>
+                    <p class="text-muted small">ابدأ بإضافة وردية جديدة من النموذج أعلاه</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th>اسم الوردية</th>
+                                <th>وقت البداية</th>
+                                <th>وقت الانتهاء</th>
+                                <th>ساعات العمل</th>
+                                <th>سماح الحضور</th>
+                                <th>سماح الانصراف</th>
+                                <th>عدد الموظفين</th>
+                                <th style="width: 150px;">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int counter = 1; }
+                            @foreach (var shift in Model.Shifts)
+                            {
+                                <tr>
+                                    @if (Model.EditingShiftId == shift.Id)
+                                    {
+                                        <!-- Edit Mode -->
+                                        <td>@counter</td>
+                                        <td colspan="7">
+                                            <form asp-action="Edit" asp-route-id="@shift.Id" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <div class="row g-2 align-items-center">
+                                                    <div class="col">
+                                                        <input asp-for="EditShift!.Shift_name" class="form-control form-control-sm" />
+                                                    </div>
+                                                    <div class="col">
+                                                        <input asp-for="EditShift!.Start_time" type="time" class="form-control form-control-sm" />
+                                                    </div>
+                                                    <div class="col">
+                                                        <input asp-for="EditShift!.End_time" type="time" class="form-control form-control-sm" />
+                                                    </div>
+                                                    <div class="col">
+                                                        <input asp-for="EditShift!.Minutes_allow_attendence" type="number" class="form-control form-control-sm" min="0" max="60" />
+                                                    </div>
+                                                    <div class="col">
+                                                        <input asp-for="EditShift!.Minutes_allow_departure" type="number" class="form-control form-control-sm" min="0" max="60" />
+                                                    </div>
+                                                    <div class="col-auto">
+                                                        <button type="submit" class="btn btn-success btn-sm">
+                                                            <i class="bi bi-check-lg"></i>
+                                                        </button>
+                                                        <a asp-action="Index" class="btn btn-secondary btn-sm">
+                                                            <i class="bi bi-x-lg"></i>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </td>
+                                        <td></td>
+                                    }
+                                    else
+                                    {
+                                        <!-- View Mode -->
+                                        <td>@counter</td>
+                                        <td>
+                                            <i class="bi bi-clock me-2 text-info"></i>
+                                            @shift.Shift_name
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">
+                                                @shift.Start_time.ToString(@"hh\:mm")
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-danger">
+                                                @shift.End_time.ToString(@"hh\:mm")
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">
+                                                @shift.StandardHours_Display
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted">@shift.Minutes_allow_attendence دقيقة</span>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted">@shift.Minutes_allow_departure دقيقة</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-people me-1"></i>
+                                                @shift.EmployeeCount
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a asp-action="Index" asp-route-editId="@shift.Id" 
+                                                   class="btn btn-outline-warning" title="تعديل">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-outline-danger" 
+                                                        title="حذف"
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#deleteModal-@shift.Id">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+
+                                            <!-- Delete Confirmation Modal -->
+                                            <div class="modal fade" id="deleteModal-@shift.Id" tabindex="-1">
+                                                <div class="modal-dialog modal-dialog-centered">
+                                                    <div class="modal-content bg-dark">
+                                                        <div class="modal-header border-secondary">
+                                                            <h5 class="modal-title">
+                                                                <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                                                                تأكيد الحذف
+                                                            </h5>
+                                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <p>هل أنت متأكد من حذف وردية <strong>@shift.Shift_name</strong>؟</p>
+                                                            @if (shift.EmployeeCount > 0)
+                                                            {
+                                                                <div class="alert alert-warning">
+                                                                    <i class="bi bi-info-circle me-2"></i>
+                                                                    هذه الوردية مرتبطة بـ @shift.EmployeeCount موظف
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                        <div class="modal-footer border-secondary">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                                            <form asp-action="Delete" asp-route-id="@shift.Id" method="post" class="d-inline">
+                                                                @Html.AntiForgeryToken()
+                                                                <button type="submit" class="btn btn-danger">
+                                                                    <i class="bi bi-trash me-2"></i>
+                                                                    حذف
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    }
+                                </tr>
+                                counter++;
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

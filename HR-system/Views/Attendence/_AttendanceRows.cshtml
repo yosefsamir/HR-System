@@ -1,0 +1,78 @@
+@model IEnumerable<HR_system.DTOs.Attendence.AttendenceDto>
+
+@{
+    int counter = 1;
+}
+
+@foreach (var item in Model)
+{
+    <tr data-id="@item.Id">
+        <td>@counter</td>
+        <td><span class="badge bg-dark border">@item.Employee_code</span></td>
+        <td>@item.Employee_name</td>
+        <td><span class="badge bg-secondary">@(item.Shift_name ?? "-")</span></td>
+        <td>@item.Work_date_Display</td>
+        <td>@item.Check_In_Display</td>
+        <td>@item.Check_Out_Display</td>
+        <td>@item.Worked_hours_Display</td>
+        <td>
+            @if (item.LateTime_minutes.HasValue && item.LateTime_minutes > 0)
+            {
+                <span class="text-warning">@item.LateTime_Display</span>
+            }
+            else
+            {
+                <span>-</span>
+            }
+        </td>
+        <td>
+            @if (item.OverTime_minutes.HasValue && item.OverTime_minutes > 0)
+            {
+                <span class="text-success">@item.OverTime_Display</span>
+            }
+            else
+            {
+                <span>-</span>
+            }
+        </td>
+        <td>
+            @if (item.Is_Absent)
+            {
+                <span class="badge bg-danger">غائب</span>
+            }
+            else if (item.Check_out_time.HasValue)
+            {
+                <span class="badge bg-success">مكتمل</span>
+            }
+            else if (item.Check_In_time.HasValue)
+            {
+                <span class="badge bg-info">حاضر</span>
+            }
+            else
+            {
+                <span class="badge bg-secondary">لم يبدأ</span>
+            }
+        </td>
+        <td>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-warning" onclick="openEditModal(@item.Id)" title="تعديل">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="btn btn-outline-danger" onclick="openDeleteModal(@item.Id, '@item.Employee_name')" title="حذف">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </td>
+    </tr>
+    counter++;
+}
+
+@if (!Model.Any())
+{
+    <tr>
+        <td colspan="12" class="text-center py-4 text-muted">
+            <i class="bi bi-calendar-x display-4 d-block mb-2"></i>
+            لا توجد سجلات حضور لهذا التاريخ
+        </td>
+    </tr>
+}

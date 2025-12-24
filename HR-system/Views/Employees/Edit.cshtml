@@ -1,0 +1,195 @@
+@using HR_system.DTOs.Employee
+@model UpdateEmployeeDto
+
+@{
+    ViewData["Title"] = "تعديل موظف";
+    ViewData["PageTitle"] = "تعديل بيانات الموظف";
+    ViewData["PageIcon"] = "bi-person-gear";
+    var employeeId = ViewBag.EmployeeId;
+    var employeeName = ViewBag.EmployeeName;
+}
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-person-gear me-2"></i>
+                        تعديل بيانات الموظف
+                    </h5>
+                    <span class="badge bg-primary fs-6">@Model.Code</span>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" asp-route-id="@employeeId" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                        
+                        <!-- Basic Info Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    المعلومات الأساسية
+                                </h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Code" class="form-label">كود الموظف <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-hash"></i></span>
+                                    <input asp-for="Code" class="form-control" placeholder="مثال: EMP001" />
+                                </div>
+                                <span asp-validation-for="Code" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Emp_name" class="form-label">اسم الموظف <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                    <input asp-for="Emp_name" class="form-control" placeholder="الاسم الكامل" />
+                                </div>
+                                <span asp-validation-for="Emp_name" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Gender" class="form-label">الجنس <span class="text-danger">*</span></label>
+                                <select asp-for="Gender" class="form-select" asp-items="ViewBag.Genders">
+                                    <option value="">-- اختر الجنس --</option>
+                                </select>
+                                <span asp-validation-for="Gender" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Age" class="form-label">العمر</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
+                                    <input asp-for="Age" type="number" class="form-control" placeholder="العمر بالسنوات" />
+                                </div>
+                                <span asp-validation-for="Age" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Status" class="form-label">الحالة</label>
+                                <select asp-for="Status" class="form-select">
+                                    <option value="Active">نشط</option>
+                                    <option value="Inactive">غير نشط</option>
+                                    <option value="On Leave">إجازة</option>
+                                    <option value="Terminated">منتهي</option>
+                                </select>
+                                <span asp-validation-for="Status" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <!-- Work Info Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="bi bi-building me-2"></i>
+                                    معلومات العمل
+                                </h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Department_id" class="form-label">القسم</label>
+                                <select asp-for="Department_id" class="form-select" asp-items="ViewBag.Departments">
+                                    <option value="">-- اختر القسم --</option>
+                                </select>
+                                <span asp-validation-for="Department_id" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Shift_id" class="form-label">الوردية <span class="text-danger">*</span></label>
+                                <select asp-for="Shift_id" class="form-select" asp-items="ViewBag.Shifts">
+                                    <option value="">-- اختر الوردية --</option>
+                                </select>
+                                <span asp-validation-for="Shift_id" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <!-- Salary Info Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="bi bi-cash me-2"></i>
+                                    معلومات الراتب
+                                </h6>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Salary" class="form-label">الراتب الأساسي <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-currency-dollar"></i></span>
+                                    <input asp-for="Salary" type="number" step="0.01" class="form-control" placeholder="0.00" />
+                                </div>
+                                <span asp-validation-for="Salary" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Rate_overtime_multiplier" class="form-label">معدل ساعة إضافية</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-clock-history"></i></span>
+                                    <input asp-for="Rate_overtime_multiplier" type="number" step="0.01" class="form-control" placeholder="1.50" />
+                                </div>
+                                <span asp-validation-for="Rate_overtime_multiplier" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Rate_latetime_multiplier" class="form-label">معدل ساعة تأخير</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-clock"></i></span>
+                                    <input asp-for="Rate_latetime_multiplier" type="number" step="0.01" class="form-control" placeholder="1.00" />
+                                </div>
+                                <span asp-validation-for="Rate_latetime_multiplier" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex justify-content-between pt-3 border-top">
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-right me-2"></i>
+                                العودة للقائمة
+                            </a>
+                            <div>
+                                <button type="button" class="btn btn-outline-danger me-2" 
+                                        data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                    <i class="bi bi-trash me-2"></i>
+                                    حذف
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-lg me-2"></i>
+                                    حفظ التغييرات
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                    تأكيد الحذف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من حذف الموظف <strong>@employeeName</strong>؟</p>
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-circle me-2"></i>
+                    سيتم حذف جميع البيانات المرتبطة بهذا الموظف
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <form asp-action="Delete" asp-route-id="@employeeId" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i>
+                        حذف
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

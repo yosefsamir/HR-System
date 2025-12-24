@@ -1,0 +1,196 @@
+<!-- Sidebar -->
+<aside class="sidebar bg-dark border-end border-secondary" id="sidebar">
+    <!-- Logo/Brand -->
+    <div class="sidebar-header p-3 border-bottom border-secondary">
+        <div class="d-flex align-items-center">
+            <div class="logo-icon bg-primary rounded-circle p-2 me-3">
+                <i class="bi bi-building fs-4 text-white"></i>
+            </div>
+            <div class="logo-text">
+                <h5 class="mb-0 text-white">الموارد البشرية</h5>
+                <small class="text-muted">HR System</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Navigation Menu -->
+    <nav class="sidebar-nav p-3">
+        <ul class="nav flex-column">
+            <!-- Dashboard -->
+            <li class="nav-item mb-2">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")" 
+                   asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-speedometer2 me-3"></i>
+                    <span>لوحة التحكم</span>
+                </a>
+            </li>
+            
+            <!-- Divider -->
+            <li class="nav-item">
+                <span class="nav-section-title">إدارة الموظفين</span>
+            </li>
+            
+            <!-- Employees with Dropdown -->
+            <li class="nav-item mb-2">
+                <a class="nav-link d-flex justify-content-between align-items-center @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employees" ? "active" : "")" 
+                   data-bs-toggle="collapse" href="#employeesSubmenu" role="button" 
+                   aria-expanded="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Employees" ? "true" : "false")">
+                    <span>
+                        <i class="bi bi-people me-3"></i>
+                        <span>الموظفين</span>
+                    </span>
+                    <i class="bi bi-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="collapse @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employees" ? "show" : "")" id="employeesSubmenu">
+                    <ul class="nav flex-column submenu me-4">
+                        <li class="nav-item">
+                            <a class="nav-link py-2 @(ViewContext.RouteData.Values["action"]?.ToString() == "Create" ? "active" : "")" 
+                               asp-controller="Employees" asp-action="Create">
+                                <i class="bi bi-person-plus me-2"></i>
+                                إضافة موظف
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link py-2 @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" 
+                               asp-controller="Employees" asp-action="Index">
+                                <i class="bi bi-list-ul me-2"></i>
+                                قائمة الموظفين
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+            
+            <!-- Departments -->
+            <li class="nav-item mb-2">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Departments" ? "active" : "")" 
+                   asp-controller="Departments" asp-action="Index">
+                    <i class="bi bi-diagram-3 me-3"></i>
+                    <span>الأقسام</span>
+                </a>
+            </li>
+            
+            <!-- Shifts -->
+            <li class="nav-item mb-2">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Shifts" ? "active" : "")" 
+                   asp-controller="Shifts" asp-action="Index">
+                    <i class="bi bi-clock me-3"></i>
+                    <span>الورديات</span>
+                </a>
+            </li>
+            
+            <!-- Divider -->
+            <li class="nav-item">
+                <span class="nav-section-title">الحضور والانصراف</span>
+            </li>
+            
+            <!-- Attendance -->
+            <li class="nav-item mb-2">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Attendence" ? "active" : "")" 
+                   asp-controller="Attendence" asp-action="Index">
+                    <i class="bi bi-calendar-check me-3"></i>
+                    <span>الحضور</span>
+                </a>
+            </li>
+            
+            <!-- Attendance Summary -->
+            <li class="nav-item mb-2">
+                <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Records" && ViewContext.RouteData.Values["controller"]?.ToString() == "Attendence" ? "active" : "")" 
+                   asp-controller="Attendence" asp-action="Records">
+                    <i class="bi bi-search me-3"></i>
+                    <span>سجلات الحضور</span>
+                </a>
+            </li>
+            
+            <!-- Monthly Summary -->
+            <li class="nav-item mb-2">
+                <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Summary" && ViewContext.RouteData.Values["controller"]?.ToString() == "Attendence" ? "active" : "")" 
+                   asp-controller="Attendence" asp-action="Summary">
+                    <i class="bi bi-graph-up me-3"></i>
+                    <span>ملخص الحضور الشهري</span>
+                </a>
+            </li>
+            
+            <!-- Divider -->
+            <li class="nav-item">
+                <span class="nav-section-title">الماليات</span>
+            </li>
+            
+            <!-- Bonuses -->
+            <li class="nav-item mb-2">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Bounes" ? "active" : "")" 
+                   asp-controller="Bounes" asp-action="Index">
+                    <i class="bi bi-gift me-3"></i>
+                    <span>المكافآت</span>
+                </a>
+            </li>
+            
+            <!-- Deductions -->
+            <li class="nav-item mb-2">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Deductions" ? "active" : "")" 
+                   asp-controller="Deductions" asp-action="Index">
+                    <i class="bi bi-dash-circle me-3"></i>
+                    <span>الخصومات</span>
+                </a>
+            </li>
+            
+            <!-- Advances -->
+            <li class="nav-item mb-2">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Advances" ? "active" : "")" 
+                   asp-controller="Advances" asp-action="Index">
+                    <i class="bi bi-cash-stack me-3"></i>
+                    <span>السلف</span>
+                </a>
+            </li>
+            
+            <!-- Divider -->
+            <li class="nav-item">
+                <span class="nav-section-title">الرواتب</span>
+            </li>
+            
+            <!-- Payroll with Dropdown -->
+            <li class="nav-item mb-2">
+                <a class="nav-link d-flex justify-content-between align-items-center @(ViewContext.RouteData.Values["controller"]?.ToString() == "PayRoll" ? "active" : "")" 
+                   data-bs-toggle="collapse" href="#payrollSubmenu" role="button" 
+                   aria-expanded="@(ViewContext.RouteData.Values["controller"]?.ToString() == "PayRoll" ? "true" : "false")">
+                    <span>
+                        <i class="bi bi-wallet2 me-3"></i>
+                        <span>الرواتب</span>
+                    </span>
+                    <i class="bi bi-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="collapse @(ViewContext.RouteData.Values["controller"]?.ToString() == "PayRoll" ? "show" : "")" id="payrollSubmenu">
+                    <ul class="nav flex-column submenu me-4">
+                        <li class="nav-item">
+                            <a class="nav-link py-2 @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" && ViewContext.RouteData.Values["controller"]?.ToString() == "PayRoll" ? "active" : "")" 
+                               asp-controller="PayRoll" asp-action="Index">
+                                <i class="bi bi-calculator me-2"></i>
+                                حساب الرواتب
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link py-2 @(ViewContext.RouteData.Values["action"]?.ToString() == "Saved" && ViewContext.RouteData.Values["controller"]?.ToString() == "PayRoll" ? "active" : "")" 
+                               asp-controller="PayRoll" asp-action="Saved">
+                                <i class="bi bi-archive me-2"></i>
+                                الرواتب المحفوظة
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+        </ul>
+    </nav>
+    
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer border-top border-secondary p-3 mt-auto">
+        <div class="d-flex align-items-center">
+            <div class="avatar bg-secondary rounded-circle p-2 me-3">
+                <i class="bi bi-person text-white"></i>
+            </div>
+            <div class="user-info">
+                <span class="text-white d-block">المسؤول</span>
+                <small class="text-muted">مدير النظام</small>
+            </div>
+        </div>
+    </div>
+</aside>

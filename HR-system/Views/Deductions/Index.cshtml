@@ -1,0 +1,513 @@
+@{
+    ViewData["Title"] = "الخصومات";
+    ViewData["PageTitle"] = "إدارة الخصومات";
+    ViewData["PageIcon"] = "bi-dash-circle";
+}
+
+<style>
+    .autocomplete-container { position: relative; }
+    .autocomplete-results {
+        position: absolute; top: 100%; left: 0; right: 0; z-index: 1050;
+        max-height: 200px; overflow-y: auto; background: #212529;
+        border: 1px solid #495057; border-radius: 0.375rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5); display: none;
+    }
+    .autocomplete-results.show { display: block; }
+    .autocomplete-item {
+        padding: 0.5rem 1rem; cursor: pointer; border-bottom: 1px solid #495057;
+    }
+    .autocomplete-item:hover, .autocomplete-item.active { background: #0d6efd; color: white; }
+    .autocomplete-item .employee-code { font-size: 0.8rem; opacity: 0.7; }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+    .filter-sidebar { background: #1a1a1a; border-radius: 0.5rem; }
+    .total-badge { font-size: 1.1rem; padding: 0.5rem 1rem; }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Filter Sidebar -->
+        <div class="col-lg-3 mb-4">
+            <div class="filter-sidebar p-3">
+                <h6 class="mb-3"><i class="bi bi-funnel me-2"></i>البحث والتصفية</h6>
+                
+                <div class="mb-3">
+                    <label class="form-label small">من تاريخ</label>
+                    <input type="date" id="startDate" class="form-control form-control-sm" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small">إلى تاريخ</label>
+                    <input type="date" id="endDate" class="form-control form-control-sm" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small">الموظف</label>
+                    <div class="autocomplete-container">
+                        <input type="hidden" id="filterEmployeeId" />
+                        <input type="text" id="filterEmployeeSearch" class="form-control form-control-sm" 
+                               placeholder="ابحث بالاسم..." autocomplete="off" />
+                        <div id="filterEmployeeResults" class="autocomplete-results"></div>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-primary btn-sm" id="searchBtn">
+                        <i class="bi bi-search me-1"></i>بحث
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="resetBtn">
+                        <i class="bi bi-x-circle me-1"></i>إعادة تعيين
+                    </button>
+                </div>
+                
+                <hr class="my-3 border-secondary">
+                
+                <!-- Total -->
+                <div class="text-center">
+                    <small class="text-muted d-block mb-1">إجمالي الخصومات</small>
+                    <span class="badge bg-danger total-badge" id="totalAmount">0.00 ج.م</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-9">
+            <!-- Add Form -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-plus-circle me-2"></i>إضافة خصم جديد
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">الموظف <span class="text-danger">*</span></label>
+                            <div class="autocomplete-container">
+                                <input type="hidden" id="employeeId" />
+                                <input type="text" id="employeeSearch" class="form-control" 
+                                       placeholder="ابحث عن موظف..." autocomplete="off" />
+                                <div id="employeeResults" class="autocomplete-results"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">التاريخ <span class="text-danger">*</span></label>
+                            <input type="date" id="deductionDate" class="form-control" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">المبلغ <span class="text-danger">*</span></label>
+                            <input type="number" id="amount" class="form-control" min="0.01" step="0.01" placeholder="0.00" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">السبب</label>
+                            <input type="text" id="reason" class="form-control" placeholder="سبب الخصم..." />
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-danger w-100" id="addBtn">
+                                <i class="bi bi-plus-lg me-1"></i>إضافة
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alert Container -->
+            <div id="alertContainer"></div>
+
+            <!-- Records Table -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-table me-2"></i>سجل الخصومات
+                        <span id="modeIndicator" class="badge bg-secondary ms-2" style="font-size: 0.7rem;"></span>
+                    </h5>
+                    <span class="badge bg-primary" id="recordCount">0 سجل</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>الكود</th>
+                                    <th>الموظف</th>
+                                    <th>التاريخ</th>
+                                    <th>المبلغ</th>
+                                    <th>السبب</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody"></tbody>
+                            <tfoot>
+                                <tr class="table-danger">
+                                    <td colspan="4" class="text-end fw-bold">الإجمالي:</td>
+                                    <td class="fw-bold" id="tableTotal">0.00 ج.م</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <div id="noRecordsMessage" class="text-center py-5">
+                        <i class="bi bi-dash-circle display-1 text-muted"></i>
+                        <p class="text-muted mt-3">لا توجد خصومات - أضف خصم أو استخدم البحث</p>
+                    </div>
+                    <div id="loadingMessage" class="text-center py-5 d-none">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="text-muted mt-2">جاري التحميل...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>تعديل الخصم</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId" />
+                <div class="mb-3">
+                    <label class="form-label">الموظف</label>
+                    <input type="text" id="editEmployeeName" class="form-control" readonly />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">التاريخ</label>
+                    <input type="date" id="editDate" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">المبلغ</label>
+                    <input type="number" id="editAmount" class="form-control" min="0.01" step="0.01" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">السبب</label>
+                    <input type="text" id="editReason" class="form-control" />
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="saveEditBtn">حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-trash text-danger me-2"></i>تأكيد الحذف</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="deleteId" />
+                <p>هل أنت متأكد من حذف خصم <strong id="deleteEmployeeName"></strong>؟</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">حذف</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const baseUrl = '/Deductions';
+    let editModal, deleteModal;
+    let allEmployees = [];
+    let sessionRecords = [];
+    let searchRecords = [];
+    let currentMode = 'session';
+
+    document.addEventListener('DOMContentLoaded', async function() {
+        editModal = new bootstrap.Modal(document.getElementById('editModal'));
+        deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('deductionDate').value = today;
+        document.getElementById('startDate').value = today;
+        document.getElementById('endDate').value = today;
+
+        await loadEmployees();
+        setupAutocomplete('employeeSearch', 'employeeResults', 'employeeId');
+        setupAutocomplete('filterEmployeeSearch', 'filterEmployeeResults', 'filterEmployeeId');
+
+        document.getElementById('addBtn').addEventListener('click', addRecord);
+        document.getElementById('searchBtn').addEventListener('click', searchRecordsFromServer);
+        document.getElementById('resetBtn').addEventListener('click', resetFilters);
+        document.getElementById('saveEditBtn').addEventListener('click', saveEdit);
+        document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
+
+        document.addEventListener('click', e => {
+            if (!e.target.closest('.autocomplete-container')) {
+                document.querySelectorAll('.autocomplete-results').forEach(r => r.classList.remove('show'));
+            }
+        });
+
+        renderTable();
+    });
+
+    async function loadEmployees() {
+        try {
+            const response = await fetch(`${baseUrl}/GetEmployees`);
+            const result = await response.json();
+            if (result.success) allEmployees = result.data;
+        } catch (error) { console.error('Error:', error); }
+    }
+
+    function setupAutocomplete(inputId, resultsId, hiddenId) {
+        const input = document.getElementById(inputId);
+        const results = document.getElementById(resultsId);
+        const hidden = document.getElementById(hiddenId);
+        let activeIndex = -1;
+
+        input.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            activeIndex = -1;
+            hidden.value = '';
+            if (query.length < 1) { results.classList.remove('show'); return; }
+
+            const filtered = allEmployees.filter(emp => 
+                emp.name.toLowerCase().includes(query) || emp.code.toLowerCase().includes(query)
+            );
+
+            results.innerHTML = filtered.length === 0 
+                ? '<div class="autocomplete-item text-muted">لا توجد نتائج</div>'
+                : filtered.map(emp => `
+                    <div class="autocomplete-item" data-id="${emp.id}" data-name="${emp.name}" data-code="${emp.code}">
+                        <div><strong>${emp.name}</strong></div>
+                        <div class="employee-code">${emp.code}</div>
+                    </div>
+                `).join('');
+            
+            results.classList.add('show');
+            results.querySelectorAll('.autocomplete-item[data-id]').forEach(item => {
+                item.addEventListener('click', function() {
+                    hidden.value = this.dataset.id;
+                    input.value = `${this.dataset.code} - ${this.dataset.name}`;
+                    results.classList.remove('show');
+                });
+            });
+        });
+
+        input.addEventListener('keydown', function(e) {
+            const items = results.querySelectorAll('.autocomplete-item[data-id]');
+            if (e.key === 'ArrowDown') { e.preventDefault(); activeIndex = Math.min(activeIndex + 1, items.length - 1); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); activeIndex = Math.max(activeIndex - 1, 0); }
+            else if (e.key === 'Enter' && activeIndex >= 0 && items[activeIndex]) { e.preventDefault(); items[activeIndex].click(); }
+            else if (e.key === 'Escape') { results.classList.remove('show'); }
+            items.forEach((item, idx) => item.classList.toggle('active', idx === activeIndex));
+        });
+    }
+
+    async function searchRecordsFromServer() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const employeeId = document.getElementById('filterEmployeeId').value;
+
+        let params = new URLSearchParams();
+        params.append('isSearch', 'true');
+        if (startDate && endDate) { params.append('startDate', startDate); params.append('endDate', endDate); }
+        if (employeeId) params.append('employeeId', employeeId);
+
+        document.getElementById('noRecordsMessage').classList.add('d-none');
+        document.getElementById('loadingMessage').classList.remove('d-none');
+        document.getElementById('tableBody').innerHTML = '';
+
+        try {
+            const response = await fetch(`${baseUrl}/GetAll?${params.toString()}`);
+            const result = await response.json();
+            document.getElementById('loadingMessage').classList.add('d-none');
+            
+            if (result.success) {
+                searchRecords = result.data;
+                currentMode = 'search';
+                renderTable();
+            } else { showAlert(result.message, 'danger'); }
+        } catch (error) {
+            document.getElementById('loadingMessage').classList.add('d-none');
+            showAlert('حدث خطأ', 'danger');
+        }
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        const noRecords = document.getElementById('noRecordsMessage');
+        const modeIndicator = document.getElementById('modeIndicator');
+
+        let records = currentMode === 'search' ? searchRecords : sessionRecords;
+        let total = records.reduce((sum, r) => sum + parseFloat(r.amount), 0);
+
+        if (currentMode === 'search') {
+            modeIndicator.textContent = 'نتائج البحث';
+            modeIndicator.className = 'badge bg-info ms-2';
+            modeIndicator.style.fontSize = '0.7rem';
+        } else if (sessionRecords.length > 0) {
+            modeIndicator.textContent = 'السجلات المضافة';
+            modeIndicator.className = 'badge bg-danger ms-2';
+            modeIndicator.style.fontSize = '0.7rem';
+        } else {
+            modeIndicator.textContent = '';
+        }
+
+        if (records.length === 0) {
+            tbody.innerHTML = '';
+            noRecords.classList.remove('d-none');
+        } else {
+            noRecords.classList.add('d-none');
+            tbody.innerHTML = records.map((item, idx) => `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td><span class="badge bg-dark border">${item.employee_code}</span></td>
+                    <td>${item.employee_name}</td>
+                    <td>${item.date_Display}</td>
+                    <td class="text-danger fw-bold">${parseFloat(item.amount).toFixed(2)} ج.م</td>
+                    <td>${item.reason || '-'}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-warning" onclick="openEditModal(${item.id})"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-outline-danger" onclick="openDeleteModal(${item.id}, '${item.employee_name}')"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        document.getElementById('recordCount').textContent = `${records.length} سجل`;
+        document.getElementById('totalAmount').textContent = `${total.toFixed(2)} ج.م`;
+        document.getElementById('tableTotal').textContent = `${total.toFixed(2)} ج.م`;
+    }
+
+    async function addRecord() {
+        const employeeId = document.getElementById('employeeId').value;
+        const date = document.getElementById('deductionDate').value;
+        const amount = document.getElementById('amount').value;
+        const reason = document.getElementById('reason').value;
+
+        if (!employeeId) { showAlert('الرجاء اختيار موظف', 'danger'); return; }
+        if (!date) { showAlert('الرجاء تحديد التاريخ', 'danger'); return; }
+        if (!amount || parseFloat(amount) <= 0) { showAlert('الرجاء إدخال مبلغ صحيح', 'danger'); return; }
+
+        const btn = document.getElementById('addBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        try {
+            const response = await fetch(`${baseUrl}/CreateAjax`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Employee_id: parseInt(employeeId), Date: date, Amount: parseFloat(amount), Reason: reason })
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert(result.message, 'success');
+                sessionRecords.unshift(result.data);
+                currentMode = 'session';
+                renderTable();
+                
+                document.getElementById('employeeId').value = '';
+                document.getElementById('employeeSearch').value = '';
+                document.getElementById('amount').value = '';
+                document.getElementById('reason').value = '';
+            } else { showAlert(result.message, 'danger'); }
+        } catch (error) { showAlert('حدث خطأ', 'danger'); }
+        finally { btn.disabled = false; btn.innerHTML = '<i class="bi bi-plus-lg me-1"></i>إضافة'; }
+    }
+
+    async function openEditModal(id) {
+        try {
+            const response = await fetch(`${baseUrl}/GetById?id=${id}`);
+            const result = await response.json();
+            if (result.success) {
+                document.getElementById('editId').value = result.data.id;
+                document.getElementById('editEmployeeName').value = `${result.data.employee_code} - ${result.data.employee_name}`;
+                document.getElementById('editDate').value = result.data.date.split('T')[0];
+                document.getElementById('editAmount').value = result.data.amount;
+                document.getElementById('editReason').value = result.data.reason || '';
+                editModal.show();
+            }
+        } catch (error) { showAlert('حدث خطأ', 'danger'); }
+    }
+
+    async function saveEdit() {
+        const id = parseInt(document.getElementById('editId').value);
+        const btn = document.getElementById('saveEditBtn');
+        btn.disabled = true;
+
+        try {
+            const response = await fetch(`${baseUrl}/UpdateAjax?id=${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    Date: document.getElementById('editDate').value,
+                    Amount: parseFloat(document.getElementById('editAmount').value),
+                    Reason: document.getElementById('editReason').value
+                })
+            });
+            const result = await response.json();
+            if (result.success) { 
+                editModal.hide(); 
+                showAlert(result.message, 'success'); 
+                if (currentMode === 'search') {
+                    await searchRecordsFromServer();
+                } else {
+                    const idx = sessionRecords.findIndex(r => r.id === id);
+                    if (idx >= 0 && result.data) sessionRecords[idx] = result.data;
+                    renderTable();
+                }
+            }
+            else { showAlert(result.message, 'danger'); }
+        } catch (error) { showAlert('حدث خطأ', 'danger'); }
+        finally { btn.disabled = false; }
+    }
+
+    function openDeleteModal(id, name) {
+        document.getElementById('deleteId').value = id;
+        document.getElementById('deleteEmployeeName').textContent = name;
+        deleteModal.show();
+    }
+
+    async function confirmDelete() {
+        const id = parseInt(document.getElementById('deleteId').value);
+        try {
+            const response = await fetch(`${baseUrl}/DeleteAjax?id=${id}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (result.success) { 
+                deleteModal.hide(); 
+                showAlert(result.message, 'success'); 
+                if (currentMode === 'search') {
+                    searchRecords = searchRecords.filter(r => r.id !== id);
+                } else {
+                    sessionRecords = sessionRecords.filter(r => r.id !== id);
+                }
+                renderTable();
+            }
+            else { showAlert(result.message, 'danger'); }
+        } catch (error) { showAlert('حدث خطأ', 'danger'); }
+    }
+
+    function resetFilters() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('startDate').value = today;
+        document.getElementById('endDate').value = today;
+        document.getElementById('filterEmployeeId').value = '';
+        document.getElementById('filterEmployeeSearch').value = '';
+        currentMode = 'session';
+        renderTable();
+    }
+
+    function showAlert(message, type) {
+        const container = document.getElementById('alertContainer');
+        const id = 'alert-' + Date.now();
+        container.innerHTML = `
+            <div id="${id}" class="alert alert-${type} alert-dismissible fade show">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
+        setTimeout(() => document.getElementById(id)?.remove(), 5000);
+    }
+</script>
+}

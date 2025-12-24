@@ -1,0 +1,689 @@
+@{
+    ViewData["Title"] = "الحضور والانصراف";
+    ViewData["PageTitle"] = "تسجيل الحضور والانصراف";
+    ViewData["PageIcon"] = "bi-clock-history";
+}
+
+<style>
+    /* Autocomplete styles */
+    .autocomplete-container {
+        position: relative;
+    }
+    .autocomplete-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1050;
+        max-height: 250px;
+        overflow-y: auto;
+        background: #212529;
+        border: 1px solid #495057;
+        border-radius: 0.375rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
+        display: none;
+    }
+    .autocomplete-results.show {
+        display: block;
+    }
+    .autocomplete-item {
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid #495057;
+        transition: background 0.15s;
+    }
+    .autocomplete-item:last-child {
+        border-bottom: none;
+    }
+    .autocomplete-item:hover,
+    .autocomplete-item.active {
+        background: #0d6efd;
+        color: white;
+    }
+    .autocomplete-item .employee-code {
+        font-size: 0.8rem;
+        opacity: 0.7;
+    }
+    .autocomplete-item .employee-shift {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+    .autocomplete-item:hover .employee-shift,
+    .autocomplete-item.active .employee-shift {
+        color: rgba(255,255,255,0.7);
+    }
+    /* Dark theme for date input calendar */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+        cursor: pointer;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Add Attendance Form Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-plus-circle me-2"></i>
+                تسجيل حضور جديد
+            </h5>
+        </div>
+        <div class="card-body">
+            <form id="attendanceForm">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label">التاريخ <span class="text-danger">*</span></label>
+                        <input type="date" id="workDate" class="form-control" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">الموظف <span class="text-danger">*</span></label>
+                        <div class="autocomplete-container">
+                            <input type="hidden" id="employeeId" />
+                            <input type="text" id="employeeSearch" class="form-control" 
+                                   placeholder="ابحث عن الموظف بالاسم أو الكود..." autocomplete="off" />
+                            <div id="employeeResults" class="autocomplete-results"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">وقت الحضور</label>
+                        <input type="time" id="checkInTime" class="form-control" value="08:00" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">وقت الانصراف</label>
+                        <input type="time" id="checkOutTime" class="form-control" value="17:00" />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">إذن (دقائق)</label>
+                        <input type="number" id="permissionMinutes" class="form-control" value="0" min="0" max="480" />
+                    </div>
+                    <div class="col-md-1">
+                        <div class="form-check mt-4">
+                            <input type="checkbox" id="isAbsent" class="form-check-input" />
+                            <label class="form-check-label" for="isAbsent">غائب</label>
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-primary w-100" id="submitBtn">
+                            <i class="bi bi-check-lg me-1"></i>
+                            حفظ
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    <!-- Attendance Table Card -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-table me-2"></i>
+                السجلات المضافة في هذه الجلسة
+            </h5>
+            <span class="badge bg-primary" id="recordCount">0 سجل</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0" id="attendanceTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th>الكود</th>
+                            <th>اسم الموظف</th>
+                            <th>الوردية</th>
+                            <th>التاريخ</th>
+                            <th>الحضور</th>
+                            <th>الانصراف</th>
+                            <th>ساعات العمل</th>
+                            <th>التأخير</th>
+                            <th>الإضافي</th>
+                            <th>الحالة</th>
+                            <th style="width: 120px;">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceTableBody">
+                        <!-- Table starts empty, records are added during session only -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="noRecordsMessage" class="text-center py-5 d-none">
+                <i class="bi bi-calendar-x display-1 text-muted"></i>
+                <p class="text-muted mt-3">لا توجد سجلات حضور لهذا التاريخ</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil me-2"></i>
+                    تعديل سجل الحضور
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId" />
+                <div class="mb-3">
+                    <label class="form-label">الموظف</label>
+                    <input type="text" id="editEmployeeName" class="form-control" readonly />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">التاريخ</label>
+                    <input type="text" id="editWorkDate" class="form-control" readonly />
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">وقت الحضور</label>
+                        <input type="time" id="editCheckInTime" class="form-control" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">وقت الانصراف</label>
+                        <input type="time" id="editCheckOutTime" class="form-control" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">إذن (دقائق)</label>
+                        <input type="number" id="editPermissionMinutes" class="form-control" min="0" max="480" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check mt-4">
+                            <input type="checkbox" id="editIsAbsent" class="form-check-input" />
+                            <label class="form-check-label" for="editIsAbsent">غائب</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="saveEditBtn">
+                    <i class="bi bi-check-lg me-1"></i>
+                    حفظ التغييرات
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                    تأكيد الحذف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="deleteId" />
+                <p>هل أنت متأكد من حذف سجل الحضور لـ <strong id="deleteEmployeeName"></strong>؟</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle me-2"></i>
+                    سيتم حذف سجلات التأخير والإضافي المرتبطة
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="bi bi-trash me-1"></i>
+                    حذف
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Attendance Management JavaScript
+    const baseUrl = '/Attendence';
+    let editModal, deleteModal;
+    let allEmployees = [];
+    
+    // Session-only records - starts empty, cleared on page reload
+    let sessionRecords = [];
+
+    document.addEventListener('DOMContentLoaded', async function() {
+        editModal = new bootstrap.Modal(document.getElementById('editModal'));
+        deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+        // Initialize date field with today's date
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('workDate').value = today;
+
+        // Load employees for autocomplete
+        await loadEmployees();
+
+        // Form submission
+        document.getElementById('attendanceForm').addEventListener('submit', handleFormSubmit);
+        
+        // Edit save button
+        document.getElementById('saveEditBtn').addEventListener('click', saveEdit);
+        
+        // Delete confirm button
+        document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
+
+        // Is Absent checkbox toggle
+        document.getElementById('isAbsent').addEventListener('change', function() {
+            toggleTimeInputs(this.checked);
+        });
+
+        document.getElementById('editIsAbsent').addEventListener('change', function() {
+            toggleEditTimeInputs(this.checked);
+        });
+
+        // Employee search autocomplete
+        setupAutocomplete('employeeSearch', 'employeeResults', 'employeeId');
+
+        // Close autocomplete when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.autocomplete-container')) {
+                document.querySelectorAll('.autocomplete-results').forEach(r => r.classList.remove('show'));
+            }
+        });
+
+        // Render empty table initially
+        renderTable();
+    });
+
+    async function loadEmployees() {
+        try {
+            const response = await fetch(`${baseUrl}/GetEmployees`);
+            const result = await response.json();
+            if (result.success) {
+                allEmployees = result.data;
+            }
+        } catch (error) {
+            console.error('Error loading employees:', error);
+        }
+    }
+
+    function setupAutocomplete(inputId, resultsId, hiddenId) {
+        const input = document.getElementById(inputId);
+        const results = document.getElementById(resultsId);
+        const hidden = document.getElementById(hiddenId);
+        
+        let activeIndex = -1;
+
+        input.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            activeIndex = -1;
+            
+            // Clear hidden value when user types
+            hidden.value = '';
+            
+            if (query.length < 1) {
+                results.classList.remove('show');
+                return;
+            }
+
+            const filtered = allEmployees.filter(emp => 
+                emp.name.toLowerCase().includes(query) || 
+                emp.code.toLowerCase().includes(query)
+            );
+
+            if (filtered.length === 0) {
+                results.innerHTML = '<div class="autocomplete-item text-muted">لا توجد نتائج</div>';
+            } else {
+                results.innerHTML = filtered.map((emp, idx) => `
+                    <div class="autocomplete-item" data-id="${emp.id}" data-name="${emp.name}" data-code="${emp.code}" data-index="${idx}">
+                        <div><strong>${emp.name}</strong></div>
+                        <div class="employee-code">${emp.code}</div>
+                        <div class="employee-shift">${emp.shiftName || ''}</div>
+                    </div>
+                `).join('');
+            }
+            
+            results.classList.add('show');
+
+            // Add click handlers to items
+            results.querySelectorAll('.autocomplete-item[data-id]').forEach(item => {
+                item.addEventListener('click', function() {
+                    selectEmployee(this, inputId, resultsId, hiddenId);
+                });
+            });
+        });
+
+        // Focus event to show results if there's a query
+        input.addEventListener('focus', function() {
+            if (this.value.length >= 1 && !hidden.value) {
+                const event = new Event('input');
+                this.dispatchEvent(event);
+            }
+        });
+
+        // Keyboard navigation
+        input.addEventListener('keydown', function(e) {
+            const items = results.querySelectorAll('.autocomplete-item[data-id]');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeIndex = Math.min(activeIndex + 1, items.length - 1);
+                updateActiveItem(items, activeIndex);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeIndex = Math.max(activeIndex - 1, 0);
+                updateActiveItem(items, activeIndex);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (activeIndex >= 0 && items[activeIndex]) {
+                    selectEmployee(items[activeIndex], inputId, resultsId, hiddenId);
+                }
+            } else if (e.key === 'Escape') {
+                results.classList.remove('show');
+            }
+        });
+    }
+
+    function updateActiveItem(items, activeIndex) {
+        items.forEach((item, idx) => {
+            item.classList.toggle('active', idx === activeIndex);
+        });
+        if (items[activeIndex]) {
+            items[activeIndex].scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    function selectEmployee(item, inputId, resultsId, hiddenId) {
+        const id = item.dataset.id;
+        const name = item.dataset.name;
+        const code = item.dataset.code;
+        
+        document.getElementById(hiddenId).value = id;
+        document.getElementById(inputId).value = `${code} - ${name}`;
+        document.getElementById(resultsId).classList.remove('show');
+    }
+
+    function clearEmployeeInput(inputId, hiddenId) {
+        document.getElementById(hiddenId).value = '';
+        document.getElementById(inputId).value = '';
+    }
+
+    function toggleTimeInputs(isAbsent) {
+        const checkIn = document.getElementById('checkInTime');
+        const checkOut = document.getElementById('checkOutTime');
+        checkIn.disabled = isAbsent;
+        checkOut.disabled = isAbsent;
+        if (isAbsent) {
+            checkIn.value = '';
+            checkOut.value = '';
+        }
+    }
+
+    function toggleEditTimeInputs(isAbsent) {
+        const checkIn = document.getElementById('editCheckInTime');
+        const checkOut = document.getElementById('editCheckOutTime');
+        checkIn.disabled = isAbsent;
+        checkOut.disabled = isAbsent;
+        if (isAbsent) {
+            checkIn.value = '';
+            checkOut.value = '';
+        }
+    }
+
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>جاري الحفظ...';
+
+        const employeeId = document.getElementById('employeeId').value;
+        const workDate = document.getElementById('workDate').value;
+
+        if (!employeeId) {
+            showAlert('الرجاء اختيار الموظف', 'danger');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>حفظ';
+            return;
+        }
+
+        if (!workDate) {
+            showAlert('الرجاء اختيار التاريخ', 'danger');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>حفظ';
+            return;
+        }
+
+        const data = {
+            Employee_id: parseInt(employeeId),
+            Work_date: workDate,
+            Is_absent: document.getElementById('isAbsent').checked,
+            Check_In_time: document.getElementById('checkInTime').value || null,
+            Check_out_time: document.getElementById('checkOutTime').value || null,
+            Permission_minutes: parseInt(document.getElementById('permissionMinutes').value) || 0
+        };
+
+        try {
+            const response = await fetch(`${baseUrl}/CreateAjax`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert(result.message, 'success');
+                
+                // Add the returned record to session records
+                if (result.data) {
+                    sessionRecords.push(result.data);
+                    renderTable();
+                }
+                
+                // Reset form
+                clearEmployeeInput('employeeSearch', 'employeeId');
+                document.getElementById('permissionMinutes').value = '0';
+                document.getElementById('isAbsent').checked = false;
+                toggleTimeInputs(false);
+                document.getElementById('checkInTime').value = '08:00';
+                document.getElementById('checkOutTime').value = '17:00';
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في الاتصال بالخادم', 'danger');
+            console.error(error);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>حفظ';
+        }
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('attendanceTableBody');
+        const noRecords = document.getElementById('noRecordsMessage');
+        const recordCount = document.getElementById('recordCount');
+
+        if (sessionRecords.length === 0) {
+            tbody.innerHTML = '';
+            noRecords.classList.remove('d-none');
+            recordCount.textContent = '0 سجل';
+            return;
+        }
+
+        noRecords.classList.add('d-none');
+        recordCount.textContent = `${sessionRecords.length} سجل`;
+
+        tbody.innerHTML = sessionRecords.map((item, index) => `
+            <tr data-id="${item.id}">
+                <td>${index + 1}</td>
+                <td><span class="badge bg-dark border">${item.employee_code}</span></td>
+                <td>${item.employee_name}</td>
+                <td><span class="badge bg-secondary">${item.shift_name || '-'}</span></td>
+                <td>${item.work_date_Display}</td>
+                <td>${item.check_In_Display}</td>
+                <td>${item.check_Out_Display}</td>
+                <td>${item.worked_hours_Display}</td>
+                <td>${item.lateTime_minutes && item.lateTime_minutes > 0 ? `<span class="text-warning">${item.lateTime_Display}</span>` : '-'}</td>
+                <td>${item.overTime_minutes && item.overTime_minutes > 0 ? `<span class="text-success">${item.overTime_Display}</span>` : '-'}</td>
+                <td>${getStatusBadge(item)}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-warning" onclick="openEditModal(${item.id})" title="تعديل">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="openDeleteModal(${item.id}, '${item.employee_name}')" title="حذف">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function getStatusBadge(item) {
+        if (item.is_Absent) {
+            return '<span class="badge bg-danger">غائب</span>';
+        }
+        if (item.check_out_time) {
+            return '<span class="badge bg-success">مكتمل</span>';
+        }
+        if (item.check_In_time) {
+            return '<span class="badge bg-info">حاضر</span>';
+        }
+        return '<span class="badge bg-secondary">لم يبدأ</span>';
+    }
+
+    async function openEditModal(id) {
+        try {
+            const response = await fetch(`${baseUrl}/GetById?id=${id}`);
+            const result = await response.json();
+
+            if (result.success) {
+                const data = result.data;
+                document.getElementById('editId').value = data.id;
+                document.getElementById('editEmployeeName').value = `${data.employee_code} - ${data.employee_name}`;
+                document.getElementById('editWorkDate').value = data.work_date_Display;
+                document.getElementById('editCheckInTime').value = data.check_In_time ? data.check_In_time.substring(0, 5) : '';
+                document.getElementById('editCheckOutTime').value = data.check_out_time ? data.check_out_time.substring(0, 5) : '';
+                document.getElementById('editPermissionMinutes').value = data.permission_time || 0;
+                document.getElementById('editIsAbsent').checked = data.is_Absent;
+                toggleEditTimeInputs(data.is_Absent);
+                
+                editModal.show();
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في تحميل البيانات', 'danger');
+            console.error(error);
+        }
+    }
+
+    async function saveEdit() {
+        const id = parseInt(document.getElementById('editId').value);
+        const saveBtn = document.getElementById('saveEditBtn');
+        
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>جاري الحفظ...';
+
+        const data = {
+            Is_absent: document.getElementById('editIsAbsent').checked,
+            Check_In_time: document.getElementById('editCheckInTime').value || null,
+            Check_out_time: document.getElementById('editCheckOutTime').value || null,
+            Permission_minutes: parseInt(document.getElementById('editPermissionMinutes').value) || 0
+        };
+
+        try {
+            const response = await fetch(`${baseUrl}/UpdateAjax?id=${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                editModal.hide();
+                showAlert(result.message, 'success');
+                
+                // Update the record in session records
+                const index = sessionRecords.findIndex(r => r.id === id);
+                if (index !== -1 && result.data) {
+                    sessionRecords[index] = result.data;
+                    renderTable();
+                }
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في حفظ البيانات', 'danger');
+            console.error(error);
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>حفظ التغييرات';
+        }
+    }
+
+    function openDeleteModal(id, employeeName) {
+        document.getElementById('deleteId').value = id;
+        document.getElementById('deleteEmployeeName').textContent = employeeName;
+        deleteModal.show();
+    }
+
+    async function confirmDelete() {
+        const id = parseInt(document.getElementById('deleteId').value);
+        const deleteBtn = document.getElementById('confirmDeleteBtn');
+        
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>جاري الحذف...';
+
+        try {
+            const response = await fetch(`${baseUrl}/DeleteAjax?id=${id}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                deleteModal.hide();
+                showAlert(result.message, 'success');
+                
+                // Remove the record from session records
+                sessionRecords = sessionRecords.filter(r => r.id !== id);
+                renderTable();
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في حذف السجل', 'danger');
+            console.error(error);
+        } finally {
+            deleteBtn.disabled = false;
+            deleteBtn.innerHTML = '<i class="bi bi-trash me-1"></i>حذف';
+        }
+    }
+
+    function showAlert(message, type) {
+        const container = document.getElementById('alertContainer');
+        const alertId = 'alert-' + Date.now();
+        
+        container.innerHTML = `
+            <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) {
+                alert.remove();
+            }
+        }, 5000);
+    }
+</script>
+}
