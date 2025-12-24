@@ -128,6 +128,7 @@
                             <th>التاريخ</th>
                             <th>الحضور</th>
                             <th>الانصراف</th>
+                            <th>الإذن (دقائق)</th> 
                             <th>ساعات العمل</th>
                             <th>التأخير</th>
                             <th>الإضافي</th>
@@ -487,6 +488,7 @@
                 <td>${item.work_date_Display}</td>
                 <td>${item.check_In_Display}</td>
                 <td>${item.check_Out_Display}</td>
+                <td>${item.permission_time || 0}</td>
                 <td>${item.worked_hours_Display}</td>
                 <td>${item.lateTime_minutes && item.lateTime_minutes > 0 ? `<span class="text-warning">${item.lateTime_Display}</span>` : '-'}</td>
                 <td>${item.overTime_minutes && item.overTime_minutes > 0 ? `<span class="text-success">${item.overTime_Display}</span>` : '-'}</td>

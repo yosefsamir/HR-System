@@ -513,6 +513,7 @@
                                 <th>وقت الحضور</th>
                                 <th>وقت الانصراف</th>
                                 <th>ساعات العمل</th>
+                                <th>الإذن (دقائق)</th>
                                 <th>التأخير</th>
                                 <th>الإضافي</th>
                                 <th>الحالة</th>
@@ -843,6 +844,7 @@
                             <td>${checkIn}</td>
                             <td>${checkOut}</td>
                             <td>${workedHours}</td>
+                            <td>${record.permission_time > 0 ? record.permission_time + ' د' : '-'}</td>
                             <td>${lateMinutes}</td>
                             <td>${overtimeMinutes}</td>
                             <td>${statusBadge}</td>

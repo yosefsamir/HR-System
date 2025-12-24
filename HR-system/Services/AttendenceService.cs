@@ -212,13 +212,15 @@ namespace HR_system.Services
             // Calculate and add overtime (only if not absent)
             if (!dto.Is_absent && dto.Check_out_time.HasValue)
             {
-                var overtimeMinutes = CalculateOvertimeMinutes(dto.Check_out_time.Value, shift);
-                if (overtimeMinutes > 0)
+               var overtimeAfterShift = CalculateOvertimeMinutes(dto.Check_out_time.Value, shift);
+                var earlyCheckIn = CalculateEarlyCheckInMinutes(dto.Check_In_time.Value, shift);
+                var totalOvertimeMinutes = overtimeAfterShift + earlyCheckIn;
+                if (totalOvertimeMinutes > 0)
                 {
                     var overtime = new OverTime
                     {
                         Attendence_id = attendance.Id,
-                        Minutes = overtimeMinutes
+                        Minutes = totalOvertimeMinutes
                     };
                     _context.OverTimes.Add(overtime);
                 }
@@ -306,14 +308,15 @@ namespace HR_system.Services
                     _context.LateTimes.Add(lateTime);
                 }
 
-                // Calculate and add overtime
-                var overtimeMinutes = CalculateOvertimeMinutes(dto.Check_out_time.Value, shift);
-                if (overtimeMinutes > 0)
+                var overtimeAfterShift = CalculateOvertimeMinutes(dto.Check_out_time.Value, shift);
+                var earlyCheckIn = CalculateEarlyCheckInMinutes(dto.Check_In_time.Value, shift);
+                var totalOvertimeMinutes = overtimeAfterShift + earlyCheckIn;
+                if (totalOvertimeMinutes > 0)
                 {
                     var overtime = new OverTime
                     {
                         Attendence_id = attendance.Id,
-                        Minutes = overtimeMinutes
+                        Minutes = totalOvertimeMinutes
                     };
                     _context.OverTimes.Add(overtime);
                 }
@@ -518,6 +521,14 @@ namespace HR_system.Services
             return workedMinutes;
         }
 
+        private static int CalculateEarlyCheckInMinutes(TimeSpan checkIn, Shift shift)
+        {
+            if (checkIn < shift.Start_time)
+            {
+                return (int)(shift.Start_time - checkIn).TotalMinutes;
+            }
+            return 0;
+        }
         #endregion
 
         #region Mapping Helper
