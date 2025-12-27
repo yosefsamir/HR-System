@@ -1,4 +1,5 @@
 using HR_system.Data;
+using HR_system.Repositories;
 using HR_system.Services;
 using HR_system.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +9,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Register Repositories
+builder.Services.AddScoped<IAttendenceRepository, AttendenceRepository>();
 
 // Register Services (Dependency Injection)
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();

@@ -113,7 +113,14 @@
                 <i class="bi bi-table me-2"></i>
                 نتائج البحث
             </h5>
-            <span class="badge bg-primary" id="recordCount">0 سجل</span>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-warning btn-sm" id="recalculateBtn" 
+                        title="إعادة حساب سجلات الحضور">
+                    <i class="bi bi-calculator"></i>
+                    إعادة الحساب
+                </button>
+                <span class="badge bg-primary" id="recordCount">0 سجل</span>
+            </div>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -239,6 +246,55 @@
     </div>
 </div>
 
+<!-- Recalculate Attendance Modal -->
+<div class="modal fade" id="recalculateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-calculator me-2"></i>
+                    إعادة حساب سجلات الحضور
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>تحذير مهم:</strong> إذا قمت بتغيير معلومات الورديات أو قيود الوقت للموظفين، 
+                    يجب إعادة حساب جميع سجلات الحضور في النطاق الزمني المحدد.
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">من تاريخ</label>
+                        <input type="date" id="recalcStartDate" class="form-control" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">إلى تاريخ</label>
+                        <input type="date" id="recalcEndDate" class="form-control" required />
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="confirmRecalculation" required />
+                        <label class="form-check-label" for="confirmRecalculation">
+                            أفهم أن هذا الإجراء سيؤثر على جميع سجلات الحضور في النطاق الزمني المحدد
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-warning" id="startRecalculationBtn" disabled>
+                    <i class="bi bi-calculator me-1"></i>
+                    بدء إعادة الحساب
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     const baseUrl = '/Attendence';
@@ -273,6 +329,13 @@
         
         // Delete confirm button
         document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
+
+        // Recalculate button
+        document.getElementById('recalculateBtn').addEventListener('click', showRecalculateModal);
+
+        // Recalculate modal events
+        document.getElementById('confirmRecalculation').addEventListener('change', toggleRecalculationButton);
+        document.getElementById('startRecalculationBtn').addEventListener('click', startRecalculation);
 
         // Edit absent checkbox
         document.getElementById('editIsAbsent').addEventListener('change', function() {
@@ -662,6 +725,82 @@
             const alert = document.getElementById(alertId);
             if (alert) alert.remove();
         }, 5000);
+    }
+
+    // Recalculation functions
+    function showRecalculateModal() {
+        const modal = new bootstrap.Modal(document.getElementById('recalculateModal'));
+        
+        // Set default dates (current month)
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        
+        document.getElementById('recalcStartDate').value = startOfMonth.toISOString().split('T')[0];
+        document.getElementById('recalcEndDate').value = endOfMonth.toISOString().split('T')[0];
+        document.getElementById('confirmRecalculation').checked = false;
+        document.getElementById('startRecalculationBtn').disabled = true;
+        
+        modal.show();
+    }
+
+    function toggleRecalculationButton() {
+        const checkbox = document.getElementById('confirmRecalculation');
+        const button = document.getElementById('startRecalculationBtn');
+        button.disabled = !checkbox.checked;
+    }
+
+    async function startRecalculation() {
+        const startDate = document.getElementById('recalcStartDate').value;
+        const endDate = document.getElementById('recalcEndDate').value;
+        
+        if (!startDate || !endDate) {
+            showAlert('يرجى تحديد نطاق زمني صحيح', 'warning');
+            return;
+        }
+
+        if (new Date(startDate) > new Date(endDate)) {
+            showAlert('تاريخ البداية يجب أن يكون قبل تاريخ النهاية', 'warning');
+            return;
+        }
+
+        // Disable button and show loading
+        const button = document.getElementById('startRecalculationBtn');
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>جاري إعادة الحساب...';
+
+        try {
+            const response = await fetch(`${baseUrl}/RecalculateAttendance`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    startDate: startDate,
+                    endDate: endDate
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert(`تم إعادة حساب ${result.processedRecords} سجل بنجاح`, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('recalculateModal')).hide();
+                
+                // Refresh current search results
+                performSearch();
+            } else {
+                showAlert(result.message || 'حدث خطأ أثناء إعادة الحساب', 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في الاتصال بالخادم', 'danger');
+            console.error(error);
+        } finally {
+            // Restore button
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
     }
 </script>
 }

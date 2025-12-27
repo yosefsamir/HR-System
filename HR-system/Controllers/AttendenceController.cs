@@ -284,6 +284,70 @@ namespace HR_system.Controllers
 
         #endregion
 
+        #region Recalculation
+
+        // POST: Attendence/RecalculateAttendance
+        [HttpPost]
+        public async Task<IActionResult> RecalculateAttendance([FromBody] RecalculateRequest request)
+        {
+            try
+            {
+                if (request.StartDate > request.EndDate)
+                {
+                    return Json(new { success = false, message = "تاريخ البداية يجب أن يكون قبل تاريخ النهاية" });
+                }
+
+                // Get all attendance records in the date range
+                var attendances = await _attendenceService.GetByDateRangeAsync(request.StartDate, request.EndDate);
+                
+                int processedRecords = 0;
+                int updatedRecords = 0;
+
+                foreach (var attendance in attendances)
+                {
+                    try
+                    {
+                        // Create update DTO with current data to trigger recalculation
+                        var updateDto = new UpdateAttendenceDto
+                        {
+                            Is_absent = attendance.Is_Absent,
+                            Check_In_time = attendance.Check_In_time,
+                            Check_out_time = attendance.Check_out_time,
+                            Permission_minutes = attendance.Permission_time
+                        };
+
+                        // Update the record (this will trigger recalculation in the service)
+                        var result = await _attendenceService.UpdateAsync(attendance.Id, updateDto);
+                        
+                        if (result != null)
+                        {
+                            updatedRecords++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log error but continue with other records
+                        Console.WriteLine($"Error recalculating attendance {attendance.Id}: {ex.Message}");
+                    }
+                    
+                    processedRecords++;
+                }
+
+                return Json(new { 
+                    success = true, 
+                    message = $"تم إعادة حساب {processedRecords} سجل بنجاح",
+                    processedRecords = processedRecords,
+                    updatedRecords = updatedRecords
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"حدث خطأ: {ex.Message}" });
+            }
+        }
+
+        #endregion
+
         #region Helper Methods
 
         private async Task LoadEmployeesAsync(int? selectedEmployeeId = null)
