@@ -150,6 +150,28 @@ namespace HR_system.Services
 
         public async Task<EmployeeDto> CreateAsync(CreateEmployeeDto dto)
         {
+            // Validate employee code uniqueness
+            var existingEmployee = await _context.Employees
+                .FirstOrDefaultAsync(e => e.Code == dto.Code);
+
+            if (existingEmployee != null)
+            {
+                throw new InvalidOperationException($"Employee code '{dto.Code}' already exists. Please use a unique code.");
+            }
+
+            // Validate foreign keys
+            var department = await _context.Departments.FindAsync(dto.Department_id);
+            if (department == null)
+            {
+                throw new InvalidOperationException($"Department with ID {dto.Department_id} does not exist.");
+            }
+
+            var shift = await _context.Shifts.FindAsync(dto.Shift_id);
+            if (shift == null)
+            {
+                throw new InvalidOperationException($"Shift with ID {dto.Shift_id} does not exist.");
+            }
+
             var employee = new Employee
             {
                 Emp_name = dto.Emp_name,
@@ -195,6 +217,28 @@ namespace HR_system.Services
 
             if (employee == null)
                 return null;
+
+            // Validate employee code uniqueness (exclude current employee)
+            var existingEmployee = await _context.Employees
+                .FirstOrDefaultAsync(e => e.Code == dto.Code && e.Id != id);
+
+            if (existingEmployee != null)
+            {
+                throw new InvalidOperationException($"Employee code '{dto.Code}' already exists. Please use a unique code.");
+            }
+
+            // Validate foreign keys
+            var department = await _context.Departments.FindAsync(dto.Department_id);
+            if (department == null)
+            {
+                throw new InvalidOperationException($"Department with ID {dto.Department_id} does not exist.");
+            }
+
+            var shift = await _context.Shifts.FindAsync(dto.Shift_id);
+            if (shift == null)
+            {
+                throw new InvalidOperationException($"Shift with ID {dto.Shift_id} does not exist.");
+            }
 
             employee.Emp_name = dto.Emp_name;
             employee.Code = dto.Code;
