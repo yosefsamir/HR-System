@@ -12,6 +12,7 @@ namespace HR_system.DTOs.Shift
         public int Minutes_allow_attendence { get; set; }
         public int Minutes_allow_departure { get; set; }
         public decimal StandardHours { get; set; }
+        public bool IsFlexible { get; set; }
         public int EmployeeCount { get; set; }
 
         // Formatted times for display

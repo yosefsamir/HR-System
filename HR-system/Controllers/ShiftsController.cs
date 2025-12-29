@@ -43,7 +43,8 @@ namespace HR_system.Controllers
                         Start_time = shift.Start_time,
                         End_time = shift.End_time,
                         Minutes_allow_attendence = shift.Minutes_allow_attendence,
-                        Minutes_allow_departure = shift.Minutes_allow_departure
+                        Minutes_allow_departure = shift.Minutes_allow_departure,
+                        StandardHours = shift.StandardHours
                     };
                 }
             }

@@ -175,48 +175,91 @@ namespace HR_system.Repositories
                 attendance.Check_In_time = dto.Check_In_time;
                 attendance.Check_out_time = dto.Check_out_time;
 
-                // Calculate worked minutes using domain service
-                attendance.Worked_minutes = AttendanceCalculationService.CalculateWorkedMinutes(
-                    dto.Check_In_time.Value,
-                    dto.Check_out_time.Value,
-                    shift,
-                    dto.Permission_minutes);
+                // Calculate worked minutes based on shift type
+                if (shift.IsFlexible)
+                {
+                    // For flexible shifts: worked minutes = actual time worked (check-out - check-in - permission)
+                    var totalMinutes = (int)(dto.Check_out_time.Value - dto.Check_In_time.Value).TotalMinutes;
+                    if (totalMinutes < 0)
+                    {
+                        totalMinutes += 24 * 60; // Handle overnight shifts
+                    }
+                    attendance.Worked_minutes = Math.Max(0, totalMinutes - dto.Permission_minutes);
+                }
+                else
+                {
+                    // For traditional shifts: use standard calculation
+                    attendance.Worked_minutes = AttendanceCalculationService.CalculateWorkedMinutes(
+                        dto.Check_In_time.Value,
+                        dto.Check_out_time.Value,
+                        shift,
+                        dto.Permission_minutes);
+                }
             }
 
             _context.Attendences.Add(attendance);
             await _context.SaveChangesAsync();
 
-            // Calculate and add late time (only if not absent)
-            if (!dto.Is_absent && dto.Check_In_time.HasValue)
+            // Calculate and add late time and overtime (only if not absent)
+            if (!dto.Is_absent && dto.Check_In_time.HasValue && dto.Check_out_time.HasValue)
             {
-                var lateMinutes = AttendanceCalculationService.CalculateLateMinutes(dto.Check_In_time.Value, shift);
-                if (lateMinutes > 0)
+                if (shift.IsFlexible)
                 {
-                    var lateTime = new LateTime
+                    // For flexible shifts: calculate based on StandardHours
+                    var (overtimeMinutes, lateMinutes) = AttendanceCalculationService.CalculateFlexibleTimeDifferences(
+                        dto.Check_In_time.Value,
+                        dto.Check_out_time.Value,
+                        shift,
+                        dto.Permission_minutes);
+
+                    if (lateMinutes > 0)
                     {
-                        Attendence_id = attendance.Id,
-                        Minutes = lateMinutes
-                    };
-                    _context.LateTimes.Add(lateTime);
+                        var lateTime = new LateTime
+                        {
+                            Attendence_id = attendance.Id,
+                            Minutes = lateMinutes
+                        };
+                        _context.LateTimes.Add(lateTime);
+                    }
+
+                    if (overtimeMinutes > 0)
+                    {
+                        var overtime = new OverTime
+                        {
+                            Attendence_id = attendance.Id,
+                            Minutes = overtimeMinutes
+                        };
+                        _context.OverTimes.Add(overtime);
+                    }
                 }
-            }
-
-            // Calculate and add overtime (only if not absent)
-            if (!dto.Is_absent && dto.Check_out_time.HasValue && dto.Check_In_time.HasValue)
-            {
-                var totalOvertimeMinutes = AttendanceCalculationService.CalculateTotalOvertimeMinutes(
-                    dto.Check_In_time.Value,
-                    dto.Check_out_time.Value,
-                    shift);
-
-                if (totalOvertimeMinutes > 0)
+                else
                 {
-                    var overtime = new OverTime
+                    // For traditional shifts: use standard calculations
+                    var lateMinutes = AttendanceCalculationService.CalculateLateMinutes(dto.Check_In_time.Value, shift);
+                    if (lateMinutes > 0)
                     {
-                        Attendence_id = attendance.Id,
-                        Minutes = totalOvertimeMinutes
-                    };
-                    _context.OverTimes.Add(overtime);
+                        var lateTime = new LateTime
+                        {
+                            Attendence_id = attendance.Id,
+                            Minutes = lateMinutes
+                        };
+                        _context.LateTimes.Add(lateTime);
+                    }
+
+                    var totalOvertimeMinutes = AttendanceCalculationService.CalculateTotalOvertimeMinutes(
+                        dto.Check_In_time.Value,
+                        dto.Check_out_time.Value,
+                        shift);
+
+                    if (totalOvertimeMinutes > 0)
+                    {
+                        var overtime = new OverTime
+                        {
+                            Attendence_id = attendance.Id,
+                            Minutes = totalOvertimeMinutes
+                        };
+                        _context.OverTimes.Add(overtime);
+                    }
                 }
             }
 
@@ -262,6 +305,7 @@ namespace HR_system.Repositories
             }
 
             attendance.Is_Absent = dto.Is_absent;
+            attendance.Work_date = dto.Work_date;
             attendance.Permission_time = dto.Permission_minutes;
 
             if (dto.Is_absent)
@@ -283,39 +327,85 @@ namespace HR_system.Repositories
                 attendance.Check_In_time = dto.Check_In_time;
                 attendance.Check_out_time = dto.Check_out_time;
 
-                // Calculate worked minutes using domain service
-                attendance.Worked_minutes = AttendanceCalculationService.CalculateWorkedMinutes(
-                    dto.Check_In_time.Value,
-                    dto.Check_out_time.Value,
-                    shift,
-                    dto.Permission_minutes);
-
-                // Calculate and add late time using domain service
-                var lateMinutes = AttendanceCalculationService.CalculateLateMinutes(dto.Check_In_time.Value, shift);
-                if (lateMinutes > 0)
+                // Calculate worked minutes based on shift type
+                if (shift.IsFlexible)
                 {
-                    var lateTime = new LateTime
+                    // For flexible shifts: worked minutes = actual time worked (check-out - check-in - permission)
+                    var totalMinutes = (int)(dto.Check_out_time.Value - dto.Check_In_time.Value).TotalMinutes;
+                    if (totalMinutes < 0)
                     {
-                        Attendence_id = attendance.Id,
-                        Minutes = lateMinutes
-                    };
-                    _context.LateTimes.Add(lateTime);
+                        totalMinutes += 24 * 60; // Handle overnight shifts
+                    }
+                    attendance.Worked_minutes = Math.Max(0, totalMinutes - dto.Permission_minutes);
+                }
+                else
+                {
+                    // For traditional shifts: use standard calculation
+                    attendance.Worked_minutes = AttendanceCalculationService.CalculateWorkedMinutes(
+                        dto.Check_In_time.Value,
+                        dto.Check_out_time.Value,
+                        shift,
+                        dto.Permission_minutes);
                 }
 
-                // Calculate and add overtime using domain service
-                var totalOvertimeMinutes = AttendanceCalculationService.CalculateTotalOvertimeMinutes(
-                    dto.Check_In_time.Value,
-                    dto.Check_out_time.Value,
-                    shift);
-
-                if (totalOvertimeMinutes > 0)
+                // Calculate and add late time and overtime based on shift type
+                if (shift.IsFlexible)
                 {
-                    var overtime = new OverTime
+                    // For flexible shifts: calculate based on StandardHours
+                    var (overtimeMinutes, lateMinutes) = AttendanceCalculationService.CalculateFlexibleTimeDifferences(
+                        dto.Check_In_time.Value,
+                        dto.Check_out_time.Value,
+                        shift,
+                        dto.Permission_minutes);
+
+                    if (lateMinutes > 0)
                     {
-                        Attendence_id = attendance.Id,
-                        Minutes = totalOvertimeMinutes
-                    };
-                    _context.OverTimes.Add(overtime);
+                        var lateTime = new LateTime
+                        {
+                            Attendence_id = attendance.Id,
+                            Minutes = lateMinutes
+                        };
+                        _context.LateTimes.Add(lateTime);
+                    }
+
+                    if (overtimeMinutes > 0)
+                    {
+                        var overtime = new OverTime
+                        {
+                            Attendence_id = attendance.Id,
+                            Minutes = overtimeMinutes
+                        };
+                        _context.OverTimes.Add(overtime);
+                    }
+                }
+                else
+                {
+                    // For traditional shifts: use standard calculations
+                    var lateMinutes = AttendanceCalculationService.CalculateLateMinutes(dto.Check_In_time.Value, shift);
+                    if (lateMinutes > 0)
+                    {
+                        var lateTime = new LateTime
+                        {
+                            Attendence_id = attendance.Id,
+                            Minutes = lateMinutes
+                        };
+                        _context.LateTimes.Add(lateTime);
+                    }
+
+                    var totalOvertimeMinutes = AttendanceCalculationService.CalculateTotalOvertimeMinutes(
+                        dto.Check_In_time.Value,
+                        dto.Check_out_time.Value,
+                        shift);
+
+                    if (totalOvertimeMinutes > 0)
+                    {
+                        var overtime = new OverTime
+                        {
+                            Attendence_id = attendance.Id,
+                            Minutes = totalOvertimeMinutes
+                        };
+                        _context.OverTimes.Add(overtime);
+                    }
                 }
             }
 

@@ -90,7 +90,7 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">وقت الانصراف</label>
-                        <input type="time" id="checkOutTime" class="form-control" value="17:00" />
+                        <input type="time" id="checkOutTime" class="form-control" value="16:30" />
                     </div>
                     <div class="col-md-1">
                         <label class="form-label">إذن (دقائق)</label>
@@ -177,7 +177,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">التاريخ</label>
-                    <input type="text" id="editWorkDate" class="form-control" readonly />
+                    <input type="date" id="editWorkDate" class="form-control" />
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -566,7 +566,7 @@
                 const data = result.data;
                 document.getElementById('editId').value = data.id;
                 document.getElementById('editEmployeeName').value = `${data.employee_code} - ${data.employee_name}`;
-                document.getElementById('editWorkDate').value = data.work_date_Display;
+                document.getElementById('editWorkDate').value = data.work_date_Display.replace(/\//g, '-'); // Convert yyyy/MM/dd to yyyy-MM-dd
                 document.getElementById('editCheckInTime').value = data.check_In_time ? data.check_In_time.substring(0, 5) : '';
                 document.getElementById('editCheckOutTime').value = data.check_out_time ? data.check_out_time.substring(0, 5) : '';
                 document.getElementById('editPermissionMinutes').value = data.permission_time || 0;
@@ -591,6 +591,7 @@
         saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>جاري الحفظ...';
 
         const data = {
+            Work_date: document.getElementById('editWorkDate').value,
             Is_absent: document.getElementById('editIsAbsent').checked,
             Check_In_time: document.getElementById('editCheckInTime').value || null,
             Check_out_time: document.getElementById('editCheckOutTime').value || null,

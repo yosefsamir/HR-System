@@ -24,6 +24,8 @@ namespace HR_system.Models
         [Column(TypeName = "decimal(4,2)")]
         public decimal StandardHours { get; set; }
 
+        public bool IsFlexible { get; set; } = false;
+
         // Navigation property
         public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();
     }

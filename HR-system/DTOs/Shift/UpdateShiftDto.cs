@@ -29,5 +29,13 @@ namespace HR_system.DTOs.Shift
         [Range(0, 120, ErrorMessage = "Minutes must be between 0 and 120")]
         [Display(Name = "Allowed Early Leave Minutes")]
         public int Minutes_allow_departure { get; set; }
+
+        [Required(ErrorMessage = "Standard hours is required")]
+        [Range(0.5, 24, ErrorMessage = "Standard hours must be between 0.5 and 24")]
+        [Display(Name = "Standard Hours")]
+        public decimal StandardHours { get; set; }
+
+        [Display(Name = "Flexible Shift (No time restrictions)")]
+        public bool IsFlexible { get; set; } = false;
     }
 }

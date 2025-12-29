@@ -43,6 +43,7 @@ namespace HR_system.Services
                     Minutes_allow_attendence = s.Minutes_allow_attendence,
                     Minutes_allow_departure = s.Minutes_allow_departure,
                     StandardHours = s.StandardHours,
+                    IsFlexible = s.IsFlexible,
                     EmployeeCount = s.Employees.Count
                 })
                 .ToListAsync();
@@ -66,14 +67,13 @@ namespace HR_system.Services
                 Minutes_allow_attendence = shift.Minutes_allow_attendence,
                 Minutes_allow_departure = shift.Minutes_allow_departure,
                 StandardHours = shift.StandardHours,
+                IsFlexible = shift.IsFlexible,
                 EmployeeCount = shift.Employees.Count
             };
         }
 
         public async Task<ShiftDto> CreateAsync(CreateShiftDto dto)
         {
-            var standardHours = CalculateStandardHours(dto.Start_time, dto.End_time);
-            
             var shift = new Shift
             {
                 Shift_name = dto.Shift_name,
@@ -81,7 +81,8 @@ namespace HR_system.Services
                 End_time = dto.End_time,
                 Minutes_allow_attendence = dto.Minutes_allow_attendence,
                 Minutes_allow_departure = dto.Minutes_allow_departure,
-                StandardHours = standardHours
+                StandardHours = dto.StandardHours,
+                IsFlexible = dto.IsFlexible
             };
 
             _context.Shifts.Add(shift);
@@ -96,6 +97,7 @@ namespace HR_system.Services
                 Minutes_allow_attendence = shift.Minutes_allow_attendence,
                 Minutes_allow_departure = shift.Minutes_allow_departure,
                 StandardHours = shift.StandardHours,
+                IsFlexible = shift.IsFlexible,
                 EmployeeCount = 0
             };
         }
@@ -107,14 +109,13 @@ namespace HR_system.Services
             if (shift == null)
                 return null;
 
-            var standardHours = CalculateStandardHours(dto.Start_time, dto.End_time);
-
             shift.Shift_name = dto.Shift_name;
             shift.Start_time = dto.Start_time;
             shift.End_time = dto.End_time;
             shift.Minutes_allow_attendence = dto.Minutes_allow_attendence;
             shift.Minutes_allow_departure = dto.Minutes_allow_departure;
-            shift.StandardHours = standardHours;
+            shift.StandardHours = dto.StandardHours;
+            shift.IsFlexible = dto.IsFlexible;
 
             await _context.SaveChangesAsync();
 
@@ -127,6 +128,7 @@ namespace HR_system.Services
                 Minutes_allow_attendence = shift.Minutes_allow_attendence,
                 Minutes_allow_departure = shift.Minutes_allow_departure,
                 StandardHours = shift.StandardHours,
+                IsFlexible = shift.IsFlexible,
                 EmployeeCount = await _context.Employees.CountAsync(e => e.Shift_id == id)
             };
         }

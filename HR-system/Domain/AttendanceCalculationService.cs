@@ -111,5 +111,45 @@ namespace HR_system.Domain
             else
                 return "حاضر";
         }
+
+        /// <summary>
+        /// Calculate overtime and late time for flexible shifts based on StandardHours
+        /// </summary>
+        public static (int overtimeMinutes, int lateMinutes) CalculateFlexibleTimeDifferences(
+            TimeSpan checkIn, TimeSpan checkOut, Shift shift, int permissionMinutes)
+        {
+            // Calculate actual worked hours (total time - permission)
+            var totalMinutes = (int)(checkOut - checkIn).TotalMinutes;
+            if (totalMinutes < 0)
+            {
+                totalMinutes += 24 * 60; // Handle overnight
+            }
+
+            var actualWorkedMinutes = totalMinutes - permissionMinutes;
+            var actualWorkedHours = actualWorkedMinutes / 60.0m;
+
+            // Compare with StandardHours
+            var standardHours = shift.StandardHours;
+
+            if (actualWorkedHours > standardHours)
+            {
+                // Overtime: worked more than standard hours
+                var overtimeHours = actualWorkedHours - standardHours;
+                var overtimeMinutes = (int)(overtimeHours * 60);
+                return (overtimeMinutes, 0);
+            }
+            else if (actualWorkedHours < standardHours)
+            {
+                // Late: worked less than standard hours
+                var lateHours = standardHours - actualWorkedHours;
+                var lateMinutes = (int)(lateHours * 60);
+                return (0, lateMinutes);
+            }
+            else
+            {
+                // Exactly on time
+                return (0, 0);
+            }
+        }
     }
 }

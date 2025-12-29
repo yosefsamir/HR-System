@@ -7,6 +7,10 @@ namespace HR_system.DTOs.Attendence
     /// </summary>
     public class UpdateAttendenceDto
     {
+        [DataType(DataType.Date)]
+        [Display(Name = "Work Date")]
+        public DateTime Work_date { get; set; }
+
         [Display(Name = "Is Absent")]
         public bool Is_absent { get; set; } = false;
 

@@ -107,9 +107,9 @@ namespace HR_system.Domain.SalaryCalculation
             // Calculate actual working days in month
             int acctualWorkingDaysInMonth = DateTime.DaysInMonth(year, month) - holidaysInMonth;
             
-            // Calculate shift hours per day
+            // Calculate shift hours per day using StandardHours from shift
             decimal shiftHoursPerDay = employee.Shift != null
-                ? (decimal)(employee.Shift.End_time - employee.Shift.Start_time).TotalHours
+                ? employee.Shift.StandardHours
                 : 8m;
 
             // Calculate salary rates

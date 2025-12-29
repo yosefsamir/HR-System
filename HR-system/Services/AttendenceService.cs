@@ -88,6 +88,22 @@ namespace HR_system.Services
                 return null;
             }
 
+            // Get current attendance record to check if date is changing
+            var currentAttendance = await _repository.GetByIdAsync(id);
+            if (currentAttendance == null)
+            {
+                return null;
+            }
+
+            // Business rule: Check for duplicate date if date is being changed
+            if (currentAttendance.Work_date.Date != dto.Work_date.Date)
+            {
+                if (await _repository.ExistsForEmployeeAndDateAsync(currentAttendance.Employee_id, dto.Work_date))
+                {
+                    throw new InvalidOperationException($"An attendance record already exists for employee {currentAttendance.Employee_name} on {dto.Work_date:yyyy-MM-dd}.");
+                }
+            }
+
             return await _repository.UpdateAsync(id, dto);
         }
 
