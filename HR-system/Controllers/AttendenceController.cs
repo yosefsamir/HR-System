@@ -310,6 +310,7 @@ namespace HR_system.Controllers
                         // Create update DTO with current data to trigger recalculation
                         var updateDto = new UpdateAttendenceDto
                         {
+                            Work_date = attendance.Work_date, // CRITICAL: Include the work date!
                             Is_absent = attendance.Is_Absent,
                             Check_In_time = attendance.Check_In_time,
                             Check_out_time = attendance.Check_out_time,
@@ -323,11 +324,16 @@ namespace HR_system.Controllers
                         {
                             updatedRecords++;
                         }
+                        else
+                        {
+                            Console.WriteLine($"Warning: Recalculation returned null for attendance {attendance.Id}");
+                        }
                     }
                     catch (Exception ex)
                     {
                         // Log error but continue with other records
-                        Console.WriteLine($"Error recalculating attendance {attendance.Id}: {ex.Message}");
+                        Console.WriteLine($"Error recalculating attendance {attendance.Id} (Employee: {attendance.Employee_name}, Date: {attendance.Work_date:yyyy-MM-dd}): {ex.Message}");
+                        Console.WriteLine($"Exception details: {ex.StackTrace}");
                     }
                     
                     processedRecords++;
