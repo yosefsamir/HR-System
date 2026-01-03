@@ -258,34 +258,74 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    <strong>تحذير مهم:</strong> إذا قمت بتغيير معلومات الورديات أو قيود الوقت للموظفين، 
-                    يجب إعادة حساب جميع سجلات الحضور في النطاق الزمني المحدد.
+                <!-- Initial Form -->
+                <div id="recalcForm">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>تحذير مهم:</strong> إذا قمت بتغيير معلومات الورديات أو قيود الوقت للموظفين، 
+                        يجب إعادة حساب جميع سجلات الحضور في النطاق الزمني المحدد.
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">من تاريخ</label>
+                            <input type="date" id="recalcStartDate" class="form-control" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">إلى تاريخ</label>
+                            <input type="date" id="recalcEndDate" class="form-control" required />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-6">
+                            <label class="form-label">القسم (اختياري)</label>
+                            <select id="recalcDepartment" class="form-select">
+                                <option value="">جميع الأقسام</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">الموظف (اختياري)</label>
+                            <select id="recalcEmployee" class="form-select">
+                                <option value="">جميع الموظفين</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="confirmRecalculation" required />
+                            <label class="form-check-label" for="confirmRecalculation">
+                                أفهم أن هذا الإجراء سيؤثر على جميع سجلات الحضور في النطاق الزمني المحدد
+                            </label>
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">من تاريخ</label>
-                        <input type="date" id="recalcStartDate" class="form-control" required />
+
+                <!-- Progress Section (Hidden by default) -->
+                <div id="recalcProgress" style="display: none;">
+                    <div class="text-center mb-3">
+                        <div class="spinner-border text-warning" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">جاري إعادة الحساب...</span>
+                        </div>
+                        <h5 class="mt-3">جاري إعادة حساب السجلات...</h5>
+                        <p class="text-muted">يرجى الانتظار وعدم إغلاق هذه النافذة</p>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label">إلى تاريخ</label>
-                        <input type="date" id="recalcEndDate" class="form-control" required />
+                    <div class="progress" style="height: 25px;">
+                        <div id="recalcProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-warning" 
+                             role="progressbar" style="width: 0%;">
+                            0%
+                        </div>
                     </div>
                 </div>
-                
-                <div class="mt-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="confirmRecalculation" required />
-                        <label class="form-check-label" for="confirmRecalculation">
-                            أفهم أن هذا الإجراء سيؤثر على جميع سجلات الحضور في النطاق الزمني المحدد
-                        </label>
-                    </div>
+
+                <!-- Result Section (Hidden by default) -->
+                <div id="recalcResult" style="display: none;">
+                    <div id="recalcResultContent"></div>
                 </div>
             </div>
             <div class="modal-footer border-secondary">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="recalcCloseBtn">إلغاء</button>
                 <button type="button" class="btn btn-warning" id="startRecalculationBtn" disabled>
                     <i class="bi bi-calculator me-1"></i>
                     بدء إعادة الحساب
@@ -742,7 +782,45 @@
         document.getElementById('confirmRecalculation').checked = false;
         document.getElementById('startRecalculationBtn').disabled = true;
         
+        // Reset to form view
+        document.getElementById('recalcForm').style.display = 'block';
+        document.getElementById('recalcProgress').style.display = 'none';
+        document.getElementById('recalcResult').style.display = 'none';
+        document.getElementById('startRecalculationBtn').style.display = 'inline-block';
+        document.getElementById('recalcCloseBtn').textContent = 'إلغاء';
+
+        // Populate dropdowns with available departments and employees
+        populateRecalcDropdowns();
+        
         modal.show();
+    }
+
+    async function populateRecalcDropdowns() {
+        try {
+            // Load departments
+            const deptResponse = await fetch(`${baseUrl}/GetDepartments`);
+            const deptResult = await deptResponse.json();
+            if (deptResult.success) {
+                const deptSelect = document.getElementById('recalcDepartment');
+                deptSelect.innerHTML = '<option value="">جميع الأقسام</option>';
+                deptResult.data.forEach(dept => {
+                    deptSelect.innerHTML += `<option value="${dept.id}">${dept.name}</option>`;
+                });
+            }
+
+            // Load employees
+            const empResponse = await fetch(`${baseUrl}/GetEmployees`);
+            const empResult = await empResponse.json();
+            if (empResult.success) {
+                const empSelect = document.getElementById('recalcEmployee');
+                empSelect.innerHTML = '<option value="">جميع الموظفين</option>';
+                empResult.data.forEach(emp => {
+                    empSelect.innerHTML += `<option value="${emp.id}">${emp.code} - ${emp.name}</option>`;
+                });
+            }
+        } catch (error) {
+            console.error('Error loading recalc dropdowns:', error);
+        }
     }
 
     function toggleRecalculationButton() {
@@ -754,6 +832,8 @@
     async function startRecalculation() {
         const startDate = document.getElementById('recalcStartDate').value;
         const endDate = document.getElementById('recalcEndDate').value;
+        const departmentId = document.getElementById('recalcDepartment').value;
+        const employeeId = document.getElementById('recalcEmployee').value;
         
         if (!startDate || !endDate) {
             showAlert('يرجى تحديد نطاق زمني صحيح', 'warning');
@@ -765,42 +845,169 @@
             return;
         }
 
-        // Disable button and show loading
-        const button = document.getElementById('startRecalculationBtn');
-        const originalText = button.innerHTML;
-        button.disabled = true;
-        button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>جاري إعادة الحساب...';
+        // Check date range (max 93 days)
+        const daysDiff = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
+        if (daysDiff > 93) {
+            showAlert('نطاق التاريخ يجب أن لا يتجاوز 93 يوم', 'warning');
+            return;
+        }
+
+        // Show progress section
+        document.getElementById('recalcForm').style.display = 'none';
+        document.getElementById('recalcProgress').style.display = 'block';
+        document.getElementById('recalcResult').style.display = 'none';
+        document.getElementById('startRecalculationBtn').style.display = 'none';
+        
+        // Animate progress bar (simulated since we can't get real progress)
+        let progress = 0;
+        const progressBar = document.getElementById('recalcProgressBar');
+        const progressInterval = setInterval(() => {
+            if (progress < 90) {
+                progress += Math.random() * 10;
+                progress = Math.min(progress, 90);
+                progressBar.style.width = progress + '%';
+                progressBar.textContent = Math.round(progress) + '%';
+            }
+        }, 300);
 
         try {
+            const requestBody = {
+                startDate: startDate,
+                endDate: endDate
+            };
+
+            // Add optional filters
+            if (employeeId) {
+                requestBody.employeeId = parseInt(employeeId);
+            }
+            if (departmentId) {
+                requestBody.departmentId = parseInt(departmentId);
+            }
+
             const response = await fetch(`${baseUrl}/RecalculateAttendance`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    startDate: startDate,
-                    endDate: endDate
-                })
+                body: JSON.stringify(requestBody)
             });
 
             const result = await response.json();
 
+            // Complete progress
+            clearInterval(progressInterval);
+            progressBar.style.width = '100%';
+            progressBar.textContent = '100%';
+            progressBar.classList.remove('progress-bar-animated');
+
+            // Short delay before showing result
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Show result section
+            document.getElementById('recalcProgress').style.display = 'none';
+            document.getElementById('recalcResult').style.display = 'block';
+            document.getElementById('recalcCloseBtn').textContent = 'إغلاق';
+
+            const resultContent = document.getElementById('recalcResultContent');
+
             if (result.success) {
-                showAlert(`تم إعادة حساب ${result.processedRecords} سجل بنجاح`, 'success');
-                bootstrap.Modal.getInstance(document.getElementById('recalculateModal')).hide();
+                let html = `
+                    <div class="text-center mb-4">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                        <h4 class="mt-3 text-success">تمت إعادة الحساب بنجاح</h4>
+                    </div>
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="card bg-secondary">
+                                <div class="card-body">
+                                    <h3 class="text-info">${result.totalRecords || 0}</h3>
+                                    <small>إجمالي السجلات</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-secondary">
+                                <div class="card-body">
+                                    <h3 class="text-success">${result.successCount || 0}</h3>
+                                    <small>تم إعادة حسابها</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-secondary">
+                                <div class="card-body">
+                                    <h3 class="text-warning">${result.skippedCount || 0}</h3>
+                                    <small>تم تخطيها</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Show errors if any
+                if (result.errors && result.errors.length > 0) {
+                    html += `
+                        <div class="mt-4">
+                            <h6 class="text-warning"><i class="bi bi-exclamation-triangle me-2"></i>تفاصيل الأخطاء:</h6>
+                            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                                <table class="table table-sm table-dark">
+                                    <thead>
+                                        <tr>
+                                            <th>الكود</th>
+                                            <th>التاريخ</th>
+                                            <th>الخطأ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                    `;
+                    result.errors.forEach(err => {
+                        html += `
+                            <tr>
+                                <td>${err.employeeCode || '-'}</td>
+                                <td>${err.employeeName || '-'}</td>
+                                <td class="text-danger">${err.errorMessage}</td>
+                            </tr>
+                        `;
+                    });
+                    html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                    `;
+                    if (result.hasMoreErrors) {
+                        html += `<small class="text-muted">يوجد المزيد من الأخطاء غير معروضة</small>`;
+                    }
+                    html += `</div>`;
+                }
+
+                resultContent.innerHTML = html;
                 
-                // Refresh current search results
+                // Refresh search results
                 performSearch();
             } else {
-                showAlert(result.message || 'حدث خطأ أثناء إعادة الحساب', 'danger');
+                resultContent.innerHTML = `
+                    <div class="text-center">
+                        <i class="bi bi-x-circle-fill text-danger" style="font-size: 4rem;"></i>
+                        <h4 class="mt-3 text-danger">فشل في إعادة الحساب</h4>
+                        <p class="text-muted">${result.message || 'حدث خطأ غير متوقع'}</p>
+                    </div>
+                `;
             }
         } catch (error) {
-            showAlert('حدث خطأ في الاتصال بالخادم', 'danger');
+            clearInterval(progressInterval);
+            
+            document.getElementById('recalcProgress').style.display = 'none';
+            document.getElementById('recalcResult').style.display = 'block';
+            document.getElementById('recalcCloseBtn').textContent = 'إغلاق';
+
+            document.getElementById('recalcResultContent').innerHTML = `
+                <div class="text-center">
+                    <i class="bi bi-wifi-off text-danger" style="font-size: 4rem;"></i>
+                    <h4 class="mt-3 text-danger">خطأ في الاتصال</h4>
+                    <p class="text-muted">حدث خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى.</p>
+                </div>
+            `;
             console.error(error);
-        } finally {
-            // Restore button
-            button.disabled = false;
-            button.innerHTML = originalText;
         }
     }
 </script>

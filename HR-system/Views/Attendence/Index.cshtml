@@ -60,6 +60,18 @@
 </style>
 
 <div class="container-fluid">
+    <!-- Quick Action Buttons -->
+    <div class="mb-4 d-flex gap-2">
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#templateModal">
+            <i class="bi bi-download me-1"></i>
+            تحميل قالب الحضور
+        </button>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importModal">
+            <i class="bi bi-upload me-1"></i>
+            استيراد من Excel
+        </button>
+    </div>
+
     <!-- Add Attendance Form Card -->
     <div class="card mb-4">
         <div class="card-header">
@@ -243,11 +255,112 @@
     </div>
 </div>
 
+<!-- Template Download Modal -->
+<div class="modal fade" id="templateModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-download text-success me-2"></i>
+                    تحميل قالب الحضور
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">اختر التاريخ للقالب <span class="text-danger">*</span></label>
+                    <input type="date" id="templateDate" class="form-control" />
+                    <small class="text-muted">سيتم تحميل قالب يحتوي على جميع الموظفين النشطين مع أوقات الوردية المجدولة</small>
+                </div>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>خطوات الاستخدام:</strong>
+                    <ol class="mb-0 mt-2">
+                        <li>قم بتحميل القالب</li>
+                        <li>افتح الملف وعدّل أوقات الحضور والانصراف الفعلية</li>
+                        <li>احفظ الملف ثم استخدم زر "استيراد من Excel"</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-success" onclick="downloadTemplate()">
+                    <i class="bi bi-download me-1"></i>
+                    تحميل القالب
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import from Excel Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-upload text-primary me-2"></i>
+                    استيراد من Excel
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">اختر ملف Excel <span class="text-danger">*</span></label>
+                    <input type="file" id="importFile" class="form-control" accept=".xlsx,.xls" />
+                    <small class="text-muted">يجب أن يكون الملف بصيغة .xlsx أو .xls</small>
+                </div>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>ملاحظة:</strong> تأكد من استخدام القالب الصحيح. الأعمدة المطلوبة:
+                    <ul class="mb-0 mt-2">
+                        <li>كود الموظف</li>
+                        <li>التاريخ</li>
+                        <li>وقت الحضور الفعلي</li>
+                        <li>وقت الانصراف الفعلي</li>
+                        <li>غائب (نعم/لا)</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" onclick="importFromExcel()" id="importBtn">
+                    <i class="bi bi-upload me-1"></i>
+                    استيراد
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Result Modal -->
+<div class="modal fade" id="importResultModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-file-earmark-check me-2"></i>
+                    نتيجة الاستيراد
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="importResultContent">
+                    <!-- Result content will be populated dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     // Attendance Management JavaScript
     const baseUrl = '/Attendence';
-    let editModal, deleteModal;
+    let editModal, deleteModal, importResultModal, templateModal, importModal;
     let allEmployees = [];
     
     // Session-only records - starts empty, cleared on page reload
@@ -256,10 +369,14 @@
     document.addEventListener('DOMContentLoaded', async function() {
         editModal = new bootstrap.Modal(document.getElementById('editModal'));
         deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        importResultModal = new bootstrap.Modal(document.getElementById('importResultModal'));
+        templateModal = new bootstrap.Modal(document.getElementById('templateModal'));
+        importModal = new bootstrap.Modal(document.getElementById('importModal'));
 
-        // Initialize date field with today's date
+        // Initialize date fields with today's date
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('workDate').value = today;
+        document.getElementById('templateDate').value = today;
 
         // Load employees for autocomplete
         await loadEmployees();
@@ -687,6 +804,156 @@
                 alert.remove();
             }
         }, 5000);
+    }
+
+    // Download attendance template
+    function downloadTemplate() {
+        const date = document.getElementById('templateDate').value;
+        if (!date) {
+            showAlert('الرجاء اختيار التاريخ', 'danger');
+            return;
+        }
+        let url = `${baseUrl}/DownloadTemplate?date=${date}`;
+        window.location.href = url;
+        
+        // Close the modal
+        templateModal.hide();
+    }
+
+    // Import attendance from Excel file
+    async function importFromExcel() {
+        const fileInput = document.getElementById('importFile');
+        const importBtn = document.getElementById('importBtn');
+
+        if (!fileInput.files || fileInput.files.length === 0) {
+            showAlert('الرجاء اختيار ملف Excel', 'danger');
+            return;
+        }
+
+        const file = fileInput.files[0];
+        if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+            showAlert('الرجاء اختيار ملف Excel صحيح (.xlsx أو .xls)', 'danger');
+            return;
+        }
+
+        importBtn.disabled = true;
+        importBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>جاري الاستيراد...';
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch(`${baseUrl}/ImportFromExcel`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            // Close import modal first
+            importModal.hide();
+
+            if (result.success) {
+                // Show result in modal
+                showImportResult(result);
+
+                // Add imported records to session records
+                if (result.data && result.data.length > 0) {
+                    sessionRecords = [...sessionRecords, ...result.data];
+                    renderTable();
+                }
+
+                // Clear file input
+                fileInput.value = '';
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في الاتصال بالخادم', 'danger');
+            console.error(error);
+        } finally {
+            importBtn.disabled = false;
+            importBtn.innerHTML = '<i class="bi bi-upload me-1"></i>استيراد';
+        }
+    }
+
+    // Show import result in modal
+    function showImportResult(result) {
+        const content = document.getElementById('importResultContent');
+        
+        let html = `
+            <div class="row text-center mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-secondary">
+                        <div class="card-body">
+                            <h3 class="mb-0">${result.totalRows || 0}</h3>
+                            <small>إجمالي الصفوف</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success">
+                        <div class="card-body">
+                            <h3 class="mb-0">${result.successCount || 0}</h3>
+                            <small>تم بنجاح</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger">
+                        <div class="card-body">
+                            <h3 class="mb-0">${result.failedCount || 0}</h3>
+                            <small>فشل</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning">
+                        <div class="card-body">
+                            <h3 class="mb-0">${result.skippedCount || 0}</h3>
+                            <small>تم تخطيه</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Show errors if any
+        if (result.errors && result.errors.length > 0) {
+            html += `
+                <div class="alert alert-danger">
+                    <h6><i class="bi bi-exclamation-triangle me-2"></i>الأخطاء:</h6>
+                    <ul class="mb-0">
+                        ${result.errors.map(e => `<li>${e}</li>`).join('')}
+                    </ul>
+                    ${result.hasMoreErrors ? '<p class="mt-2 mb-0 text-muted">... وأخطاء أخرى</p>' : ''}
+                </div>
+            `;
+        }
+
+        // Show warnings if any
+        if (result.warnings && result.warnings.length > 0) {
+            html += `
+                <div class="alert alert-warning">
+                    <h6><i class="bi bi-info-circle me-2"></i>تحذيرات:</h6>
+                    <ul class="mb-0">
+                        ${result.warnings.map(w => `<li>${w}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        if (result.successCount > 0) {
+            html += `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle me-2"></i>
+                    تم استيراد ${result.successCount} سجل حضور بنجاح وإضافتها إلى الجدول
+                </div>
+            `;
+        }
+
+        content.innerHTML = html;
+        importResultModal.show();
     }
 </script>
 }

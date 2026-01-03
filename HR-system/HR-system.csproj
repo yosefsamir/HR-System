@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>HR_system</RootNamespace>
     <AssemblyName>HRSystem</AssemblyName>
-    <Version>2.0.2</Version>
+    <Version>2.0.4</Version>
     <Authors>Your Company</Authors>
     <Product>نظام الموارد البشرية</Product>
     <Description>HR Management System - نظام إدارة الموارد البشرية</Description>
@@ -13,6 +13,7 @@
     <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0">

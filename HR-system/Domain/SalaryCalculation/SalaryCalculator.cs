@@ -168,7 +168,8 @@ namespace HR_system.Domain.SalaryCalculation
         {
             int presentDays = attendances.Count(a => !a.Is_Absent);
             int actualDaysInMonth = DateTime.DaysInMonth(year, month);
-            int absentDays = Math.Max(0, actualDaysInMonth - holidaysInMonth - presentDays);
+            // Use actual absent days from attendance records instead of calculating
+            int absentDays = attendances.Count(a => a.Is_Absent);
 
             return new AttendanceSummary
             {

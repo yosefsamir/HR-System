@@ -67,8 +67,6 @@ namespace HR_system.Domain
                 totalMinutes += 24 * 60;
             }
 
-            // Standard shift duration in minutes
-            var standardShiftMinutes = (int)(shift.StandardHours * 60);
 
             // Calculate overtime after shift (post-shift)
             int overtimeAfterShift = CalculateOvertimeMinutes(checkOut, shift);
@@ -77,7 +75,7 @@ namespace HR_system.Domain
             int earlyCheckInMinutes = CalculateEarlyCheckInMinutes(checkIn, shift);
 
             // Worked minutes = total - (post-shift overtime) - (early check-in minutes), capped at standard shift
-            int workedMinutes = Math.Min(totalMinutes - overtimeAfterShift - earlyCheckInMinutes, standardShiftMinutes);
+            int workedMinutes = totalMinutes - overtimeAfterShift - earlyCheckInMinutes;
 
             // Subtract permission time
             workedMinutes = Math.Max(0, workedMinutes - permissionMinutes);

@@ -159,13 +159,17 @@ namespace HR_system.Services
                 throw new InvalidOperationException($"Employee code '{dto.Code}' already exists. Please use a unique code.");
             }
 
-            // Validate foreign keys
-            var department = await _context.Departments.FindAsync(dto.Department_id);
-            if (department == null)
+            // Validate foreign keys - Department is optional
+            if (dto.Department_id.HasValue)
             {
-                throw new InvalidOperationException($"Department with ID {dto.Department_id} does not exist.");
+                var department = await _context.Departments.FindAsync(dto.Department_id.Value);
+                if (department == null)
+                {
+                    throw new InvalidOperationException($"Department with ID {dto.Department_id} does not exist.");
+                }
             }
 
+            // Shift is required
             var shift = await _context.Shifts.FindAsync(dto.Shift_id);
             if (shift == null)
             {
@@ -227,13 +231,17 @@ namespace HR_system.Services
                 throw new InvalidOperationException($"Employee code '{dto.Code}' already exists. Please use a unique code.");
             }
 
-            // Validate foreign keys
-            var department = await _context.Departments.FindAsync(dto.Department_id);
-            if (department == null)
+            // Validate foreign keys - Department is optional
+            if (dto.Department_id.HasValue)
             {
-                throw new InvalidOperationException($"Department with ID {dto.Department_id} does not exist.");
+                var department = await _context.Departments.FindAsync(dto.Department_id.Value);
+                if (department == null)
+                {
+                    throw new InvalidOperationException($"Department with ID {dto.Department_id} does not exist.");
+                }
             }
 
+            // Shift is required
             var shift = await _context.Shifts.FindAsync(dto.Shift_id);
             if (shift == null)
             {

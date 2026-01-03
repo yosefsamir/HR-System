@@ -11,17 +11,20 @@ namespace HR_system.Controllers
         private readonly IEmployeeService _employeeService;
         private readonly IDepartmentService _departmentService;
         private readonly IShiftService _shiftService;
+        private readonly IAttendanceExcelService _attendanceExcelService;
 
         public AttendenceController(
             IAttendenceService attendenceService, 
             IEmployeeService employeeService,
             IDepartmentService departmentService,
-            IShiftService shiftService)
+            IShiftService shiftService,
+            IAttendanceExcelService attendanceExcelService)
         {
             _attendenceService = attendenceService;
             _employeeService = employeeService;
             _departmentService = departmentService;
             _shiftService = shiftService;
+            _attendanceExcelService = attendanceExcelService;
         }
 
         // GET: Attendence
@@ -282,6 +285,76 @@ namespace HR_system.Controllers
             }
         }
 
+        // GET: Attendence/DownloadTemplate
+        [HttpGet]
+        public async Task<IActionResult> DownloadTemplate(DateTime? date)
+        {
+            try
+            {
+                var workDate = date ?? DateTime.Today;
+                var fileBytes = await _attendanceExcelService.GenerateTemplateAsync(workDate);
+                var fileName = $"قالب_الحضور_{workDate:yyyy-MM-dd}.xlsx";
+                
+                return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "حدث خطأ: " + ex.Message });
+            }
+        }
+
+        // POST: Attendence/ImportFromExcel
+        [HttpPost]
+        public async Task<IActionResult> ImportFromExcel(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                {
+                    return Json(new { success = false, message = "الرجاء اختيار ملف" });
+                }
+
+                if (!file.FileName.EndsWith(".xlsx") && !file.FileName.EndsWith(".xls"))
+                {
+                    return Json(new { success = false, message = "الرجاء اختيار ملف Excel صحيح (.xlsx أو .xls)" });
+                }
+
+                using var stream = new MemoryStream();
+                await file.CopyToAsync(stream);
+                stream.Position = 0;
+
+                var result = await _attendanceExcelService.ImportFromExcelAsync(stream);
+
+                var message = $"تم استيراد {result.SuccessCount} سجل بنجاح";
+                if (result.FailedCount > 0)
+                {
+                    message += $" | فشل {result.FailedCount} سجل";
+                }
+                if (result.SkippedCount > 0)
+                {
+                    message += $" | تم تخطي {result.SkippedCount} سجل";
+                }
+
+                return Json(new
+                {
+                    success = true,
+                    message = message,
+                    data = result.ImportedRecords,
+                    totalRows = result.TotalRows,
+                    successCount = result.SuccessCount,
+                    failedCount = result.FailedCount,
+                    skippedCount = result.SkippedCount,
+                    errors = result.Errors.Take(20).ToList(),
+                    warnings = result.Warnings.Take(20).ToList(),
+                    hasMoreErrors = result.Errors.Count > 20
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "حدث خطأ في قراءة الملف: " + ex.Message });
+            }
+        }
+
         #endregion
 
         #region Recalculation
@@ -292,25 +365,56 @@ namespace HR_system.Controllers
         {
             try
             {
+                // Validation
                 if (request.StartDate > request.EndDate)
                 {
                     return Json(new { success = false, message = "تاريخ البداية يجب أن يكون قبل تاريخ النهاية" });
                 }
 
+                // Limit date range to prevent very long operations (max 3 months)
+                var maxDays = 93; // ~3 months
+                if ((request.EndDate - request.StartDate).TotalDays > maxDays)
+                {
+                    return Json(new { success = false, message = $"نطاق التاريخ يجب أن لا يتجاوز {maxDays} يوم" });
+                }
+
                 // Get all attendance records in the date range
                 var attendances = await _attendenceService.GetByDateRangeAsync(request.StartDate, request.EndDate);
                 
-                int processedRecords = 0;
-                int updatedRecords = 0;
+                // Apply optional filters
+                if (request.EmployeeId.HasValue)
+                {
+                    attendances = attendances.Where(a => a.Employee_id == request.EmployeeId.Value);
+                }
+                
+                if (request.DepartmentId.HasValue)
+                {
+                    attendances = attendances.Where(a => a.Department_id == request.DepartmentId.Value);
+                }
 
-                foreach (var attendance in attendances)
+                var attendanceList = attendances.ToList();
+                int totalRecords = attendanceList.Count;
+                int successCount = 0;
+                int skippedCount = 0;
+                var errors = new List<string>();
+
+                foreach (var attendance in attendanceList)
                 {
                     try
                     {
+                        // Skip records that are marked as absent (no calculation needed)
+                        // OR skip records with missing check times when not absent (corrupt data)
+                        if (!attendance.Is_Absent && (!attendance.Check_In_time.HasValue || !attendance.Check_out_time.HasValue))
+                        {
+                            skippedCount++;
+                            errors.Add($"الصف {attendance.Employee_code} ({attendance.Work_date:yyyy-MM-dd}): بيانات الحضور غير مكتملة");
+                            continue;
+                        }
+
                         // Create update DTO with current data to trigger recalculation
                         var updateDto = new UpdateAttendenceDto
                         {
-                            Work_date = attendance.Work_date, // CRITICAL: Include the work date!
+                            Work_date = attendance.Work_date,
                             Is_absent = attendance.Is_Absent,
                             Check_In_time = attendance.Check_In_time,
                             Check_out_time = attendance.Check_out_time,
@@ -322,28 +426,39 @@ namespace HR_system.Controllers
                         
                         if (result != null)
                         {
-                            updatedRecords++;
+                            successCount++;
                         }
                         else
                         {
-                            Console.WriteLine($"Warning: Recalculation returned null for attendance {attendance.Id}");
+                            skippedCount++;
+                            errors.Add($"الصف {attendance.Employee_code} ({attendance.Work_date:yyyy-MM-dd}): فشل التحديث");
                         }
                     }
                     catch (Exception ex)
                     {
-                        // Log error but continue with other records
-                        Console.WriteLine($"Error recalculating attendance {attendance.Id} (Employee: {attendance.Employee_name}, Date: {attendance.Work_date:yyyy-MM-dd}): {ex.Message}");
-                        Console.WriteLine($"Exception details: {ex.StackTrace}");
+                        skippedCount++;
+                        errors.Add($"الصف {attendance.Employee_code} ({attendance.Work_date:yyyy-MM-dd}): {ex.Message}");
+                        
+                        // Log for debugging
+                        Console.WriteLine($"Error recalculating attendance {attendance.Id}: {ex.Message}");
                     }
-                    
-                    processedRecords++;
+                }
+
+                // Build response message
+                var message = $"تم إعادة حساب {successCount} سجل بنجاح";
+                if (skippedCount > 0)
+                {
+                    message += $" | تم تخطي {skippedCount} سجل";
                 }
 
                 return Json(new { 
                     success = true, 
-                    message = $"تم إعادة حساب {processedRecords} سجل بنجاح",
-                    processedRecords = processedRecords,
-                    updatedRecords = updatedRecords
+                    message = message,
+                    totalRecords = totalRecords,
+                    successCount = successCount,
+                    skippedCount = skippedCount,
+                    errors = errors.Take(10).ToList(), // Return first 10 errors
+                    hasMoreErrors = errors.Count > 10
                 });
             }
             catch (Exception ex)

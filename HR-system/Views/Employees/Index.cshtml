@@ -104,10 +104,24 @@
                 <i class="bi bi-list-ul me-2"></i>
                 قائمة الموظفين
             </h5>
-            <a asp-action="Create" class="btn btn-primary btn-sm">
-                <i class="bi bi-plus-lg me-2"></i>
-                إضافة موظف جديد
-            </a>
+            <div class="btn-group">
+                <a asp-action="DownloadTemplate" class="btn btn-outline-info btn-sm" title="تحميل قالب الاستيراد">
+                    <i class="bi bi-file-earmark-arrow-down me-1"></i>
+                    قالب Excel
+                </a>
+                <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#importModal" title="استيراد من Excel">
+                    <i class="bi bi-upload me-1"></i>
+                    استيراد
+                </button>
+                <a asp-action="ExportToExcel" class="btn btn-outline-primary btn-sm" title="تصدير إلى Excel">
+                    <i class="bi bi-download me-1"></i>
+                    تصدير
+                </a>
+                <a asp-action="Create" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i>
+                    إضافة موظف
+                </a>
+            </div>
         </div>
         <div class="card-body p-0">
             @if (!Model.Employees.Any())
@@ -257,3 +271,105 @@
         </div>
     </div>
 </div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="importModalLabel">
+                    <i class="bi bi-upload text-success me-2"></i>
+                    استيراد موظفين من Excel
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="ImportFromExcel" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">اختر ملف Excel</label>
+                        <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required />
+                        <small class="text-muted">الملفات المدعومة: .xlsx, .xls</small>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="updateExisting" value="true" id="updateExistingCheck">
+                        <label class="form-check-label" for="updateExistingCheck">
+                            تحديث الموظفين الموجودين (بناءً على الكود)
+                        </label>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>ملاحظة:</strong> تأكد من أن الملف يتبع القالب الصحيح. 
+                        <a asp-action="DownloadTemplate" class="alert-link">تحميل القالب</a>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-upload me-2"></i>
+                        استيراد
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* Display Import Errors if any *@
+@if (TempData["ImportErrors"] != null)
+{
+    <div class="modal fade show" id="importErrorsModal" tabindex="-1" style="display: block; background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-dark">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">
+                        <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                        تفاصيل أخطاء الاستيراد
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('importErrorsModal').style.display='none'"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped">
+                            <thead>
+                                <tr>
+                                    <th>الصف</th>
+                                    <th>الكود</th>
+                                    <th>الاسم</th>
+                                    <th>الخطأ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    var errors = System.Text.Json.JsonSerializer.Deserialize<List<dynamic>>(TempData["ImportErrors"]?.ToString() ?? "[]");
+                                    if (errors != null)
+                                    {
+                                        foreach (var error in errors)
+                                        {
+                                            <tr>
+                                                <td>@error.GetProperty("RowNumber")</td>
+                                                <td>@error.GetProperty("EmployeeCode")</td>
+                                                <td>@error.GetProperty("EmployeeName")</td>
+                                                <td class="text-danger">@error.GetProperty("ErrorMessage")</td>
+                                            </tr>
+                                        }
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (TempData["MoreErrors"] != null)
+                    {
+                        <div class="alert alert-warning">
+                            <i class="bi bi-info-circle me-2"></i>
+                            يوجد @TempData["MoreErrors"] خطأ إضافي غير معروض
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('importErrorsModal').style.display='none'">إغلاق</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

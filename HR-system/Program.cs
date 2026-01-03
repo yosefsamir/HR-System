@@ -17,10 +17,12 @@ builder.Services.AddScoped<IAttendenceRepository, AttendenceRepository>();
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
 builder.Services.AddScoped<IShiftService, ShiftService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+builder.Services.AddScoped<IEmployeeExcelService, EmployeeExcelService>();
 builder.Services.AddScoped<IBounesService, BounesService>();
 builder.Services.AddScoped<IDeductionService, DeductionService>();
 builder.Services.AddScoped<IAdvanceService, AdvanceService>();
 builder.Services.AddScoped<IAttendenceService, AttendenceService>();
+builder.Services.AddScoped<IAttendanceExcelService, AttendanceExcelService>();
 builder.Services.AddScoped<ISalaryService, SalaryService>();
 
 // Add services to the container.

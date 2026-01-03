@@ -15,22 +15,6 @@ namespace HR_system.Services
             _context = context;
         }
 
-        /// <summary>
-        /// Calculate standard hours from start and end time
-        /// </summary>
-        private static decimal CalculateStandardHours(TimeSpan startTime, TimeSpan endTime)
-        {
-            var duration = endTime - startTime;
-            
-            // Handle overnight shifts (e.g., 22:00 to 06:00)
-            if (duration.TotalHours < 0)
-            {
-                duration = duration.Add(TimeSpan.FromHours(24));
-            }
-            
-            return (decimal)duration.TotalHours;
-        }
-
         public async Task<IEnumerable<ShiftDto>> GetAllAsync()
         {
             return await _context.Shifts

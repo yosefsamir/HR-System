@@ -11,15 +11,18 @@ namespace HR_system.Controllers
         private readonly IEmployeeService _employeeService;
         private readonly IDepartmentService _departmentService;
         private readonly IShiftService _shiftService;
+        private readonly IEmployeeExcelService _employeeExcelService;
 
         public EmployeesController(
             IEmployeeService employeeService,
             IDepartmentService departmentService,
-            IShiftService shiftService)
+            IShiftService shiftService,
+            IEmployeeExcelService employeeExcelService)
         {
             _employeeService = employeeService;
             _departmentService = departmentService;
             _shiftService = shiftService;
+            _employeeExcelService = employeeExcelService;
         }
 
         // GET: Employees
@@ -190,6 +193,121 @@ namespace HR_system.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+
+        #region Excel Import/Export
+
+        // GET: Employees/ExportToExcel
+        public async Task<IActionResult> ExportToExcel()
+        {
+            var employees = await _employeeService.GetAllAsync();
+            var fileBytes = _employeeExcelService.ExportToExcel(employees);
+            
+            var fileName = $"Employees_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+        }
+
+        // GET: Employees/DownloadTemplate
+        public IActionResult DownloadTemplate()
+        {
+            var fileBytes = _employeeExcelService.GetImportTemplate();
+            return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "EmployeeImportTemplate.xlsx");
+        }
+
+        // POST: Employees/ImportFromExcel
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ImportFromExcel(IFormFile file, bool updateExisting = false)
+        {
+            if (file == null || file.Length == 0)
+            {
+                TempData["Error"] = "الرجاء اختيار ملف Excel";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Validate file extension
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (extension != ".xlsx" && extension != ".xls")
+            {
+                TempData["Error"] = "الرجاء اختيار ملف Excel صالح (.xlsx أو .xls)";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                using var stream = new MemoryStream();
+                await file.CopyToAsync(stream);
+                stream.Position = 0;
+
+                // Validate structure first
+                var structureErrors = _employeeExcelService.ValidateExcelStructure(stream);
+                if (structureErrors.Any())
+                {
+                    TempData["Error"] = "خطأ في هيكل الملف: " + string.Join("، ", structureErrors);
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Import employees
+                stream.Position = 0;
+                var result = await _employeeExcelService.ImportFromExcelAsync(stream, updateExisting);
+
+                // Build result message
+                var messages = new List<string>();
+                
+                if (result.SuccessCount > 0)
+                {
+                    messages.Add($"تم إضافة {result.SuccessCount} موظف بنجاح");
+                }
+                
+                if (result.UpdatedCount > 0)
+                {
+                    messages.Add($"تم تحديث {result.UpdatedCount} موظف");
+                }
+                
+                if (result.FailedCount > 0)
+                {
+                    messages.Add($"فشل استيراد {result.FailedCount} سجل");
+                }
+
+                if (result.SuccessCount > 0 || result.UpdatedCount > 0)
+                {
+                    TempData["Success"] = string.Join(" | ", messages);
+                }
+                else if (result.FailedCount > 0)
+                {
+                    TempData["Error"] = string.Join(" | ", messages);
+                }
+                else
+                {
+                    TempData["Warning"] = "لم يتم استيراد أي بيانات";
+                }
+
+                // Store detailed errors for display
+                if (result.Errors.Any())
+                {
+                    TempData["ImportErrors"] = System.Text.Json.JsonSerializer.Serialize(
+                        result.Errors.Take(10).Select(e => new 
+                        { 
+                            e.RowNumber, 
+                            e.EmployeeCode, 
+                            e.EmployeeName, 
+                            e.ErrorMessage 
+                        }));
+                    
+                    if (result.Errors.Count > 10)
+                    {
+                        TempData["MoreErrors"] = result.Errors.Count - 10;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"حدث خطأ أثناء استيراد الملف: {ex.Message}";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        #endregion
 
         #region Helper Methods
 
