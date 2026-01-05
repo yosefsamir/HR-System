@@ -28,6 +28,7 @@ namespace HR_system.Services
                     Minutes_allow_departure = s.Minutes_allow_departure,
                     StandardHours = s.StandardHours,
                     IsFlexible = s.IsFlexible,
+                    SalaryCalculationType = s.SalaryCalculationType,
                     EmployeeCount = s.Employees.Count
                 })
                 .ToListAsync();
@@ -52,6 +53,7 @@ namespace HR_system.Services
                 Minutes_allow_departure = shift.Minutes_allow_departure,
                 StandardHours = shift.StandardHours,
                 IsFlexible = shift.IsFlexible,
+                SalaryCalculationType = shift.SalaryCalculationType,
                 EmployeeCount = shift.Employees.Count
             };
         }
@@ -66,7 +68,8 @@ namespace HR_system.Services
                 Minutes_allow_attendence = dto.Minutes_allow_attendence,
                 Minutes_allow_departure = dto.Minutes_allow_departure,
                 StandardHours = dto.StandardHours,
-                IsFlexible = dto.IsFlexible
+                IsFlexible = dto.IsFlexible,
+                SalaryCalculationType = dto.SalaryCalculationType
             };
 
             _context.Shifts.Add(shift);
@@ -82,6 +85,7 @@ namespace HR_system.Services
                 Minutes_allow_departure = shift.Minutes_allow_departure,
                 StandardHours = shift.StandardHours,
                 IsFlexible = shift.IsFlexible,
+                SalaryCalculationType = shift.SalaryCalculationType,
                 EmployeeCount = 0
             };
         }
@@ -100,6 +104,7 @@ namespace HR_system.Services
             shift.Minutes_allow_departure = dto.Minutes_allow_departure;
             shift.StandardHours = dto.StandardHours;
             shift.IsFlexible = dto.IsFlexible;
+            shift.SalaryCalculationType = dto.SalaryCalculationType;
 
             await _context.SaveChangesAsync();
 
@@ -113,6 +118,7 @@ namespace HR_system.Services
                 Minutes_allow_departure = shift.Minutes_allow_departure,
                 StandardHours = shift.StandardHours,
                 IsFlexible = shift.IsFlexible,
+                SalaryCalculationType = shift.SalaryCalculationType,
                 EmployeeCount = await _context.Employees.CountAsync(e => e.Shift_id == id)
             };
         }

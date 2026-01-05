@@ -75,6 +75,9 @@ namespace HR_system.DTOs.Salary
         // Base Salary Info
         public decimal BaseSalary { get; set; }
         public decimal SalaryPerHour { get; set; }
+        public decimal SalaryPerDay { get; set; }
+        public string SalaryCalculationType { get; set; } = "Hourly";
+        public string SalaryCalculationTypeDisplay { get; set; } = "بالساعة";
         
         // Working Hours Info
         public decimal ShiftHoursPerDay { get; set; }

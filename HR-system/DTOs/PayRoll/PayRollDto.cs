@@ -77,6 +77,9 @@ namespace HR_system.DTOs.PayRoll
         // Salary components
         public decimal BaseSalary { get; set; }
         public decimal SalaryPerHour { get; set; }
+        public decimal SalaryPerDay { get; set; }
+        public string SalaryCalculationType { get; set; } = "Hourly";
+        public string SalaryCalculationTypeDisplay { get; set; } = "بالساعة";
         public decimal WorkedHoursSalary { get; set; }
         public decimal OvertimeAmount { get; set; }
         public decimal LateTimeDeduction { get; set; }

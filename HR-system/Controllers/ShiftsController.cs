@@ -1,4 +1,5 @@
 using HR_system.DTOs.Shift;
+using HR_system.Models.Enums;
 using HR_system.Services.Interfaces;
 using HR_system.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -44,7 +45,9 @@ namespace HR_system.Controllers
                         End_time = shift.End_time,
                         Minutes_allow_attendence = shift.Minutes_allow_attendence,
                         Minutes_allow_departure = shift.Minutes_allow_departure,
-                        StandardHours = shift.StandardHours
+                        StandardHours = shift.StandardHours,
+                        IsFlexible = shift.IsFlexible,
+                        SalaryCalculationType = shift.SalaryCalculationType
                     };
                 }
             }

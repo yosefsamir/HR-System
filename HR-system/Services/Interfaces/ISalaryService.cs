@@ -36,9 +36,9 @@ namespace HR_system.Services.Interfaces
         Task<SavePayRollResponseDto> SavePayRollAsync(SavePayRollRequestDto request);
 
         /// <summary>
-        /// Get saved payroll data for month/year
+        /// Get saved payroll data for month/year with optional filters
         /// </summary>
-        Task<SavedMonthlyPayRollDto?> GetSavedPayRollAsync(int month, int year);
+        Task<SavedMonthlyPayRollDto?> GetSavedPayRollAsync(int month, int year, int? shiftId = null, int? employeeId = null);
 
         /// <summary>
         /// Update paid salary for single employee

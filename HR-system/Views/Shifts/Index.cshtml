@@ -1,4 +1,5 @@
 @model HR_system.ViewModels.ShiftsIndexViewModel
+@using HR_system.Models.Enums
 
 @{
     ViewData["Title"] = "الورديات";
@@ -16,6 +17,42 @@
             </h5>
         </div>
         <div class="card-body">
+            <!-- Salary Calculation Type Help -->
+            <div class="alert alert-info mb-3" role="alert">
+                <h6 class="alert-heading">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    طرق حساب الراتب
+                </h6>
+                <hr class="my-2">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start mb-2">
+                            <span class="badge bg-primary me-2 mt-1">بالساعة</span>
+                            <div>
+                                <strong>الراتب = ساعات العمل × أجر الساعة</strong>
+                                <br>
+                                <small class="text-muted">
+                                    يتم احتساب الراتب بناءً على عدد الساعات الفعلية التي عملها الموظف، 
+                                    مع إضافة ساعات العمل الإضافي وخصم ساعات التأخير
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start">
+                            <span class="badge bg-warning text-dark me-2 mt-1">باليوم</span>
+                            <div>
+                                <strong>الراتب = أيام الحضور × أجر اليوم</strong>
+                                <br>
+                                <small class="text-muted">
+                                    إذا حضر الموظف في يوم ما، يحصل على أجر اليوم كاملاً بغض النظر عن عدد الساعات، 
+                                    مع إضافة ساعات العمل الإضافي وخصم ساعات التأخير
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <form asp-action="Create" method="post">
                 @Html.AntiForgeryToken()
                 <div class="row g-3 align-items-end">
@@ -38,6 +75,16 @@
                         </label>
                         <input asp-for="NewShift.StandardHours" type="number" step="0.5" class="form-control" min="0.5" max="24" />
                     </div>
+                    <div class="col-md-2">
+                        <label asp-for="NewShift.SalaryCalculationType" class="form-label">
+                            <i class="bi bi-calculator me-1 text-info"></i>
+                            طريقة حساب الراتب
+                        </label>
+                        <select asp-for="NewShift.SalaryCalculationType" class="form-select">
+                            <option value="@SalaryCalculationType.Hourly">بالساعة (ساعات العمل × أجر الساعة)</option>
+                            <option value="@SalaryCalculationType.Daily">باليوم (أيام الحضور × أجر اليوم)</option>
+                        </select>
+                    </div>
                     <div class="col-md-1">
                         <div class="form-check mt-4">
                             <input asp-for="NewShift.IsFlexible" class="form-check-input" />
@@ -46,6 +93,8 @@
                             </label>
                         </div>
                     </div>
+                </div>
+                <div class="row g-3 align-items-end mt-2">
                     <div class="col-md-2">
                         <label asp-for="NewShift.Minutes_allow_attendence" class="form-label">
                             <span title="الدقائق المسموحة للتأخير بعد وقت البداية">سماح الحضور (دقيقة)</span>
@@ -60,7 +109,7 @@
                     </div>
                     <div class="col-md-1">
                         <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-plus-lg"></i>
+                            <i class="bi bi-plus-lg"></i> إضافة
                         </button>
                     </div>
                 </div>
@@ -97,6 +146,7 @@
                                 <th>وقت البداية</th>
                                 <th>وقت الانتهاء</th>
                                 <th>ساعات العمل</th>
+                                <th>طريقة حساب الراتب</th>
                                 <th>مرن</th>
                                 <th>سماح الحضور</th>
                                 <th>سماح الانصراف</th>
@@ -113,20 +163,24 @@
                                     {
                                         <!-- Edit Mode -->
                                         <td>@counter</td>
-                                        <td colspan="9">
+                                        <td colspan="10">
                                             <form asp-action="Edit" asp-route-id="@shift.Id" method="post">
                                                 @Html.AntiForgeryToken()
                                                 <div class="row g-2 align-items-center">
                                                     <div class="col">
+                                                        <label class="form-label small text-muted mb-0">اسم الوردية</label>
                                                         <input asp-for="EditShift!.Shift_name" class="form-control form-control-sm" />
                                                     </div>
                                                     <div class="col">
+                                                        <label class="form-label small text-muted mb-0">وقت البداية</label>
                                                         <input asp-for="EditShift!.Start_time" type="time" class="form-control form-control-sm" />
                                                     </div>
                                                     <div class="col">
+                                                        <label class="form-label small text-muted mb-0">وقت الانتهاء</label>
                                                         <input asp-for="EditShift!.End_time" type="time" class="form-control form-control-sm" />
                                                     </div>
                                                     <div class="col">
+                                                        <label class="form-label small text-muted mb-0">ساعات العمل</label>
                                                         <div class="input-group input-group-sm">
                                                             <input asp-for="EditShift!.StandardHours" type="number" step="0.5" class="form-control" min="0.5" max="24" title="ساعات العمل القياسية المستخدمة لحساب راتب الساعة" />
                                                             <span class="input-group-text">
@@ -135,26 +189,39 @@
                                                         </div>
                                                     </div>
                                                     <div class="col">
-                                                        <div class="form-check">
+                                                        <label class="form-label small text-muted mb-0">طريقة حساب الراتب</label>
+                                                        <select asp-for="EditShift!.SalaryCalculationType" class="form-select form-select-sm">
+                                                            <option value="@SalaryCalculationType.Hourly">بالساعة</option>
+                                                            <option value="@SalaryCalculationType.Daily">باليوم</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col">
+                                                        <label class="form-label small text-muted mb-0">مرن</label>
+                                                        <div class="form-check mt-1">
                                                             <input asp-for="EditShift!.IsFlexible" class="form-check-input" />
                                                             <label asp-for="EditShift!.IsFlexible" class="form-check-label">
-                                                                <small>مرن</small>
+                                                                <small>نعم</small>
                                                             </label>
                                                         </div>
                                                     </div>
                                                     <div class="col">
+                                                        <label class="form-label small text-muted mb-0">سماح الحضور</label>
                                                         <input asp-for="EditShift!.Minutes_allow_attendence" type="number" class="form-control form-control-sm" min="0" max="60" />
                                                     </div>
                                                     <div class="col">
+                                                        <label class="form-label small text-muted mb-0">سماح الانصراف</label>
                                                         <input asp-for="EditShift!.Minutes_allow_departure" type="number" class="form-control form-control-sm" min="0" max="60" />
                                                     </div>
                                                     <div class="col-auto">
-                                                        <button type="submit" class="btn btn-success btn-sm">
-                                                            <i class="bi bi-check-lg"></i>
-                                                        </button>
-                                                        <a asp-action="Index" class="btn btn-secondary btn-sm">
-                                                            <i class="bi bi-x-lg"></i>
-                                                        </a>
+                                                        <label class="form-label small text-muted mb-0">&nbsp;</label>
+                                                        <div>
+                                                            <button type="submit" class="btn btn-success btn-sm">
+                                                                <i class="bi bi-check-lg"></i>
+                                                            </button>
+                                                            <a asp-action="Index" class="btn btn-secondary btn-sm">
+                                                                <i class="bi bi-x-lg"></i>
+                                                            </a>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </form>
@@ -182,6 +249,13 @@
                                         <td>
                                             <span class="badge bg-info">
                                                 @shift.StandardHours_Display
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge @(shift.SalaryCalculationType == SalaryCalculationType.Daily ? "bg-warning text-dark" : "bg-primary")" 
+                                                  title="@shift.SalaryCalculationType_Description">
+                                                <i class="bi bi-calculator me-1"></i>
+                                                @shift.SalaryCalculationType_Display
                                             </span>
                                         </td>
                                         <td>

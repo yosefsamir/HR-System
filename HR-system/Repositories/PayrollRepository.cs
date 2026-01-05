@@ -188,15 +188,28 @@ namespace HR_system.Repositories
         }
 
         /// <summary>
-        /// Get saved payroll data for month/year
+        /// Get saved payroll data for month/year with optional shift and employee filters
         /// </summary>
-        public async Task<SavedMonthlyPayRollDto?> GetSavedPayrollAsync(int month, int year)
+        public async Task<SavedMonthlyPayRollDto?> GetSavedPayrollAsync(int month, int year, int? shiftId = null, int? employeeId = null)
         {
-            var records = await _context.PayRolls
+            var query = _context.PayRolls
                 .Include(p => p.Employee)
                 .ThenInclude(e => e!.Department)
-                .Where(p => p.Month == month && p.Year == year)
-                .ToListAsync();
+                .Where(p => p.Month == month && p.Year == year);
+
+            // Apply shift filter
+            if (shiftId.HasValue && shiftId.Value > 0)
+            {
+                query = query.Where(p => p.Employee != null && p.Employee.Shift_id == shiftId.Value);
+            }
+
+            // Apply employee filter
+            if (employeeId.HasValue && employeeId.Value > 0)
+            {
+                query = query.Where(p => p.Employee_id == employeeId.Value);
+            }
+
+            var records = await query.ToListAsync();
 
             if (!records.Any()) return null;
 
@@ -238,6 +251,9 @@ namespace HR_system.Repositories
                     LateTimeMultiplier = r.LateTimeMultiplier,
                     BaseSalary = r.BaseSalary,
                     SalaryPerHour = r.SalaryPerHour,
+                    SalaryPerDay = r.SalaryPerDay,
+                    SalaryCalculationType = r.SalaryCalculationType,
+                    SalaryCalculationTypeDisplay = r.SalaryCalculationTypeDisplay,
                     WorkedHoursSalary = r.WorkedHoursSalary,
                     OvertimeAmount = r.OvertimeAmount,
                     LateTimeDeduction = r.LateTimeDeduction,
@@ -309,6 +325,9 @@ namespace HR_system.Repositories
                 // Base Salary Info
                 BaseSalary = empSalary.BaseSalary,
                 SalaryPerHour = empSalary.SalaryPerHour,
+                SalaryPerDay = empSalary.SalaryPerDay,
+                SalaryCalculationType = empSalary.SalaryCalculationType,
+                SalaryCalculationTypeDisplay = empSalary.SalaryCalculationTypeDisplay,
 
                 // Working Hours Info
                 ShiftHoursPerDay = empSalary.ShiftHoursPerDay,
@@ -375,6 +394,9 @@ namespace HR_system.Repositories
             // Base Salary Info
             payRoll.BaseSalary = empSalary.BaseSalary;
             payRoll.SalaryPerHour = empSalary.SalaryPerHour;
+            payRoll.SalaryPerDay = empSalary.SalaryPerDay;
+            payRoll.SalaryCalculationType = empSalary.SalaryCalculationType;
+            payRoll.SalaryCalculationTypeDisplay = empSalary.SalaryCalculationTypeDisplay;
 
             // Working Hours Info
             payRoll.ShiftHoursPerDay = empSalary.ShiftHoursPerDay;

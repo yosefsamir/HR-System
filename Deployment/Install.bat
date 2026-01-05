@@ -69,10 +69,51 @@ exit /b 1
 
 :sql_found
 
+REM Ask user for installation directory
+echo.
+echo ========================================
+echo    Choose Installation Location
+echo ========================================
+echo.
+echo 1. C:\HRSystem
+echo 2. D:\HRSystem
+echo 3. Custom location
+echo.
+set /p INSTALL_CHOICE="Enter your choice (1/2/3): "
+
+if "%INSTALL_CHOICE%"=="1" (
+    set INSTALL_DIR=C:\HRSystem
+) else if "%INSTALL_CHOICE%"=="2" (
+    REM Check if D: drive exists
+    if not exist "D:\" (
+        echo.
+        echo ERROR: D: drive does not exist on this computer!
+        echo Using C:\HRSystem instead...
+        set INSTALL_DIR=C:\HRSystem
+    ) else (
+        set INSTALL_DIR=D:\HRSystem
+    )
+) else if "%INSTALL_CHOICE%"=="3" (
+    set /p INSTALL_DIR="Enter full path (e.g., E:\MyApps\HRSystem): "
+    REM Validate the drive exists
+    for %%i in ("%INSTALL_DIR%") do set DRIVE_LETTER=%%~di
+    if not exist "%DRIVE_LETTER%\" (
+        echo.
+        echo ERROR: Drive %DRIVE_LETTER% does not exist!
+        echo Using C:\HRSystem instead...
+        set INSTALL_DIR=C:\HRSystem
+    )
+) else (
+    echo Invalid choice. Using default C:\HRSystem
+    set INSTALL_DIR=C:\HRSystem
+)
+
+echo.
+echo Installing to: %INSTALL_DIR%
+
 REM Create installation directory
 echo.
 echo [2/4] Creating installation folder...
-set INSTALL_DIR=C:\HRSystem
 if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 if not exist "%INSTALL_DIR%\Backup" mkdir "%INSTALL_DIR%\Backup"
 if not exist "%INSTALL_DIR%\Update" mkdir "%INSTALL_DIR%\Update"

@@ -493,8 +493,9 @@
                     <div class="details-section">
                         <h6 class="text-primary mb-3"><i class="bi bi-cash-stack me-2"></i>معلومات الراتب</h6>
                         <p class="mb-1"><span class="text-muted">الراتب الأساسي (شهري):</span> <strong>${formatCurrency(emp.baseSalary)}</strong></p>
-                        <p class="mb-1"><span class="text-muted">الراتب بالساعة:</span> ${formatCurrency(emp.salaryPerHour)}</p>
-                        <p class="mb-0"><span class="text-muted">راتب ساعات العمل:</span> <span class="text-info">${formatCurrency(emp.workedHoursSalary)}</span></p>
+                        <p class="mb-1"><span class="text-muted">طريقة الحساب:</span> <span class="badge ${emp.salaryCalculationType === 'Daily' ? 'bg-warning text-dark' : 'bg-primary'}">${emp.salaryCalculationTypeDisplay}</span></p>
+                        <p class="mb-1"><span class="text-muted">${emp.salaryCalculationType === 'Daily' ? 'الراتب باليوم:' : 'الراتب بالساعة:'}</span> ${formatCurrency(emp.salaryCalculationType === 'Daily' ? emp.salaryPerDay : emp.salaryPerHour)}</p>
+                        <p class="mb-0"><span class="text-muted">راتب ${emp.salaryCalculationType === 'Daily' ? 'أيام الحضور' : 'ساعات العمل'}:</span> <span class="text-info">${formatCurrency(emp.workedHoursSalary)}</span></p>
                     </div>
                 </div>
 

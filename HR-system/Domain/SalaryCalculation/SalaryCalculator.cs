@@ -1,4 +1,5 @@
 using HR_system.Models;
+using HR_system.Models.Enums;
 using HR_system.DTOs.Salary;
 
 namespace HR_system.Domain.SalaryCalculation
@@ -112,8 +113,12 @@ namespace HR_system.Domain.SalaryCalculation
                 ? employee.Shift.StandardHours
                 : 8m;
 
+            // Determine salary calculation type from shift
+            SalaryCalculationType calculationType = employee.Shift?.SalaryCalculationType ?? SalaryCalculationType.Hourly;
+
             // Calculate salary rates
             decimal salaryPerHour = CalculateSalaryPerHour(employee.Salary, workingDaysInMonth, shiftHoursPerDay);
+            decimal salaryPerDay = CalculateSalaryPerDay(employee.Salary, workingDaysInMonth);
 
             // Filter employee-specific records
             var empAttendances = attendances.Where(a => a.Employee_id == employee.Id).ToList();
@@ -127,7 +132,7 @@ namespace HR_system.Domain.SalaryCalculation
             // Calculate time differences
             var timeDifferences = CalculateTimeDifferences(empAttendances);
 
-            // Calculate time difference amounts
+            // Calculate time difference amounts (using hourly rate for overtime/latetime calculations)
             var (overtimeAmount, lateTimeDeduction, netTimeDiffAmount) = CalculateTimeDifferenceAmount(
                 timeDifferences.TotalOvertimeMinutes,
                 timeDifferences.TotalLateMinutes,
@@ -138,10 +143,13 @@ namespace HR_system.Domain.SalaryCalculation
             // Calculate financial summaries
             var financialSummary = CalculateFinancialSummary(empBonuses, empDeductions, empAdvances);
 
-            // Calculate final salary amounts
+            // Calculate final salary amounts based on calculation type
             var salaryAmounts = CalculateSalaryAmounts(
                 timeDifferences.TotalWorkedMinutes,
                 salaryPerHour,
+                salaryPerDay,
+                attendanceSummary.PresentDays,
+                calculationType,
                 overtimeAmount,
                 lateTimeDeduction,
                 financialSummary);
@@ -150,8 +158,10 @@ namespace HR_system.Domain.SalaryCalculation
             return BuildEmployeeSalaryResult(
                 employee,
                 salaryPerHour,
+                salaryPerDay,
                 shiftHoursPerDay,
                 acctualWorkingDaysInMonth,
+                calculationType,
                 attendanceSummary,
                 timeDifferences,
                 overtimeAmount,
@@ -211,30 +221,45 @@ namespace HR_system.Domain.SalaryCalculation
         private SalaryAmounts CalculateSalaryAmounts(
             decimal totalWorkedMinutes,
             decimal salaryPerHour,
+            decimal salaryPerDay,
+            int presentDays,
+            SalaryCalculationType calculationType,
             decimal overtimeAmount,
             decimal lateTimeDeduction,
             FinancialSummary financialSummary)
         {
+            decimal baseSalary;
             decimal totalWorkedHours = totalWorkedMinutes / 60m;
-            decimal workedHoursSalary = Math.Round(salaryPerHour * totalWorkedHours, 2);
 
-            // Net Salary = (SalaryPerHour × TotalWorkedHours) + OvertimeSalary - LessTimeSalary - Deductions - Advances + Bonuses
-            decimal netSalary = workedHoursSalary
+            // Calculate base salary based on calculation type
+            if (calculationType == SalaryCalculationType.Daily)
+            {
+                // Daily: Salary = Days Attended × Daily Salary
+                baseSalary = Math.Round(salaryPerDay * presentDays, 2);
+            }
+            else
+            {
+                // Hourly: Salary = Worked Hours × Salary Per Hour
+                baseSalary = Math.Round(salaryPerHour * totalWorkedHours, 2);
+            }
+
+            // Net Salary = BaseSalary + OvertimeSalary - LessTimeSalary - Deductions - Advances + Bonuses
+            decimal netSalary = baseSalary
                 + overtimeAmount
                 - lateTimeDeduction
                 - financialSummary.TotalDeductionsAmount
                 - financialSummary.TotalAdvancesAmount
                 + financialSummary.TotalBonusesAmount;
 
-            // Gross salary = WorkedHoursSalary + Overtime + Bonuses
-            decimal grossSalary = workedHoursSalary + overtimeAmount + financialSummary.TotalBonusesAmount;
+            // Gross salary = BaseSalary + Overtime + Bonuses
+            decimal grossSalary = baseSalary + overtimeAmount + financialSummary.TotalBonusesAmount;
 
             // Total deductions = LateTime + Deductions + Advances
             decimal totalDeductionsCalc = lateTimeDeduction + financialSummary.TotalDeductionsAmount + financialSummary.TotalAdvancesAmount;
 
             return new SalaryAmounts
             {
-                WorkedHoursSalary = workedHoursSalary,
+                WorkedHoursSalary = baseSalary,
                 NetSalary = netSalary,
                 GrossSalary = grossSalary,
                 TotalDeductionsAmount = totalDeductionsCalc
@@ -244,8 +269,10 @@ namespace HR_system.Domain.SalaryCalculation
         private EmployeeSalaryResultDto BuildEmployeeSalaryResult(
             Employee employee,
             decimal salaryPerHour,
+            decimal salaryPerDay,
             decimal shiftHoursPerDay,
             int acctualWorkingDaysInMonth,
+            SalaryCalculationType calculationType,
             AttendanceSummary attendance,
             TimeDifferences timeDiff,
             decimal overtimeAmount,
@@ -269,6 +296,9 @@ namespace HR_system.Domain.SalaryCalculation
                 // Base Salary Info
                 BaseSalary = employee.Salary,
                 SalaryPerHour = salaryPerHour,
+                SalaryPerDay = salaryPerDay,
+                SalaryCalculationType = calculationType.ToString(),
+                SalaryCalculationTypeDisplay = calculationType == SalaryCalculationType.Daily ? "باليوم" : "بالساعة",
 
                 // Working Hours Info
                 ShiftHoursPerDay = shiftHoursPerDay,

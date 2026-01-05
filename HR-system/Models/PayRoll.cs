@@ -39,6 +39,15 @@ namespace HR_system.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal SalaryPerHour { get; set; }
 
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal SalaryPerDay { get; set; }
+
+        [StringLength(20)]
+        public string SalaryCalculationType { get; set; } = "Hourly";
+
+        [StringLength(20)]
+        public string SalaryCalculationTypeDisplay { get; set; } = "بالساعة";
+
         // Working Hours Info
         [Column(TypeName = "decimal(18,2)")]
         public decimal ShiftHoursPerDay { get; set; }

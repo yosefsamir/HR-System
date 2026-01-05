@@ -45,6 +45,70 @@
         border-color: #0d6efd;
         color: #fff;
     }
+    .employee-autocomplete {
+        position: relative;
+    }
+    .employee-autocomplete input {
+        background: #2c3034;
+        border: 1px solid #444;
+        color: #fff;
+    }
+    .employee-autocomplete input:focus {
+        background: #343a40;
+        border-color: #0d6efd;
+        color: #fff;
+    }
+    .autocomplete-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #2c3034;
+        border: 1px solid #444;
+        border-top: none;
+        border-radius: 0 0 0.375rem 0.375rem;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    }
+    .autocomplete-list.show {
+        display: block;
+    }
+    .autocomplete-item {
+        padding: 0.5rem 0.75rem;
+        cursor: pointer;
+        color: #fff;
+        border-bottom: 1px solid #444;
+    }
+    .autocomplete-item:last-child {
+        border-bottom: none;
+    }
+    .autocomplete-item:hover,
+    .autocomplete-item.active {
+        background: rgba(13, 110, 253, 0.3);
+    }
+    .autocomplete-item small {
+        color: #6c757d;
+    }
+    .clear-employee {
+        position: absolute;
+        left: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 0;
+        display: none;
+    }
+    .clear-employee.show {
+        display: block;
+    }
+    .clear-employee:hover {
+        color: #dc3545;
+    }
 </style>
 
 <div class="container-fluid">
@@ -58,7 +122,7 @@
         </div>
         <div class="card-body">
             <div class="row g-3 align-items-end">
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <label class="form-label">الشهر <span class="text-danger">*</span></label>
                     <select id="monthSelect" class="form-select">
                         <option value="1">يناير</option>
@@ -75,10 +139,28 @@
                         <option value="12">ديسمبر</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <label class="form-label">السنة <span class="text-danger">*</span></label>
                     <select id="yearSelect" class="form-select">
                     </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">الوردية</label>
+                    <select id="shiftSelect" class="form-select">
+                        <option value="">جميع الورديات</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الموظف</label>
+                    <div class="employee-autocomplete">
+                        <input type="text" class="form-control" id="employeeSearch" 
+                               placeholder="ابحث باسم الموظف..." autocomplete="off">
+                        <input type="hidden" id="employeeId" value="">
+                        <button type="button" class="clear-employee" id="clearEmployeeBtn">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                        <div class="autocomplete-list" id="employeeAutocomplete"></div>
+                    </div>
                 </div>
                 <div class="col-md-2">
                     <button type="button" class="btn btn-primary w-100" id="loadBtn">
@@ -89,20 +171,14 @@
                 <div class="col-md-2">
                     <button type="button" class="btn btn-danger w-100" id="deleteBtn" disabled>
                         <i class="bi bi-trash me-2"></i>
-                        حذف الشهر
+                        حذف
                     </button>
                 </div>
-                <div class="col-md-2">
-                    <button type="button" class="btn btn-outline-success w-100" id="printBtn" disabled>
-                        <i class="bi bi-printer me-2"></i>
-                        طباعة
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-outline-success btn-sm w-100" id="printBtn" disabled>
+                        <i class="bi bi-printer"></i>
                     </button>
-                </div>
-                <div class="col-md-2">
-                    <a href="/PayRoll" class="btn btn-outline-primary w-100">
-                        <i class="bi bi-calculator me-2"></i>
-                        حساب جديد
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
@@ -280,6 +356,8 @@
 @section Scripts {
 <script>
     let savedData = null;
+    let allEmployees = [];
+    let selectedEmployeeId = null;
     const arabicMonths = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -296,16 +374,131 @@
             yearSelect.appendChild(option);
         }
 
+        // Load shifts and employees
+        loadShifts();
+        loadEmployees();
+
         // Event listeners
         document.getElementById('loadBtn').addEventListener('click', loadSavedData);
         document.getElementById('deleteBtn').addEventListener('click', deleteMonth);
         document.getElementById('printBtn').addEventListener('click', printResults);
         document.getElementById('printSlipsBtn').addEventListener('click', printSalarySlips);
+        document.getElementById('shiftSelect').addEventListener('change', onShiftChange);
+        
+        // Employee autocomplete
+        const employeeSearch = document.getElementById('employeeSearch');
+        const autocompleteList = document.getElementById('employeeAutocomplete');
+        const clearBtn = document.getElementById('clearEmployeeBtn');
+        
+        employeeSearch.addEventListener('input', handleEmployeeSearch);
+        clearBtn.addEventListener('click', clearEmployeeSelection);
+        
+        // Close autocomplete when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.employee-autocomplete')) {
+                autocompleteList.classList.remove('show');
+            }
+        });
     });
+
+    function handleEmployeeSearch() {
+        const searchTerm = document.getElementById('employeeSearch').value.trim().toLowerCase();
+        const autocompleteList = document.getElementById('employeeAutocomplete');
+        const shiftId = document.getElementById('shiftSelect').value;
+        
+        // Only show results when user has typed something
+        if (!searchTerm) {
+            autocompleteList.classList.remove('show');
+            return;
+        }
+        
+        // Filter employees based on search term and shift
+        let filteredEmployees = allEmployees;
+        if (shiftId) {
+            filteredEmployees = filteredEmployees.filter(e => e.shiftId == shiftId);
+        }
+        filteredEmployees = filteredEmployees.filter(e => 
+            e.name.toLowerCase().includes(searchTerm) || 
+            e.code.toLowerCase().includes(searchTerm)
+        );
+        
+        // Limit results
+        filteredEmployees = filteredEmployees.slice(0, 10);
+        
+        if (filteredEmployees.length > 0) {
+            autocompleteList.innerHTML = filteredEmployees.map(emp => `
+                <div class="autocomplete-item" data-id="${emp.id}" data-name="${emp.name}" data-code="${emp.code}">
+                    <span>${emp.name}</span>
+                    <small class="ms-2">(${emp.code})</small>
+                </div>
+            `).join('');
+            
+            // Add click events to items
+            autocompleteList.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    selectEmployee(this.dataset.id, this.dataset.name, this.dataset.code);
+                });
+            });
+            
+            autocompleteList.classList.add('show');
+        } else {
+            autocompleteList.innerHTML = '<div class="autocomplete-item text-muted">لا يوجد نتائج</div>';
+            autocompleteList.classList.add('show');
+        }
+    }
+
+    function selectEmployee(id, name, code) {
+        document.getElementById('employeeSearch').value = `${name} (${code})`;
+        document.getElementById('employeeId').value = id;
+        selectedEmployeeId = id;
+        document.getElementById('employeeAutocomplete').classList.remove('show');
+        document.getElementById('clearEmployeeBtn').classList.add('show');
+    }
+
+    function clearEmployeeSelection() {
+        document.getElementById('employeeSearch').value = '';
+        document.getElementById('employeeId').value = '';
+        selectedEmployeeId = null;
+        document.getElementById('clearEmployeeBtn').classList.remove('show');
+        document.getElementById('employeeSearch').focus();
+    }
+
+    function onShiftChange() {
+        // Clear employee selection when shift changes
+        clearEmployeeSelection();
+    }
+
+    async function loadShifts() {
+        try {
+            const response = await fetch('/PayRoll/GetShifts');
+            const shifts = await response.json();
+            const select = document.getElementById('shiftSelect');
+            select.innerHTML = '<option value="">جميع الورديات</option>';
+            shifts.forEach(shift => {
+                const option = document.createElement('option');
+                option.value = shift.id;
+                option.textContent = shift.name;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading shifts:', error);
+        }
+    }
+
+    async function loadEmployees() {
+        try {
+            const response = await fetch('/PayRoll/GetEmployees');
+            allEmployees = await response.json();
+        } catch (error) {
+            console.error('Error loading employees:', error);
+        }
+    }
 
     async function loadSavedData() {
         const month = parseInt(document.getElementById('monthSelect').value);
         const year = parseInt(document.getElementById('yearSelect').value);
+        const shiftId = document.getElementById('shiftSelect').value;
+        const employeeId = document.getElementById('employeeId').value;
 
         // Show loading
         document.getElementById('noDataMessage').classList.add('d-none');
@@ -313,7 +506,11 @@
         document.getElementById('loadingMessage').classList.remove('d-none');
 
         try {
-            const response = await fetch(`/PayRoll/GetSaved?month=${month}&year=${year}`);
+            let url = `/PayRoll/GetSaved?month=${month}&year=${year}`;
+            if (shiftId) url += `&shiftId=${shiftId}`;
+            if (employeeId) url += `&employeeId=${employeeId}`;
+            
+            const response = await fetch(url);
             const result = await response.json();
             document.getElementById('loadingMessage').classList.add('d-none');
 
@@ -485,11 +682,15 @@
                                         <td class="text-end">${formatCurrency(emp.baseSalary)}</td>
                                     </tr>
                                     <tr>
-                                        <td>سعر الساعة</td>
-                                        <td class="text-end">${formatCurrency(emp.salaryPerHour)}</td>
+                                        <td>طريقة الحساب</td>
+                                        <td class="text-end"><span class="badge ${emp.salaryCalculationType === 'Daily' ? 'bg-warning text-dark' : 'bg-primary'}">${emp.salaryCalculationTypeDisplay || (emp.salaryCalculationType === 'Daily' ? 'باليوم' : 'بالساعة')}</span></td>
                                     </tr>
                                     <tr>
-                                        <td>راتب ساعات العمل</td>
+                                        <td>${emp.salaryCalculationType === 'Daily' ? 'سعر اليوم' : 'سعر الساعة'}</td>
+                                        <td class="text-end">${formatCurrency(emp.salaryCalculationType === 'Daily' ? emp.salaryPerDay : emp.salaryPerHour)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>راتب ${emp.salaryCalculationType === 'Daily' ? 'أيام الحضور' : 'ساعات العمل'}</td>
                                         <td class="text-end">${formatCurrency(emp.workedHoursSalary)}</td>
                                     </tr>
                                     <tr class="text-success">
@@ -650,8 +851,9 @@
                 <td>${index + 1}</td>
                 <td>${emp.employeeName}<br><small>${emp.employeeCode}</small></td>
                 <td>${emp.departmentName || '-'}</td>
+                <td>${emp.salaryCalculationType === 'Daily' ? 'باليوم' : 'بالساعة'}</td>
                 <td>${emp.presentDays}/${emp.absentDays}</td>
-                <td>${emp.actualWorkedHours_Display}</td>
+                <td>${emp.salaryCalculationType === 'Daily' ? emp.presentDays + ' يوم' : emp.actualWorkedHours_Display}</td>
                 <td>${emp.overtimeHours_Display}</td>
                 <td>${emp.lateTimeHours_Display}</td>
                 <td>${formatCurrency(emp.workedHoursSalary)}</td>
@@ -695,11 +897,12 @@
                             <th>#</th>
                             <th>الموظف</th>
                             <th>القسم</th>
+                            <th>طريقة الحساب</th>
                             <th>حضور/غياب</th>
-                            <th>ساعات العمل</th>
+                            <th>ساعات/أيام</th>
                             <th>إضافي</th>
                             <th>تأخير</th>
-                            <th>راتب الساعات</th>
+                            <th>الراتب الأساسي</th>
                             <th>الإضافي</th>
                             <th>التأخير</th>
                             <th>المكافآت</th>
@@ -713,7 +916,7 @@
                     <tbody>${tableRows}</tbody>
                     <tfoot>
                         <tr>
-                            <td colspan="3">الإجمالي</td>
+                            <td colspan="4">الإجمالي</td>
                             <td>-</td>
                             <td>-</td>
                             <td>-</td>
@@ -792,7 +995,7 @@
                 <table class="mini-table">
                     <tr>
                         <td class="lbl">الراتب الشهري</td><td class="val">${formatCurrency(emp.baseSalary)}</td>
-                        <td class="lbl">ساعات العمل</td><td class="val">${emp.actualWorkedHours_Display}</td>
+                        <td class="lbl">${emp.salaryCalculationType === 'Daily' ? 'أيام الحضور' : 'ساعات العمل'}</td><td class="val">${emp.salaryCalculationType === 'Daily' ? emp.presentDays + ' يوم' : emp.actualWorkedHours_Display}</td>
                     </tr>
                     <tr>
                         <td class="lbl">ساعات إضافي</td><td class="val">${emp.overtimeHours_Display}</td>

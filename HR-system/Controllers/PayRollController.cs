@@ -8,10 +8,14 @@ namespace HR_system.Controllers
     public class PayRollController : Controller
     {
         private readonly ISalaryService _salaryService;
+        private readonly IShiftService _shiftService;
+        private readonly IEmployeeService _employeeService;
 
-        public PayRollController(ISalaryService salaryService)
+        public PayRollController(ISalaryService salaryService, IShiftService shiftService, IEmployeeService employeeService)
         {
             _salaryService = salaryService;
+            _shiftService = shiftService;
+            _employeeService = employeeService;
         }
 
         // GET: PayRoll
@@ -24,6 +28,40 @@ namespace HR_system.Controllers
         public IActionResult Saved()
         {
             return View();
+        }
+
+        // GET: PayRoll/GetShifts
+        [HttpGet]
+        public async Task<IActionResult> GetShifts()
+        {
+            try
+            {
+                var shifts = await _shiftService.GetAllAsync();
+                return Json(shifts.Select(s => new { id = s.Id, name = s.Shift_name }));
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        // GET: PayRoll/GetEmployees?shiftId=X
+        [HttpGet]
+        public async Task<IActionResult> GetEmployees(int? shiftId = null)
+        {
+            try
+            {
+                var employees = await _employeeService.GetAllAsync();
+                if (shiftId.HasValue && shiftId.Value > 0)
+                {
+                    employees = employees.Where(e => e.Shift_id == shiftId.Value);
+                }
+                return Json(employees.Select(e => new { id = e.Id, name = e.Emp_name, code = e.Code, shiftId = e.Shift_id }));
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
         }
 
         // POST: PayRoll/Calculate
@@ -87,13 +125,13 @@ namespace HR_system.Controllers
             }
         }
 
-        // GET: PayRoll/GetSaved?month=X&year=Y
+        // GET: PayRoll/GetSaved?month=X&year=Y&shiftId=Z&employeeId=W
         [HttpGet]
-        public async Task<IActionResult> GetSaved(int month, int year)
+        public async Task<IActionResult> GetSaved(int month, int year, int? shiftId = null, int? employeeId = null)
         {
             try
             {
-                var result = await _salaryService.GetSavedPayRollAsync(month, year);
+                var result = await _salaryService.GetSavedPayRollAsync(month, year, shiftId, employeeId);
                 if (result == null)
                 {
                     return Json(new { success = false, message = "لا يوجد بيانات محفوظة لهذا الشهر" });

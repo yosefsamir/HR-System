@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using HR_system.Models.Enums;
 
 namespace HR_system.DTOs.Shift
 {
@@ -37,5 +38,8 @@ namespace HR_system.DTOs.Shift
 
         [Display(Name = "Flexible Shift (No time restrictions)")]
         public bool IsFlexible { get; set; } = false;
+
+        [Display(Name = "Salary Calculation Type")]
+        public SalaryCalculationType SalaryCalculationType { get; set; } = SalaryCalculationType.Hourly;
     }
 }

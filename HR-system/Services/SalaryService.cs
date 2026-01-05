@@ -99,9 +99,9 @@ namespace HR_system.Services
             return await _payrollRepository.SavePayrollAsync(request, salaryResult.Employees);
         }
 
-        public async Task<SavedMonthlyPayRollDto?> GetSavedPayRollAsync(int month, int year)
+        public async Task<SavedMonthlyPayRollDto?> GetSavedPayRollAsync(int month, int year, int? shiftId = null, int? employeeId = null)
         {
-            return await _payrollRepository.GetSavedPayrollAsync(month, year);
+            return await _payrollRepository.GetSavedPayrollAsync(month, year, shiftId, employeeId);
         }
 
         public async Task<bool> UpdatePaidSalaryAsync(UpdatePaidSalaryDto request)
