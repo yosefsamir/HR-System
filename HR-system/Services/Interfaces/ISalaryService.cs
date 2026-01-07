@@ -50,6 +50,11 @@ namespace HR_system.Services.Interfaces
         /// </summary>
         Task<bool> DeleteMonthPayRollAsync(int month, int year);
 
+        /// <summary>
+        /// Recalculate salary for a single employee and update the payroll record
+        /// </summary>
+        Task<RecalculateSingleEmployeeResponseDto?> RecalculateSingleEmployeeAsync(int payrollId);
+
         #endregion
     }
 }

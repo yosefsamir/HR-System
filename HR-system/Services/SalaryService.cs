@@ -114,6 +114,11 @@ namespace HR_system.Services
             return await _payrollRepository.DeleteMonthPayrollAsync(month, year);
         }
 
+        public async Task<RecalculateSingleEmployeeResponseDto?> RecalculateSingleEmployeeAsync(int payrollId)
+        {
+            return await _payrollRepository.RecalculateSingleEmployeeAsync(payrollId, _salaryCalculator);
+        }
+
         #endregion
     }
 }

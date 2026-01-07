@@ -1,4 +1,5 @@
 using HR_system.Data;
+using HR_system.Domain.SalaryCalculation;
 using HR_system.DTOs.PayRoll;
 using HR_system.DTOs.Salary;
 using HR_system.Models;
@@ -452,6 +453,129 @@ namespace HR_system.Repositories
             string[] monthNames = { "", "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
                 "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
             return monthNames[month];
+        }
+
+        /// <summary>
+        /// Recalculate salary for a single employee and update the payroll record
+        /// </summary>
+        public async Task<RecalculateSingleEmployeeResponseDto?> RecalculateSingleEmployeeAsync(int payrollId, SalaryCalculator salaryCalculator)
+        {
+            // Get the existing payroll record
+            var payroll = await _context.PayRolls
+                .Include(p => p.Employee)
+                .ThenInclude(e => e!.Department)
+                .Include(p => p.Employee)
+                .ThenInclude(e => e!.Shift)
+                .FirstOrDefaultAsync(p => p.Id == payrollId);
+
+            if (payroll == null || payroll.Employee == null) return null;
+
+            var employee = payroll.Employee;
+            var month = payroll.Month;
+            var year = payroll.Year;
+            var workingDaysInMonth = payroll.WorkingDaysInMonth;
+            var holidaysInMonth = payroll.HolidaysInMonth;
+
+            // Get related data for this employee in this month
+            var attendances = await _context.Attendences
+                .Include(a => a.LateTime)
+                .Include(a => a.OverTime)
+                .Where(a => a.Work_date.Month == month && a.Work_date.Year == year && a.Employee_id == employee.Id)
+                .ToListAsync();
+
+            var bonuses = await _context.Bounes
+                .Where(b => b.Date.Month == month && b.Date.Year == year && b.Employee_id == employee.Id)
+                .ToListAsync();
+
+            var deductions = await _context.Deductions
+                .Where(d => d.Date.Month == month && d.Date.Year == year && d.Employee_id == employee.Id)
+                .ToListAsync();
+
+            var advances = await _context.Advances
+                .Where(a => a.Date.Month == month && a.Date.Year == year && a.Employee_id == employee.Id)
+                .ToListAsync();
+
+            // Recalculate salary
+            var empSalary = salaryCalculator.CalculateEmployeeSalary(
+                employee, attendances, bonuses, deductions, advances,
+                workingDaysInMonth, holidaysInMonth, year, month);
+
+            // Update payroll record
+            payroll.EmployeeName = empSalary.EmployeeName;
+            payroll.EmployeeCode = empSalary.EmployeeCode;
+            payroll.DepartmentName = empSalary.DepartmentName;
+            payroll.ShiftName = empSalary.ShiftName;
+            payroll.BaseSalary = empSalary.BaseSalary;
+            payroll.SalaryPerHour = empSalary.SalaryPerHour;
+            payroll.SalaryPerDay = empSalary.SalaryPerDay;
+            payroll.SalaryCalculationType = empSalary.SalaryCalculationType;
+            payroll.SalaryCalculationTypeDisplay = empSalary.SalaryCalculationTypeDisplay;
+            payroll.ShiftHoursPerDay = empSalary.ShiftHoursPerDay;
+            payroll.ExpectedWorkingHours = empSalary.ExpectedWorkingHours;
+            payroll.ActualPresentDays = empSalary.ActualPresentDays;
+            payroll.AbsentDays = empSalary.AbsentDays;
+            payroll.ActualWorkedMinutes = empSalary.ActualWorkedMinutes;
+            payroll.ActualWorkedHours = empSalary.ActualWorkedHours;
+            payroll.OvertimeMinutes = empSalary.OvertimeMinutes;
+            payroll.OvertimeHours = empSalary.OvertimeHours;
+            payroll.OvertimeMultiplier = empSalary.OvertimeMultiplier;
+            payroll.OvertimeAmount = empSalary.OvertimeAmount;
+            payroll.LateTimeMinutes = empSalary.LateTimeMinutes;
+            payroll.LateTimeHours = empSalary.LateTimeHours;
+            payroll.LateTimeMultiplier = empSalary.LateTimeMultiplier;
+            payroll.LateTimeDeduction = empSalary.LateTimeDeduction;
+            payroll.NetTimeDifferenceHours = empSalary.NetTimeDifferenceHours;
+            payroll.NetTimeDifferenceAmount = empSalary.NetTimeDifferenceAmount;
+            payroll.PermissionMinutes = empSalary.PermissionMinutes;
+            payroll.PermissionHours = empSalary.PermissionHours;
+            payroll.TotalBonuses = empSalary.TotalBonuses;
+            payroll.TotalDeductions = empSalary.TotalDeductions;
+            payroll.TotalAdvances = empSalary.TotalAdvances;
+            payroll.WorkedHoursSalary = empSalary.WorkedHoursSalary;
+            payroll.GrossSalary = empSalary.GrossSalary;
+            payroll.TotalDeductionsAmount = empSalary.TotalDeductionsAmount;
+            payroll.NetSalary = empSalary.NetSalary;
+            payroll.DateSaved = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            // Return updated data
+            return new RecalculateSingleEmployeeResponseDto
+            {
+                Id = payroll.Id,
+                EmployeeId = payroll.Employee_id,
+                EmployeeName = payroll.EmployeeName,
+                EmployeeCode = payroll.EmployeeCode,
+                DepartmentName = payroll.DepartmentName ?? "",
+                ShiftName = payroll.ShiftName ?? "",
+                PresentDays = payroll.ActualPresentDays,
+                AbsentDays = payroll.AbsentDays,
+                ActualWorkedMinutes = payroll.ActualWorkedMinutes,
+                ActualWorkedHours = payroll.ActualWorkedHours,
+                OvertimeMinutes = payroll.OvertimeMinutes,
+                OvertimeHours = payroll.OvertimeHours,
+                OvertimeMultiplier = payroll.OvertimeMultiplier,
+                OvertimeAmount = payroll.OvertimeAmount,
+                LateTimeMinutes = payroll.LateTimeMinutes,
+                LateTimeHours = payroll.LateTimeHours,
+                LateTimeMultiplier = payroll.LateTimeMultiplier,
+                LateTimeDeduction = payroll.LateTimeDeduction,
+                BaseSalary = payroll.BaseSalary,
+                SalaryPerHour = payroll.SalaryPerHour,
+                SalaryPerDay = payroll.SalaryPerDay,
+                SalaryCalculationType = payroll.SalaryCalculationType,
+                SalaryCalculationTypeDisplay = payroll.SalaryCalculationTypeDisplay,
+                WorkedHoursSalary = payroll.WorkedHoursSalary,
+                Bonuses = payroll.TotalBonuses,
+                Deductions = payroll.TotalDeductions,
+                Advances = payroll.TotalAdvances,
+                GrossSalary = payroll.GrossSalary,
+                TotalDeductionsAmount = payroll.TotalDeductionsAmount,
+                NetSalary = payroll.NetSalary,
+                PaidSalary = payroll.ActualPaidAmount,
+                IsPaid = payroll.IsPaid,
+                DateSaved = payroll.DateSaved
+            };
         }
     }
 }

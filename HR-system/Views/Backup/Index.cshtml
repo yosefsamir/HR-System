@@ -1,0 +1,388 @@
+@model List<HR_system.Services.Interfaces.BackupInfo>
+@{
+    ViewData["Title"] = "النسخ الاحتياطي";
+    ViewData["PageTitle"] = "إدارة النسخ الاحتياطي";
+    ViewData["PageIcon"] = "bi-cloud-arrow-up";
+}
+
+<style>
+    .backup-card {
+        background: linear-gradient(145deg, #1a1d21, #212529);
+        border: 1px solid #333;
+    }
+    .backup-item {
+        transition: all 0.2s ease;
+    }
+    .backup-item:hover {
+        background: rgba(13, 110, 253, 0.1) !important;
+    }
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .loading-overlay.d-none {
+        display: none !important;
+    }
+</style>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay d-none">
+    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+        <span class="visually-hidden">جاري التحميل...</span>
+    </div>
+    <p id="loadingMessage" class="text-white mt-3 fs-5">جاري التحميل...</p>
+</div>
+
+<div class="container-fluid">
+    <!-- Info Alert -->
+    <div class="alert alert-info border-0 mb-4">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-info-circle fs-4 me-3"></i>
+            <div>
+                <strong>معلومات النسخ الاحتياطي</strong>
+                <p class="mb-0 small">يتم إنشاء نسخة احتياطية تلقائياً كل 24 ساعة. يتم حذف النسخ الأقدم من 30 يوم تلقائياً.</p>
+                <p class="mb-0 small text-muted">مجلد النسخ: @ViewBag.BackupFolder</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="card backup-card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <button class="btn btn-success w-100 py-3" onclick="createBackup()">
+                        <i class="bi bi-plus-circle fs-4 d-block mb-1"></i>
+                        إنشاء نسخة احتياطية
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary w-100 py-3" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                        <i class="bi bi-upload fs-4 d-block mb-1"></i>
+                        رفع نسخة احتياطية
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-warning w-100 py-3" onclick="cleanOldBackups()">
+                        <i class="bi bi-trash fs-4 d-block mb-1"></i>
+                        حذف النسخ القديمة
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-outline-secondary w-100 py-3" onclick="location.reload()">
+                        <i class="bi bi-arrow-clockwise fs-4 d-block mb-1"></i>
+                        تحديث القائمة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    <!-- Backups List -->
+    <div class="card backup-card">
+        <div class="card-header border-secondary">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-archive me-2"></i>
+                    النسخ الاحتياطية المتوفرة
+                </h5>
+                <span class="badge bg-primary">@Model.Count نسخة</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th>اسم الملف</th>
+                                <th style="width: 180px;">تاريخ الإنشاء</th>
+                                <th style="width: 100px;">الحجم</th>
+                                <th style="width: 180px;">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                var index = 1;
+                            }
+                            @foreach (var backup in Model)
+                            {
+                                <tr class="backup-item">
+                                    <td>@(index++)</td>
+                                    <td>
+                                        <i class="bi @(backup.FileName.EndsWith(".zip") ? "bi-file-earmark-zip text-warning" : "bi-file-earmark text-info") me-2"></i>
+                                        @backup.FileName
+                                    </td>
+                                    <td>
+                                        <i class="bi bi-calendar3 me-1 text-muted"></i>
+                                        @backup.CreatedAt.ToString("yyyy/MM/dd")
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock me-1"></i>
+                                            @backup.CreatedAt.ToString("hh:mm tt")
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">@backup.SizeDisplay</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="@Url.Action("Download", new { path = backup.FilePath })"
+                                               class="btn btn-sm btn-outline-primary" title="تحميل">
+                                                <i class="bi bi-download"></i>
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-warning"
+                                                    onclick="restoreBackup('@backup.FilePath.Replace("\\", "\\\\")')" title="استعادة">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    onclick="deleteBackup('@backup.FilePath.Replace("\\", "\\\\")')" title="حذف">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <p class="text-muted mt-3 fs-5">لا توجد نسخ احتياطية</p>
+                    <button class="btn btn-success" onclick="createBackup()">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        إنشاء نسخة احتياطية الآن
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-upload me-2"></i>
+                    رفع نسخة احتياطية
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">اختر ملف النسخة الاحتياطية</label>
+                        <input type="file" class="form-control bg-secondary border-0 text-white"
+                               name="backupFile" id="backupFile" accept=".bak,.zip" required>
+                        <div class="form-text text-muted">الملفات المدعومة: .bak, .zip</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" onclick="uploadBackup()">
+                    <i class="bi bi-upload me-2"></i>
+                    رفع
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function showLoading(message) {
+        document.getElementById('loadingMessage').textContent = message;
+        document.getElementById('loadingOverlay').classList.remove('d-none');
+    }
+
+    function hideLoading() {
+        document.getElementById('loadingOverlay').classList.add('d-none');
+    }
+
+    function showAlert(message, type) {
+        const container = document.getElementById('alertContainer');
+        const alertId = 'alert-' + Date.now();
+        
+        container.innerHTML = `
+            <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'exclamation-circle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) alert.remove();
+        }, 5000);
+    }
+
+    async function createBackup() {
+        if (!confirm('هل تريد إنشاء نسخة احتياطية جديدة؟')) return;
+
+        showLoading('جاري إنشاء النسخة الاحتياطية... قد يستغرق هذا بعض الوقت');
+
+        try {
+            const response = await fetch('/Backup/Create', { method: 'POST' });
+            const result = await response.json();
+
+            hideLoading();
+
+            if (result.success) {
+                showAlert(result.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            hideLoading();
+            showAlert('حدث خطأ في إنشاء النسخة الاحتياطية', 'danger');
+            console.error(error);
+        }
+    }
+
+    async function restoreBackup(path) {
+        if (!confirm('⚠️ تحذير: سيتم استبدال قاعدة البيانات الحالية بهذه النسخة الاحتياطية.\n\nهل أنت متأكد؟')) return;
+        if (!confirm('⚠️ هل أنت متأكد تماماً؟\n\nلا يمكن التراجع عن هذا الإجراء!')) return;
+
+        showLoading('جاري استعادة قاعدة البيانات... يرجى عدم إغلاق المتصفح');
+
+        try {
+            const formData = new FormData();
+            formData.append('backupPath', path);
+
+            const response = await fetch('/Backup/Restore', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            hideLoading();
+
+            if (result.success) {
+                showAlert(result.message + ' - سيتم إعادة تحميل الصفحة...', 'success');
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            hideLoading();
+            showAlert('حدث خطأ في استعادة قاعدة البيانات', 'danger');
+            console.error(error);
+        }
+    }
+
+    async function deleteBackup(path) {
+        if (!confirm('هل تريد حذف هذه النسخة الاحتياطية؟')) return;
+
+        try {
+            const formData = new FormData();
+            formData.append('path', path);
+
+            const response = await fetch('/Backup/Delete', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert(result.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في حذف النسخة الاحتياطية', 'danger');
+            console.error(error);
+        }
+    }
+
+    async function uploadBackup() {
+        const fileInput = document.getElementById('backupFile');
+        if (!fileInput.files.length) {
+            showAlert('يرجى اختيار ملف', 'warning');
+            return;
+        }
+
+        showLoading('جاري رفع الملف...');
+
+        try {
+            const formData = new FormData();
+            formData.append('backupFile', fileInput.files[0]);
+
+            const response = await fetch('/Backup/Upload', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            hideLoading();
+
+            if (result.success) {
+                showAlert(result.message, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            hideLoading();
+            showAlert('حدث خطأ في رفع الملف', 'danger');
+            console.error(error);
+        }
+    }
+
+    async function cleanOldBackups() {
+        const days = prompt('حذف النسخ الأقدم من كم يوم؟', '30');
+        if (!days) return;
+
+        const daysNum = parseInt(days);
+        if (isNaN(daysNum) || daysNum < 1) {
+            showAlert('يرجى إدخال رقم صحيح', 'warning');
+            return;
+        }
+
+        if (!confirm(`هل تريد حذف النسخ الاحتياطية الأقدم من ${daysNum} يوم؟`)) return;
+
+        showLoading('جاري حذف النسخ القديمة...');
+
+        try {
+            const response = await fetch(`/Backup/CleanOld?days=${daysNum}`, { method: 'POST' });
+            const result = await response.json();
+
+            hideLoading();
+
+            if (result.success) {
+                showAlert(result.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            hideLoading();
+            showAlert('حدث خطأ', 'danger');
+            console.error(error);
+        }
+    }
+</script>
+}

@@ -25,6 +25,8 @@ builder.Services.AddScoped<IAttendenceService, AttendenceService>();
 builder.Services.AddScoped<IAttendanceExcelService, AttendanceExcelService>();
 builder.Services.AddScoped<ISalaryService, SalaryService>();
 
+builder.Services.AddScoped<IBackupService, BackupService>();
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 

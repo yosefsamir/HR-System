@@ -583,6 +583,9 @@
                            onchange="updatePaidStatus(${emp.id}, this.checked)">
                 </td>
                 <td>
+                    <button class="btn btn-sm btn-outline-warning me-1" onclick="recalculateSingle(${emp.id})" title="إعادة حساب الراتب">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
                     <button class="btn btn-sm btn-outline-info" onclick="showDetails(${index})" title="التفاصيل">
                         <i class="bi bi-eye"></i>
                     </button>
@@ -813,6 +816,65 @@
         savedData.unpaidCount = unpaidCount;
     }
 
+    async function recalculateSingle(payRollId) {
+        const emp = savedData.employees.find(e => e.id === payRollId);
+        if (!emp) return;
+
+        const btn = document.querySelector(`tr[data-id="${payRollId}"] .btn-outline-warning`);
+        const originalIcon = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        btn.disabled = true;
+
+        try {
+            const response = await fetch('/PayRoll/RecalculateSingle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payRollId: payRollId })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                // Update the employee data
+                const data = result.data;
+                const empIndex = savedData.employees.findIndex(e => e.id === payRollId);
+                if (empIndex !== -1) {
+                    savedData.employees[empIndex] = {
+                        ...savedData.employees[empIndex],
+                        presentDays: data.presentDays,
+                        absentDays: data.absentDays,
+                        actualWorkedMinutes: data.actualWorkedMinutes,
+                        actualWorkedHours_Display: data.actualWorkedHours_Display,
+                        overtimeMinutes: data.overtimeMinutes,
+                        overtimeHours_Display: data.overtimeHours_Display,
+                        overtimeAmount: data.overtimeAmount,
+                        lateTimeMinutes: data.lateTimeMinutes,
+                        lateTimeHours_Display: data.lateTimeHours_Display,
+                        lateTimeDeduction: data.lateTimeDeduction,
+                        workedHoursSalary: data.workedHoursSalary,
+                        bonuses: data.bonuses,
+                        deductions: data.deductions,
+                        advances: data.advances,
+                        netSalary: data.netSalary,
+                        paidSalary: data.paidSalary,
+                        isPaid: data.isPaid
+                    };
+                }
+
+                // Re-render results
+                renderResults();
+                showAlert(`تم إعادة حساب راتب ${emp.employeeName} بنجاح`, 'success');
+            } else {
+                showAlert(result.message || 'حدث خطأ في إعادة الحساب', 'danger');
+            }
+        } catch (error) {
+            console.error('Error recalculating salary:', error);
+            showAlert('حدث خطأ في إعادة الحساب', 'danger');
+        } finally {
+            btn.innerHTML = originalIcon;
+            btn.disabled = false;
+        }
+    }
+
     async function deleteMonth() {
         if (!savedData) return;
 
@@ -876,12 +938,15 @@
                 <meta charset="UTF-8">
                 <title>كشف رواتب ${data.monthName} ${data.year}</title>
                 <style>
-                    body { font-family: 'Cairo', sans-serif; padding: 20px; }
-                    table { width: 100%; border-collapse: collapse; font-size: 12px; }
-                    th, td { border: 1px solid #333; padding: 6px; text-align: center; }
-                    th { background: #333; color: white; }
-                    .header { text-align: center; margin-bottom: 20px; }
-                    .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #666; }
+                    body { font-family: 'Cairo', sans-serif; padding: 20px; color: #000 !important; }
+                    table { width: 100%; border-collapse: collapse; font-size: 14px; color: #000 !important; }
+                    th, td { border: 1px solid #000; padding: 8px; text-align: center; color: #000 !important; }
+                    th { background: #ddd; color: #000 !important; }
+                    .header { text-align: center; margin-bottom: 20px; color: #000 !important; }
+                    .header h2, .header p { color: #000 !important; }
+                    .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #000 !important; }
+                    tfoot td { font-weight: bold; }
+                    * { color: #000 !important; }
                     @@media print { body { padding: 0; } }
                 </style>
             </head>
@@ -945,7 +1010,7 @@
     }
 
     function formatCurrency(value) {
-        return Number(value || 0).toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ج.م';
+        return Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ج.م';
     }
 
     function formatHours(totalMinutes) {
@@ -1034,85 +1099,89 @@
                 <meta charset="UTF-8">
                 <title>إيصالات الرواتب - ${data.monthName} ${data.year}</title>
                 <style>
-                    * { box-sizing: border-box; margin: 0; padding: 0; }
+                    * { box-sizing: border-box; margin: 0; padding: 0; color: #000 !important; }
                     body { 
                         font-family: Arial, sans-serif; 
-                        font-size: 10px;
+                        font-size: 12px;
                         direction: rtl;
                         padding: 5px;
+                        color: #000 !important;
                     }
                     
                     .salary-slip {
                         width: 48%;
                         float: right;
                         margin: 0.5%;
-                        padding: 6px;
+                        padding: 8px;
                         border: 1px solid #000;
                         background: #fff;
                         page-break-inside: avoid;
-                        min-height: 180px;
+                        min-height: 200px;
                     }
                     
                     .slip-header {
                         display: flex;
                         justify-content: space-between;
-                        border-bottom: 1px solid #333;
-                        padding-bottom: 3px;
-                        margin-bottom: 4px;
+                        border-bottom: 1px solid #000;
+                        padding-bottom: 4px;
+                        margin-bottom: 5px;
                         font-weight: bold;
                     }
                     
-                    .title { font-size: 11px; }
-                    .slip-num { background: #333; color: #fff; padding: 1px 6px; border-radius: 3px; font-size: 9px; }
+                    .title { font-size: 13px; color: #000 !important; }
+                    .slip-num { background: #ddd; color: #000 !important; padding: 2px 8px; border-radius: 3px; font-size: 11px; border: 1px solid #000; }
                     
                     .emp-row {
                         display: flex;
                         justify-content: space-between;
                         background: #eee;
-                        padding: 3px 5px;
-                        margin-bottom: 4px;
-                        font-size: 9px;
+                        padding: 4px 6px;
+                        margin-bottom: 5px;
+                        font-size: 11px;
+                        color: #000 !important;
                     }
                     
                     .mini-table {
                         width: 100%;
                         border-collapse: collapse;
-                        margin-bottom: 4px;
+                        margin-bottom: 5px;
                     }
                     
                     .mini-table td {
-                        padding: 2px 3px;
-                        border: 1px solid #ccc;
-                        font-size: 9px;
+                        padding: 3px 4px;
+                        border: 1px solid #000;
+                        font-size: 11px;
+                        color: #000 !important;
                     }
                     
-                    .lbl { background: #f5f5f5; width: 22%; }
-                    .val { width: 28%; text-align: left; font-weight: bold; }
-                    .add { color: #155724; }
-                    .ded { color: #721c24; }
+                    .lbl { background: #f5f5f5; width: 22%; color: #000 !important; }
+                    .val { width: 28%; text-align: left; font-weight: bold; color: #000 !important; }
+                    .add { color: #000 !important; }
+                    .ded { color: #000 !important; }
                     
                     .net-row {
                         display: flex;
                         justify-content: space-between;
                         align-items: center;
-                        background: #333;
-                        color: #fff;
-                        padding: 4px 6px;
-                        margin-bottom: 4px;
-                        font-size: 10px;
+                        background: #ddd;
+                        color: #000 !important;
+                        padding: 5px 8px;
+                        margin-bottom: 5px;
+                        font-size: 12px;
+                        border: 1px solid #000;
                     }
                     
-                    .net-lbl, .paid-lbl { font-weight: bold; }
-                    .net-val { color: #90EE90; font-weight: bold; font-size: 12px; }
-                    .paid-val { color: #87CEEB; font-weight: bold; font-size: 11px; }
+                    .net-lbl, .paid-lbl { font-weight: bold; color: #000 !important; }
+                    .net-val { color: #000 !important; font-weight: bold; font-size: 14px; }
+                    .paid-val { color: #000 !important; font-weight: bold; font-size: 13px; }
                     
                     .sign-row {
                         display: flex;
                         justify-content: space-between;
-                        font-size: 8px;
-                        color: #666;
-                        border-top: 1px dashed #999;
-                        padding-top: 3px;
+                        font-size: 10px;
+                        color: #000 !important;
+                        border-top: 1px dashed #000;
+                        padding-top: 4px;
                     }
                     
                     /* 4 slips per page (2x2) */

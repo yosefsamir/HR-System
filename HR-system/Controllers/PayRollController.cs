@@ -173,5 +173,24 @@ namespace HR_system.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
+
+        // POST: PayRoll/RecalculateSingle
+        [HttpPost]
+        public async Task<IActionResult> RecalculateSingle([FromBody] RecalculateSingleRequestDto request)
+        {
+            try
+            {
+                var result = await _salaryService.RecalculateSingleEmployeeAsync(request.PayRollId);
+                if (result == null)
+                {
+                    return Json(new { success = false, message = "لم يتم العثور على سجل الراتب" });
+                }
+                return Json(new { success = true, data = result });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
     }
 }
