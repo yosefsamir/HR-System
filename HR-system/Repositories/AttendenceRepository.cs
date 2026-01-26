@@ -30,6 +30,7 @@ namespace HR_system.Repositories
                     .ThenInclude(e => e!.Department)
                 .Include(a => a.LateTime)
                 .Include(a => a.OverTime)
+                .Include(a => a.EarlyDeparture)
                 .OrderByDescending(a => a.Work_date)
                 .ThenBy(a => a.Employee!.Emp_name)
                 .Select(a => MapToDto(a))
@@ -45,6 +46,7 @@ namespace HR_system.Repositories
                     .ThenInclude(e => e!.Department)
                 .Include(a => a.LateTime)
                 .Include(a => a.OverTime)
+                .Include(a => a.EarlyDeparture)
                 .Where(a => a.Employee_id == employeeId)
                 .OrderByDescending(a => a.Work_date)
                 .Select(a => MapToDto(a))
@@ -61,6 +63,7 @@ namespace HR_system.Repositories
                     .ThenInclude(e => e!.Department)
                 .Include(a => a.LateTime)
                 .Include(a => a.OverTime)
+                .Include(a => a.EarlyDeparture)
                 .Where(a => a.Work_date.Date == dateOnly)
                 .OrderBy(a => a.Employee!.Emp_name)
                 .Select(a => MapToDto(a))
@@ -81,6 +84,7 @@ namespace HR_system.Repositories
                     .ThenInclude(e => e!.Department)
                 .Include(a => a.LateTime)
                 .Include(a => a.OverTime)
+                .Include(a => a.EarlyDeparture)
                 .AsQueryable();
 
             if (startDate.HasValue)
@@ -114,6 +118,7 @@ namespace HR_system.Repositories
                     .ThenInclude(e => e!.Department)
                 .Include(a => a.LateTime)
                 .Include(a => a.OverTime)
+                .Include(a => a.EarlyDeparture)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
             if (attendance == null)
@@ -260,6 +265,18 @@ namespace HR_system.Repositories
                         };
                         _context.OverTimes.Add(overtime);
                     }
+
+                    // Calculate early departure
+                    var earlyDepartureMinutes = AttendanceCalculationService.CalculateEarlyDepartureMinutes(dto.Check_out_time.Value, shift);
+                    if (earlyDepartureMinutes > 0)
+                    {
+                        var earlyDeparture = new EarlyDeparture
+                        {
+                            Attendence_id = attendance.Id,
+                            Minutes = earlyDepartureMinutes
+                        };
+                        _context.EarlyDepartures.Add(earlyDeparture);
+                    }
                 }
             }
 
@@ -281,6 +298,7 @@ namespace HR_system.Repositories
                     .ThenInclude(e => e!.Department)
                 .Include(a => a.LateTime)
                 .Include(a => a.OverTime)
+                .Include(a => a.EarlyDeparture)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
             if (attendance == null)
@@ -292,7 +310,7 @@ namespace HR_system.Repositories
 
             var shift = employee.Shift;
 
-            // Remove existing late time and overtime records
+            // Remove existing late time, overtime, and early departure records
             if (attendance.LateTime != null)
             {
                 _context.LateTimes.Remove(attendance.LateTime);
@@ -302,6 +320,11 @@ namespace HR_system.Repositories
             {
                 _context.OverTimes.Remove(attendance.OverTime);
                 attendance.OverTime = null;
+            }
+            if (attendance.EarlyDeparture != null)
+            {
+                _context.EarlyDepartures.Remove(attendance.EarlyDeparture);
+                attendance.EarlyDeparture = null;
             }
 
             attendance.Is_Absent = dto.Is_absent;
@@ -406,6 +429,18 @@ namespace HR_system.Repositories
                         };
                         _context.OverTimes.Add(overtime);
                     }
+
+                    // Calculate early departure
+                    var earlyDepartureMinutes = AttendanceCalculationService.CalculateEarlyDepartureMinutes(dto.Check_out_time.Value, shift);
+                    if (earlyDepartureMinutes > 0)
+                    {
+                        var earlyDeparture = new EarlyDeparture
+                        {
+                            Attendence_id = attendance.Id,
+                            Minutes = earlyDepartureMinutes
+                        };
+                        _context.EarlyDepartures.Add(earlyDeparture);
+                    }
                 }
             }
 
@@ -423,6 +458,7 @@ namespace HR_system.Repositories
             var attendance = await _context.Attendences
                 .Include(a => a.LateTime)
                 .Include(a => a.OverTime)
+                .Include(a => a.EarlyDeparture)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
             if (attendance == null)
@@ -434,6 +470,9 @@ namespace HR_system.Repositories
 
             if (attendance.OverTime != null)
                 _context.OverTimes.Remove(attendance.OverTime);
+
+            if (attendance.EarlyDeparture != null)
+                _context.EarlyDepartures.Remove(attendance.EarlyDeparture);
 
             _context.Attendences.Remove(attendance);
             await _context.SaveChangesAsync();
@@ -458,6 +497,8 @@ namespace HR_system.Repositories
                     .ThenInclude(a => a.LateTime)
                 .Include(e => e.Attendences)
                     .ThenInclude(a => a.OverTime)
+                .Include(e => e.Attendences)
+                    .ThenInclude(a => a.EarlyDeparture)
                 .AsQueryable();
 
             if (departmentId.HasValue)
@@ -525,12 +566,12 @@ namespace HR_system.Repositories
                     TotalLateMinutes = attendances.Where(a => a.LateTime != null).Sum(a => a.LateTime!.Minutes),
                     TotalOvertimeMinutes = attendances.Where(a => a.OverTime != null).Sum(a => a.OverTime!.Minutes),
                     TotalPermissionMinutes = attendances.Sum(a => a.Permission_time),
+                    TotalEarlyDepartureMinutes = attendances.Where(a => a.EarlyDeparture != null).Sum(a => a.EarlyDeparture!.Minutes),
 
                     // Count statistics
                     LateDaysCount = attendances.Count(a => a.LateTime != null && a.LateTime.Minutes > 0),
                     OvertimeDaysCount = attendances.Count(a => a.OverTime != null && a.OverTime.Minutes > 0),
-                    EarlyLeaveDaysCount = attendances.Count(a => !a.Is_Absent && a.Check_out_time.HasValue &&
-                        employee.Shift != null && a.Check_out_time.Value < employee.Shift.End_time),
+                    EarlyLeaveDaysCount = attendances.Count(a => a.EarlyDeparture != null && a.EarlyDeparture.Minutes > 0),
 
                     // On-time/Early arrivals
                     OnTimeArrivals = attendances.Count(a => !a.Is_Absent && a.Check_In_time.HasValue &&
@@ -582,6 +623,7 @@ namespace HR_system.Repositories
                 Permission_time = a.Permission_time,
                 LateTime_minutes = a.LateTime?.Minutes,
                 OverTime_minutes = a.OverTime?.Minutes,
+                EarlyDeparture_minutes = a.EarlyDeparture?.Minutes,
                 Shift_id = a.Employee?.Shift_id,
                 Shift_name = a.Employee?.Shift?.Shift_name,
                 Shift_Start_time = a.Employee?.Shift?.Start_time,

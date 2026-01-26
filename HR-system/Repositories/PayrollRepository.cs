@@ -38,6 +38,7 @@ namespace HR_system.Repositories
         {
             return await _context.Attendences
                 .Include(a => a.LateTime)
+                .Include(a => a.EarlyDeparture)
                 .Include(a => a.OverTime)
                 .Where(a => a.Work_date.Month == month && a.Work_date.Year == year)
                 .ToListAsync();
@@ -146,9 +147,9 @@ namespace HR_system.Repositories
 
                 foreach (var empSalary in employeeSalaries)
                 {
-                    // Get paid salary from request (or default to net salary)
+                    // Get paid salary from request (or default to net salary rounded up to nearest 5)
                     var empRequest = request.Employees.FirstOrDefault(e => e.EmployeeId == empSalary.EmployeeId);
-                    decimal paidSalary = empRequest?.PaidSalary ?? Math.Round(empSalary.NetSalary);
+                    decimal paidSalary = empRequest?.PaidSalary ?? RoundUpToNearest5(empSalary.NetSalary);
                     bool isPaid = empRequest?.IsPaid ?? false;
 
                     // Check if record exists
@@ -230,6 +231,7 @@ namespace HR_system.Repositories
                 TotalAdvances = records.Sum(r => r.TotalAdvances),
                 TotalOvertimeAmount = records.Sum(r => r.OvertimeAmount),
                 TotalLateTimeDeduction = records.Sum(r => r.LateTimeDeduction),
+                TotalEarlyDepartureDeduction = records.Sum(r => r.EarlyDepartureDeduction),
                 PaidCount = records.Count(r => r.IsPaid),
                 UnpaidCount = records.Count(r => !r.IsPaid),
                 Employees = records.Select(r => new SavedPayRollDto
@@ -250,6 +252,9 @@ namespace HR_system.Repositories
                     LateTimeMinutes = r.LateTimeMinutes,
                     LateTimeHours = r.LateTimeHours,
                     LateTimeMultiplier = r.LateTimeMultiplier,
+                    EarlyDepartureMinutes = r.EarlyDepartureMinutes,
+                    EarlyDepartureHours = r.EarlyDepartureHours,
+                    EarlyDepartureMultiplier = r.EarlyDepartureMultiplier,
                     BaseSalary = r.BaseSalary,
                     SalaryPerHour = r.SalaryPerHour,
                     SalaryPerDay = r.SalaryPerDay,
@@ -258,6 +263,7 @@ namespace HR_system.Repositories
                     WorkedHoursSalary = r.WorkedHoursSalary,
                     OvertimeAmount = r.OvertimeAmount,
                     LateTimeDeduction = r.LateTimeDeduction,
+                    EarlyDepartureDeduction = r.EarlyDepartureDeduction,
                     Bonuses = r.TotalBonuses,
                     Deductions = r.TotalDeductions,
                     Advances = r.TotalAdvances,
@@ -281,7 +287,8 @@ namespace HR_system.Repositories
             var payRoll = await _context.PayRolls.FindAsync(request.PayRollId);
             if (payRoll == null) return false;
 
-            payRoll.ActualPaidAmount = request.PaidSalary;
+            // Round up paid salary to nearest 5
+            payRoll.ActualPaidAmount = RoundUpToNearest5(request.PaidSalary);
             payRoll.IsPaid = request.IsPaid;
             payRoll.DateSaved = DateTime.Now;
 
@@ -352,6 +359,12 @@ namespace HR_system.Repositories
                 LateTimeMultiplier = empSalary.LateTimeMultiplier,
                 LateTimeDeduction = empSalary.LateTimeDeduction,
 
+                // Early Departure Details
+                EarlyDepartureMinutes = empSalary.EarlyDepartureMinutes,
+                EarlyDepartureHours = empSalary.EarlyDepartureHours,
+                EarlyDepartureMultiplier = empSalary.EarlyDepartureMultiplier,
+                EarlyDepartureDeduction = empSalary.EarlyDepartureDeduction,
+
                 // Net Time Difference
                 NetTimeDifferenceHours = empSalary.NetTimeDifferenceHours,
                 NetTimeDifferenceAmount = empSalary.NetTimeDifferenceAmount,
@@ -421,6 +434,12 @@ namespace HR_system.Repositories
             payRoll.LateTimeMultiplier = empSalary.LateTimeMultiplier;
             payRoll.LateTimeDeduction = empSalary.LateTimeDeduction;
 
+            // Early Departure Details
+            payRoll.EarlyDepartureMinutes = empSalary.EarlyDepartureMinutes;
+            payRoll.EarlyDepartureHours = empSalary.EarlyDepartureHours;
+            payRoll.EarlyDepartureMultiplier = empSalary.EarlyDepartureMultiplier;
+            payRoll.EarlyDepartureDeduction = empSalary.EarlyDepartureDeduction;
+
             // Net Time Difference
             payRoll.NetTimeDifferenceHours = empSalary.NetTimeDifferenceHours;
             payRoll.NetTimeDifferenceAmount = empSalary.NetTimeDifferenceAmount;
@@ -456,6 +475,14 @@ namespace HR_system.Repositories
         }
 
         /// <summary>
+        /// Round up salary to nearest 5 (e.g., 103 → 105, 107 → 110)
+        /// </summary>
+        private decimal RoundUpToNearest5(decimal amount)
+        {
+            return Math.Ceiling(amount / 5) * 5;
+        }
+
+        /// <summary>
         /// Recalculate salary for a single employee and update the payroll record
         /// </summary>
         public async Task<RecalculateSingleEmployeeResponseDto?> RecalculateSingleEmployeeAsync(int payrollId, SalaryCalculator salaryCalculator)
@@ -479,6 +506,7 @@ namespace HR_system.Repositories
             // Get related data for this employee in this month
             var attendances = await _context.Attendences
                 .Include(a => a.LateTime)
+                .Include(a => a.EarlyDeparture)
                 .Include(a => a.OverTime)
                 .Where(a => a.Work_date.Month == month && a.Work_date.Year == year && a.Employee_id == employee.Id)
                 .ToListAsync();
@@ -524,6 +552,10 @@ namespace HR_system.Repositories
             payroll.LateTimeHours = empSalary.LateTimeHours;
             payroll.LateTimeMultiplier = empSalary.LateTimeMultiplier;
             payroll.LateTimeDeduction = empSalary.LateTimeDeduction;
+            payroll.EarlyDepartureMinutes = empSalary.EarlyDepartureMinutes;
+            payroll.EarlyDepartureHours = empSalary.EarlyDepartureHours;
+            payroll.EarlyDepartureMultiplier = empSalary.EarlyDepartureMultiplier;
+            payroll.EarlyDepartureDeduction = empSalary.EarlyDepartureDeduction;
             payroll.NetTimeDifferenceHours = empSalary.NetTimeDifferenceHours;
             payroll.NetTimeDifferenceAmount = empSalary.NetTimeDifferenceAmount;
             payroll.PermissionMinutes = empSalary.PermissionMinutes;
@@ -535,6 +567,8 @@ namespace HR_system.Repositories
             payroll.GrossSalary = empSalary.GrossSalary;
             payroll.TotalDeductionsAmount = empSalary.TotalDeductionsAmount;
             payroll.NetSalary = empSalary.NetSalary;
+            // Round up paid salary to nearest 5 (e.g., 103 → 105, 107 → 110)
+            payroll.ActualPaidAmount = RoundUpToNearest5(empSalary.NetSalary);
             payroll.DateSaved = DateTime.Now;
 
             await _context.SaveChangesAsync();
@@ -560,6 +594,10 @@ namespace HR_system.Repositories
                 LateTimeHours = payroll.LateTimeHours,
                 LateTimeMultiplier = payroll.LateTimeMultiplier,
                 LateTimeDeduction = payroll.LateTimeDeduction,
+                EarlyDepartureMinutes = payroll.EarlyDepartureMinutes,
+                EarlyDepartureHours = payroll.EarlyDepartureHours,
+                EarlyDepartureMultiplier = payroll.EarlyDepartureMultiplier,
+                EarlyDepartureDeduction = payroll.EarlyDepartureDeduction,
                 BaseSalary = payroll.BaseSalary,
                 SalaryPerHour = payroll.SalaryPerHour,
                 SalaryPerDay = payroll.SalaryPerDay,

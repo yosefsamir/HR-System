@@ -20,7 +20,9 @@ namespace HR_system.Data
         public DbSet<Attendence> Attendences { get; set; }
         public DbSet<OverTime> OverTimes { get; set; }
         public DbSet<LateTime> LateTimes { get; set; }
+        public DbSet<EarlyDeparture> EarlyDepartures { get; set; }
         public DbSet<PayRoll> PayRolls { get; set; }
+        public DbSet<AppSettings> AppSettings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -37,6 +39,12 @@ namespace HR_system.Data
                 .HasOne(l => l.Attendence)
                 .WithOne(a => a.LateTime)
                 .HasForeignKey<LateTime>(l => l.Attendence_id);
+
+            // Configure one-to-one relationship: Attendence -> EarlyDeparture
+            modelBuilder.Entity<EarlyDeparture>()
+                .HasOne(e => e.Attendence)
+                .WithOne(a => a.EarlyDeparture)
+                .HasForeignKey<EarlyDeparture>(e => e.Attendence_id);
         }
     }
 }

@@ -67,12 +67,20 @@ namespace HR_system.DTOs.PayRoll
         public decimal OvertimeMultiplier { get; set; }
         public decimal LateTimeMinutes { get; set; }
         public decimal LateTimeHours { get; set; }
+
         public decimal LateTimeMultiplier { get; set; }
+        
+        // Early Departure
+        public decimal EarlyDepartureMinutes { get; set; }
+        public decimal EarlyDepartureHours { get; set; }
+        public decimal EarlyDepartureMultiplier { get; set; }
         
         // Hours Display
         public string ActualWorkedHours_Display => FormatHours(ActualWorkedMinutes);
         public string OvertimeHours_Display => FormatHours(OvertimeMinutes);
+
         public string LateTimeHours_Display => FormatHours(LateTimeMinutes);
+        public string EarlyDepartureHours_Display => FormatHours(EarlyDepartureMinutes);
         
         // Salary components
         public decimal BaseSalary { get; set; }
@@ -82,7 +90,9 @@ namespace HR_system.DTOs.PayRoll
         public string SalaryCalculationTypeDisplay { get; set; } = "بالساعة";
         public decimal WorkedHoursSalary { get; set; }
         public decimal OvertimeAmount { get; set; }
+
         public decimal LateTimeDeduction { get; set; }
+        public decimal EarlyDepartureDeduction { get; set; }
         public decimal Bonuses { get; set; }
         public decimal Deductions { get; set; }
         public decimal Advances { get; set; }
@@ -123,7 +133,9 @@ namespace HR_system.DTOs.PayRoll
         public decimal TotalDeductions { get; set; }
         public decimal TotalAdvances { get; set; }
         public decimal TotalOvertimeAmount { get; set; }
+
         public decimal TotalLateTimeDeduction { get; set; }
+        public decimal TotalEarlyDepartureDeduction { get; set; }
         
         public int PaidCount { get; set; }
         public int UnpaidCount { get; set; }

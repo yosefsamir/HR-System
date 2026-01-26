@@ -22,14 +22,7 @@ namespace HR_system.Controllers
             
             var viewModel = new ShiftsIndexViewModel
             {
-                Shifts = shifts,
-                NewShift = new CreateShiftDto
-                {
-                    Start_time = new TimeSpan(9, 0, 0),
-                    End_time = new TimeSpan(17, 0, 0),
-                    Minutes_allow_attendence = 15,
-                    Minutes_allow_departure = 15
-                }
+                Shifts = shifts
             };
 
             if (editId.HasValue)
@@ -55,32 +48,44 @@ namespace HR_system.Controllers
             return View(viewModel);
         }
 
+        // GET: Shifts/Create
+        public IActionResult Create()
+        {
+            var model = new CreateShiftDto
+            {
+                Start_time = new TimeSpan(9, 0, 0),
+                End_time = new TimeSpan(17, 0, 0),
+                Minutes_allow_attendence = 15,
+                Minutes_allow_departure = 15,
+                StandardHours = 8
+            };
+            return View(model);
+        }
+
         // POST: Shifts/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(ShiftsIndexViewModel model)
+        public async Task<IActionResult> Create(CreateShiftDto model)
         {
-            ModelState.Clear();
-            
-            if (string.IsNullOrWhiteSpace(model.NewShift.Shift_name))
+            if (string.IsNullOrWhiteSpace(model.Shift_name))
             {
                 TempData["Error"] = "اسم الوردية مطلوب";
-                return RedirectToAction(nameof(Index));
+                return View(model);
             }
 
-            if (model.NewShift.End_time <= model.NewShift.Start_time)
+            if (model.End_time <= model.Start_time)
             {
                 TempData["Error"] = "وقت الانتهاء يجب أن يكون بعد وقت البداية";
-                return RedirectToAction(nameof(Index));
+                return View(model);
             }
 
-            if (!await _shiftService.IsNameUniqueAsync(model.NewShift.Shift_name))
+            if (!await _shiftService.IsNameUniqueAsync(model.Shift_name))
             {
                 TempData["Error"] = "يوجد وردية بهذا الاسم بالفعل";
-                return RedirectToAction(nameof(Index));
+                return View(model);
             }
 
-            await _shiftService.CreateAsync(model.NewShift);
+            await _shiftService.CreateAsync(model);
             TempData["Success"] = "تم إضافة الوردية بنجاح";
             return RedirectToAction(nameof(Index));
         }

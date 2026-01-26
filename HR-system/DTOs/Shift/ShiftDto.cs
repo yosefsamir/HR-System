@@ -16,6 +16,7 @@ namespace HR_system.DTOs.Shift
         public decimal StandardHours { get; set; }
         public bool IsFlexible { get; set; }
         public SalaryCalculationType SalaryCalculationType { get; set; }
+        public decimal EarlyDepartureMultiplier { get; set; }
         public int EmployeeCount { get; set; }
 
         // Formatted times for display

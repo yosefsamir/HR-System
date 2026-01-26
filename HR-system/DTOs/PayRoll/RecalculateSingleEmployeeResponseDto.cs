@@ -35,6 +35,13 @@ namespace HR_system.DTOs.PayRoll
         public decimal LateTimeMultiplier { get; set; }
         public decimal LateTimeDeduction { get; set; }
 
+        // Early Departure
+        public decimal EarlyDepartureMinutes { get; set; }
+        public decimal EarlyDepartureHours { get; set; }
+        public string EarlyDepartureHours_Display => FormatHours(EarlyDepartureMinutes);
+        public decimal EarlyDepartureMultiplier { get; set; }
+        public decimal EarlyDepartureDeduction { get; set; }
+
         // Salary Info
         public decimal BaseSalary { get; set; }
         public decimal SalaryPerHour { get; set; }

@@ -91,7 +91,7 @@ namespace HR_system.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = $"{ex.Message} \n {ex.StackTrace}" });
             }
         }
 

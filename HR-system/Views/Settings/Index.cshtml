@@ -1,0 +1,132 @@
+@model HR_system.DTOs.Settings.SettingsDto
+
+@{
+    ViewData["Title"] = "الإعدادات";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">
+                    <i class="bi bi-gear me-2"></i>الإعدادات
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    <div class="row">
+        <!-- Company Information -->
+        <div class="col-lg-6 mb-4">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header bg-secondary">
+                    <h5 class="mb-0">
+                        <i class="bi bi-building me-2"></i>معلومات الشركة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="companyName" class="form-label">اسم الشركة</label>
+                        <input type="text" class="form-control bg-dark text-light" id="companyName" 
+                               value="@Model.CompanyName" placeholder="أدخل اسم الشركة">
+                        <div class="form-text">يظهر في أعلى إيصالات الرواتب</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Salary Slip Print Settings -->
+        <div class="col-lg-6 mb-4">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header bg-secondary">
+                    <h5 class="mb-0">
+                        <i class="bi bi-printer me-2"></i>إعدادات طباعة إيصالات الرواتب
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="slipFontSize" class="form-label">حجم الخط (بكسل)</label>
+                            <input type="number" class="form-control bg-dark text-light" id="slipFontSize" 
+                                   value="@Model.SlipFontSize" min="8" max="20">
+                            <div class="form-text">الحجم الافتراضي: 12</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="slipWidthPercent" class="form-label">عرض الإيصال (%)</label>
+                            <input type="number" class="form-control bg-dark text-light" id="slipWidthPercent" 
+                                   value="@Model.SlipWidthPercent" min="30" max="100" step="1">
+                            <div class="form-text">48% = إيصالان في الصف</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="slipFooterMessage" class="form-label">رسالة أسفل الإيصال</label>
+                        <textarea class="form-control bg-dark text-light" id="slipFooterMessage" rows="2" 
+                                  placeholder="رسالة تظهر في نهاية كل إيصال...">@Model.SlipFooterMessage</textarea>
+                        <div class="form-text">مثال: "شكراً لجهودكم المتميزة"</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Button -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-primary btn-lg" onclick="saveSettings()">
+                    <i class="bi bi-check-lg me-2"></i>حفظ الإعدادات
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    async function saveSettings() {
+        const data = {
+            companyName: document.getElementById('companyName').value,
+            slipFontSize: parseInt(document.getElementById('slipFontSize').value) || 12,
+            slipWidthPercent: parseFloat(document.getElementById('slipWidthPercent').value) || 48,
+            slipFooterMessage: document.getElementById('slipFooterMessage').value
+        };
+
+        try {
+            const response = await fetch('/Settings/Update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                showAlert(result.message, 'success');
+            } else {
+                showAlert(result.message || 'حدث خطأ في الحفظ', 'danger');
+            }
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            showAlert('حدث خطأ في الحفظ', 'danger');
+        }
+    }
+
+    function showAlert(message, type) {
+        const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        document.getElementById('alertContainer').innerHTML = alertHtml;
+        
+        setTimeout(() => {
+            const alert = document.querySelector('.alert');
+            if (alert) alert.remove();
+        }, 3000);
+    }
+</script>
+}

@@ -70,13 +70,35 @@
                 </a>
             </li>
             
-            <!-- Shifts -->
+            <!-- Shifts with Dropdown -->
             <li class="nav-item mb-2">
-                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Shifts" ? "active" : "")" 
-                   asp-controller="Shifts" asp-action="Index">
-                    <i class="bi bi-clock me-3"></i>
-                    <span>الورديات</span>
+                <a class="nav-link d-flex justify-content-between align-items-center @(ViewContext.RouteData.Values["controller"]?.ToString() == "Shifts" ? "active" : "")" 
+                   data-bs-toggle="collapse" href="#shiftsSubmenu" role="button" 
+                   aria-expanded="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Shifts" ? "true" : "false")">
+                    <span>
+                        <i class="bi bi-clock me-3"></i>
+                        <span>الورديات</span>
+                    </span>
+                    <i class="bi bi-chevron-down submenu-arrow"></i>
                 </a>
+                <div class="collapse @(ViewContext.RouteData.Values["controller"]?.ToString() == "Shifts" ? "show" : "")" id="shiftsSubmenu">
+                    <ul class="nav flex-column submenu me-4">
+                        <li class="nav-item">
+                            <a class="nav-link py-2 @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" && ViewContext.RouteData.Values["controller"]?.ToString() == "Shifts" ? "active" : "")" 
+                               asp-controller="Shifts" asp-action="Index">
+                                <i class="bi bi-list-ul me-2"></i>
+                                قائمة الورديات
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link py-2 @(ViewContext.RouteData.Values["action"]?.ToString() == "Create" && ViewContext.RouteData.Values["controller"]?.ToString() == "Shifts" ? "active" : "")" 
+                               asp-controller="Shifts" asp-action="Create">
+                                <i class="bi bi-plus-circle me-2"></i>
+                                إضافة وردية
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </li>
             
             <!-- Divider -->
@@ -190,6 +212,15 @@
                    asp-controller="Backup" asp-action="Index">
                     <i class="bi bi-cloud-arrow-up me-3"></i>
                     <span>النسخ الاحتياطي</span>
+                </a>
+            </li>
+            
+            <!-- Settings -->
+            <li class="nav-item mb-2">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Settings" ? "active" : "")" 
+                   asp-controller="Settings" asp-action="Index">
+                    <i class="bi bi-gear me-3"></i>
+                    <span>الإعدادات</span>
                 </a>
             </li>
         </ul>

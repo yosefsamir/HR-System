@@ -41,5 +41,9 @@ namespace HR_system.DTOs.Shift
 
         [Display(Name = "Salary Calculation Type")]
         public SalaryCalculationType SalaryCalculationType { get; set; } = SalaryCalculationType.Hourly;
+
+        [Display(Name = "Early Departure Multiplier")]
+        [Range(0, 10, ErrorMessage = "Multiplier must be between 0 and 10")]
+        public decimal EarlyDepartureMultiplier { get; set; } = 1;
     }
 }

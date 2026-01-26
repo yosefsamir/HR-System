@@ -116,6 +116,9 @@ namespace HR_system.Domain.SalaryCalculation
             // Determine salary calculation type from shift
             SalaryCalculationType calculationType = employee.Shift?.SalaryCalculationType ?? SalaryCalculationType.Hourly;
 
+            // Get early departure multiplier from shift
+            decimal earlyDepartureMultiplier = employee.Shift?.EarlyDepartureMultiplier ?? 1m;
+
             // Calculate salary rates
             decimal salaryPerHour = CalculateSalaryPerHour(employee.Salary, workingDaysInMonth, shiftHoursPerDay);
             decimal salaryPerDay = CalculateSalaryPerDay(employee.Salary, workingDaysInMonth);
@@ -140,6 +143,10 @@ namespace HR_system.Domain.SalaryCalculation
                 employee.Rate_overtime_multiplier,
                 employee.Rate_latetime_multiplier);
 
+            // Calculate early departure deduction
+            decimal earlyDepartureHours = timeDifferences.TotalEarlyDepartureMinutes / 60m;
+            decimal earlyDepartureDeduction = Math.Round(earlyDepartureHours * salaryPerHour * earlyDepartureMultiplier, 2);
+
             // Calculate financial summaries
             var financialSummary = CalculateFinancialSummary(empBonuses, empDeductions, empAdvances);
 
@@ -152,6 +159,7 @@ namespace HR_system.Domain.SalaryCalculation
                 calculationType,
                 overtimeAmount,
                 lateTimeDeduction,
+                earlyDepartureDeduction,
                 financialSummary);
 
             // Build result DTO
@@ -166,6 +174,8 @@ namespace HR_system.Domain.SalaryCalculation
                 timeDifferences,
                 overtimeAmount,
                 lateTimeDeduction,
+                earlyDepartureMultiplier,
+                earlyDepartureDeduction,
                 netTimeDiffAmount,
                 financialSummary,
                 salaryAmounts,
@@ -194,6 +204,7 @@ namespace HR_system.Domain.SalaryCalculation
             decimal totalWorkedMinutes = attendances.Sum(a => a.Worked_minutes);
             decimal totalOvertimeMinutes = attendances.Where(a => a.OverTime != null).Sum(a => a.OverTime!.Minutes);
             decimal totalLateMinutes = attendances.Where(a => a.LateTime != null).Sum(a => a.LateTime!.Minutes);
+            decimal totalEarlyDepartureMinutes = attendances.Where(a => a.EarlyDeparture != null).Sum(a => a.EarlyDeparture!.Minutes);
             decimal totalPermissionMinutes = attendances.Sum(a => a.Permission_time);
 
             return new TimeDifferences
@@ -201,6 +212,7 @@ namespace HR_system.Domain.SalaryCalculation
                 TotalWorkedMinutes = totalWorkedMinutes,
                 TotalOvertimeMinutes = totalOvertimeMinutes,
                 TotalLateMinutes = totalLateMinutes,
+                TotalEarlyDepartureMinutes = totalEarlyDepartureMinutes,
                 TotalPermissionMinutes = totalPermissionMinutes
             };
         }
@@ -226,6 +238,7 @@ namespace HR_system.Domain.SalaryCalculation
             SalaryCalculationType calculationType,
             decimal overtimeAmount,
             decimal lateTimeDeduction,
+            decimal earlyDepartureDeduction,
             FinancialSummary financialSummary)
         {
             decimal baseSalary;
@@ -243,10 +256,11 @@ namespace HR_system.Domain.SalaryCalculation
                 baseSalary = Math.Round(salaryPerHour * totalWorkedHours, 2);
             }
 
-            // Net Salary = BaseSalary + OvertimeSalary - LessTimeSalary - Deductions - Advances + Bonuses
+            // Net Salary = BaseSalary + OvertimeSalary - LateTimeDeduction - EarlyDepartureDeduction - Deductions - Advances + Bonuses
             decimal netSalary = baseSalary
                 + overtimeAmount
                 - lateTimeDeduction
+                - earlyDepartureDeduction
                 - financialSummary.TotalDeductionsAmount
                 - financialSummary.TotalAdvancesAmount
                 + financialSummary.TotalBonusesAmount;
@@ -254,8 +268,8 @@ namespace HR_system.Domain.SalaryCalculation
             // Gross salary = BaseSalary + Overtime + Bonuses
             decimal grossSalary = baseSalary + overtimeAmount + financialSummary.TotalBonusesAmount;
 
-            // Total deductions = LateTime + Deductions + Advances
-            decimal totalDeductionsCalc = lateTimeDeduction + financialSummary.TotalDeductionsAmount + financialSummary.TotalAdvancesAmount;
+            // Total deductions = LateTime + EarlyDeparture + Deductions + Advances
+            decimal totalDeductionsCalc = lateTimeDeduction + earlyDepartureDeduction + financialSummary.TotalDeductionsAmount + financialSummary.TotalAdvancesAmount;
 
             return new SalaryAmounts
             {
@@ -277,6 +291,8 @@ namespace HR_system.Domain.SalaryCalculation
             TimeDifferences timeDiff,
             decimal overtimeAmount,
             decimal lateTimeDeduction,
+            decimal earlyDepartureMultiplier,
+            decimal earlyDepartureDeduction,
             decimal netTimeDiffAmount,
             FinancialSummary financial,
             SalaryAmounts salaryAmounts,
@@ -321,6 +337,12 @@ namespace HR_system.Domain.SalaryCalculation
                 LateTimeHours = timeDiff.TotalLateMinutes / 60m,
                 LateTimeMultiplier = employee.Rate_latetime_multiplier,
                 LateTimeDeduction = lateTimeDeduction,
+
+                // Early Departure Details
+                EarlyDepartureMinutes = timeDiff.TotalEarlyDepartureMinutes,
+                EarlyDepartureHours = timeDiff.TotalEarlyDepartureMinutes / 60m,
+                EarlyDepartureMultiplier = earlyDepartureMultiplier,
+                EarlyDepartureDeduction = earlyDepartureDeduction,
 
                 // Net Time Difference
                 NetTimeDifferenceHours = (timeDiff.TotalOvertimeMinutes - timeDiff.TotalLateMinutes) / 60m,
@@ -385,11 +407,13 @@ namespace HR_system.Domain.SalaryCalculation
             result.TotalAdvances = result.Employees.Sum(e => e.TotalAdvances);
             result.TotalOvertimeAmount = result.Employees.Sum(e => e.OvertimeAmount);
             result.TotalLateTimeDeduction = result.Employees.Sum(e => e.LateTimeDeduction);
+            result.TotalEarlyDepartureDeduction = result.Employees.Sum(e => e.EarlyDepartureDeduction);
 
             // Total Hours
             result.TotalWorkedHours = result.Employees.Sum(e => e.ActualWorkedHours);
             result.TotalOvertimeHours = result.Employees.Sum(e => e.OvertimeHours);
             result.TotalLateTimeHours = result.Employees.Sum(e => e.LateTimeHours);
+            result.TotalEarlyDepartureHours = result.Employees.Sum(e => e.EarlyDepartureHours);
         }
 
         // Private helper classes for internal calculations
@@ -405,6 +429,7 @@ namespace HR_system.Domain.SalaryCalculation
             public decimal TotalWorkedMinutes { get; set; }
             public decimal TotalOvertimeMinutes { get; set; }
             public decimal TotalLateMinutes { get; set; }
+            public decimal TotalEarlyDepartureMinutes { get; set; }
             public decimal TotalPermissionMinutes { get; set; }
         }
 

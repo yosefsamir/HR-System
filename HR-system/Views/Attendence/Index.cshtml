@@ -153,6 +153,7 @@
                             <th>ساعات العمل</th>
                             <th>التأخير</th>
                             <th>الإضافي</th>
+                            <th>الخروج المبكر</th>
                             <th>الحالة</th>
                             <th style="width: 120px;">الإجراءات</th>
                         </tr>
@@ -646,6 +647,7 @@
                 <td>${item.worked_hours_Display}</td>
                 <td>${item.lateTime_minutes && item.lateTime_minutes > 0 ? `<span class="text-warning">${item.lateTime_Display}</span>` : '-'}</td>
                 <td>${item.overTime_minutes && item.overTime_minutes > 0 ? `<span class="text-success">${item.overTime_Display}</span>` : '-'}</td>
+                <td>${item.earlyDeparture_minutes && item.earlyDeparture_minutes > 0 ? `<span class="text-danger">${item.earlyDeparture_Display}</span>` : '-'}</td>
                 <td>${getStatusBadge(item)}</td>
                 <td>
                     <div class="btn-group btn-group-sm">

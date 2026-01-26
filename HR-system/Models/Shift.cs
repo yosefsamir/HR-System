@@ -35,6 +35,13 @@ namespace HR_system.Models
         /// </summary>
         public SalaryCalculationType SalaryCalculationType { get; set; } = SalaryCalculationType.Hourly;
 
+        /// <summary>
+        /// Multiplier for early departure deduction calculation
+        /// Default 1 means 1x salary per hour deduction
+        /// </summary>
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal EarlyDepartureMultiplier { get; set; } = 1;
+
         // Navigation property
         public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();
     }

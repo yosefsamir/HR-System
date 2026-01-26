@@ -168,21 +168,5 @@ namespace HR_system.Controllers
                 return Json(new { success = false, message = $"خطأ: {ex.Message}" });
             }
         }
-
-        // POST: Backup/CleanOld
-        [HttpPost]
-        public async Task<IActionResult> CleanOld(int days = 30)
-        {
-            try
-            {
-                await _backupService.CleanOldBackupsAsync(days);
-                return Json(new { success = true, message = $"تم حذف النسخ الاحتياطية الأقدم من {days} يوم" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error cleaning old backups");
-                return Json(new { success = false, message = $"خطأ: {ex.Message}" });
-            }
-        }
     }
 }

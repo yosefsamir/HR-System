@@ -39,16 +39,19 @@ namespace HR_system.DTOs.Salary
         public decimal TotalAdvances { get; set; }
         public decimal TotalOvertimeAmount { get; set; }
         public decimal TotalLateTimeDeduction { get; set; }
+        public decimal TotalEarlyDepartureDeduction { get; set; }
         
         // Total Hours
         public decimal TotalWorkedHours { get; set; }
         public decimal TotalOvertimeHours { get; set; }
         public decimal TotalLateTimeHours { get; set; }
+        public decimal TotalEarlyDepartureHours { get; set; }
         
         // Display Helpers
         public string TotalWorkedHours_Display => FormatHoursMinutes(TotalWorkedHours);
         public string TotalOvertimeHours_Display => FormatHoursMinutes(TotalOvertimeHours);
         public string TotalLateTimeHours_Display => FormatHoursMinutes(TotalLateTimeHours);
+        public string TotalEarlyDepartureHours_Display => FormatHoursMinutes(TotalEarlyDepartureHours);
         
         private static string FormatHoursMinutes(decimal hours)
         {
@@ -101,6 +104,12 @@ namespace HR_system.DTOs.Salary
         public decimal LateTimeMultiplier { get; set; }
         public decimal LateTimeDeduction { get; set; }
         
+        // Early Departure Details
+        public decimal EarlyDepartureMinutes { get; set; }
+        public decimal EarlyDepartureHours { get; set; }
+        public decimal EarlyDepartureMultiplier { get; set; }
+        public decimal EarlyDepartureDeduction { get; set; }
+        
         // Net Time Difference (Overtime - LateTime with multipliers)
         public decimal NetTimeDifferenceHours { get; set; }
         public decimal NetTimeDifferenceAmount { get; set; }
@@ -128,12 +137,13 @@ namespace HR_system.DTOs.Salary
         
         // Final Calculations
         public decimal GrossSalary { get; set; }  // WorkedHoursSalary + Overtime + Bonuses
-        public decimal TotalDeductionsAmount { get; set; }  // LateTime + Deductions + Advances
+        public decimal TotalDeductionsAmount { get; set; }  // LateTime + EarlyDeparture + Deductions + Advances
         public decimal NetSalary { get; set; }  // Gross - TotalDeductions
         
         // Display Helpers
         public string OvertimeHours_Display => FormatHoursMinutes(OvertimeHours);
         public string LateTimeHours_Display => FormatHoursMinutes(LateTimeHours);
+        public string EarlyDepartureHours_Display => FormatHoursMinutes(EarlyDepartureHours);
         public string ActualWorkedHours_Display => FormatHoursMinutes(ActualWorkedHours);
         public string ExpectedWorkingHours_Display => FormatHoursMinutes(ExpectedWorkingHours);
         

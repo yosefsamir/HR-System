@@ -91,6 +91,19 @@ namespace HR_system.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal LateTimeDeduction { get; set; }
 
+        // Early Departure Details
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal EarlyDepartureMinutes { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal EarlyDepartureHours { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal EarlyDepartureMultiplier { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal EarlyDepartureDeduction { get; set; }
+
         // Net Time Difference
         [Column(TypeName = "decimal(18,2)")]
         public decimal NetTimeDifferenceHours { get; set; }

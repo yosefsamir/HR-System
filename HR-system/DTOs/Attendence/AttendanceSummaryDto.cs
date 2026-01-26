@@ -32,6 +32,7 @@ namespace HR_system.DTOs.Attendence
         public int TotalLateMinutes { get; set; }
         public int TotalOvertimeMinutes { get; set; }
         public int TotalPermissionMinutes { get; set; }
+        public int TotalEarlyDepartureMinutes { get; set; }
         
         // Formatted Display Values
         public string TotalWorkedHours_Display => FormatHoursMinutes(TotalWorkedMinutes);
@@ -39,6 +40,7 @@ namespace HR_system.DTOs.Attendence
         public string TotalLateHours_Display => FormatHoursMinutes(TotalLateMinutes);
         public string TotalOvertimeHours_Display => FormatHoursMinutes(TotalOvertimeMinutes);
         public string TotalPermissionHours_Display => FormatHoursMinutes(TotalPermissionMinutes);
+        public string TotalEarlyDepartureHours_Display => FormatHoursMinutes(TotalEarlyDepartureMinutes);
         
         // Calculated Stats
         public decimal AttendanceRate => TotalWorkingDays > 0 

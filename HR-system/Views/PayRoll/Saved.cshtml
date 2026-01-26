@@ -293,9 +293,11 @@
                                 <th>ساعات العمل</th>
                                 <th>ساعات إضافية</th>
                                 <th>ساعات تأخير</th>
+                                <th>ساعات الانصراف المبكر</th>
                                 <th>راتب ساعات العمل</th>
                                 <th>الإضافي</th>
                                 <th>التأخير</th>
+                                <th>الخروج المبكر</th>
                                 <th>المكافآت</th>
                                 <th>الخصومات</th>
                                 <th>السلف</th>
@@ -314,9 +316,11 @@
                                 <td id="footTotalHours">0</td>
                                 <td id="footOvertimeHours">0</td>
                                 <td id="footLateHours">0</td>
+                                <td id="footEarlyDepartureHours">0</td>
                                 <td id="footWorkedSalary">0</td>
                                 <td id="footOvertime">0</td>
                                 <td id="footLateTime">0</td>
+                                <td id="footEarlyDeparture">0</td>
                                 <td id="footBonuses">0</td>
                                 <td id="footDeductions">0</td>
                                 <td id="footAdvances">0</td>
@@ -565,9 +569,11 @@
                 <td>${emp.actualWorkedHours_Display}</td>
                 <td class="text-success">${emp.overtimeHours_Display}</td>
                 <td class="text-danger">${emp.lateTimeHours_Display}</td>
+                <td class="text-danger">${emp.earlyDepartureHours_Display}</td>
                 <td>${formatCurrency(emp.workedHoursSalary)}</td>
                 <td class="positive">+${formatCurrency(emp.overtimeAmount)}</td>
                 <td class="negative">-${formatCurrency(emp.lateTimeDeduction)}</td>
+                <td class="negative">-${formatCurrency(emp.earlyDepartureDeduction)}</td>
                 <td class="positive">+${formatCurrency(emp.bonuses)}</td>
                 <td class="negative">-${formatCurrency(emp.deductions)}</td>
                 <td class="negative">-${formatCurrency(emp.advances)}</td>
@@ -597,9 +603,11 @@
         document.getElementById('footTotalHours').textContent = formatHours(data.employees.reduce((sum, e) => sum + e.actualWorkedMinutes, 0));
         document.getElementById('footOvertimeHours').textContent = formatHours(data.employees.reduce((sum, e) => sum + e.overtimeMinutes, 0));
         document.getElementById('footLateHours').textContent = formatHours(data.employees.reduce((sum, e) => sum + e.lateTimeMinutes, 0));
+        document.getElementById('footEarlyDepartureHours').textContent = formatHours(data.employees.reduce((sum, e) => sum + e.earlyDepartureMinutes, 0));
         document.getElementById('footWorkedSalary').textContent = formatCurrency(data.employees.reduce((sum, e) => sum + e.workedHoursSalary, 0));
         document.getElementById('footOvertime').textContent = formatCurrency(data.totalOvertimeAmount);
         document.getElementById('footLateTime').textContent = formatCurrency(data.totalLateTimeDeduction);
+        document.getElementById('footEarlyDeparture').textContent = formatCurrency(data.totalEarlyDepartureDeduction);
         document.getElementById('footBonuses').textContent = formatCurrency(data.totalBonuses);
         document.getElementById('footDeductions').textContent = formatCurrency(data.totalDeductions);
         document.getElementById('footAdvances').textContent = formatCurrency(data.totalAdvances);
@@ -654,17 +662,21 @@
                         </div>
                         <div class="card-body">
                             <div class="row text-center">
-                                <div class="col-4">
+                                <div class="col-3">
                                     <span class="badge bg-info fs-6">${emp.actualWorkedHours_Display}</span>
                                     <p class="mb-0 small">العمل</p>
                                 </div>
-                                <div class="col-4">
+                                <div class="col-3">
                                     <span class="badge bg-success fs-6">${emp.overtimeHours_Display}</span>
                                     <p class="mb-0 small">إضافي</p>
                                 </div>
-                                <div class="col-4">
+                                <div class="col-3">
                                     <span class="badge bg-danger fs-6">${emp.lateTimeHours_Display}</span>
                                     <p class="mb-0 small">تأخير</p>
+                                </div>
+                                <div class="col-3">
+                                    <span class="badge bg-danger fs-6">${emp.earlyDepartureHours_Display}</span>
+                                    <p class="mb-0 small">وقت الانصراف المبكر</p>
                                 </div>
                             </div>
                         </div>
@@ -703,6 +715,10 @@
                                     <tr class="text-danger">
                                         <td>- خصم التأخير</td>
                                         <td class="text-end">-${formatCurrency(emp.lateTimeDeduction)}</td>
+                                    </tr>
+                                    <tr class="text-danger">
+                                        <td>- خصم الانصراف المبكر</td>
+                                        <td class="text-end">-${formatCurrency(emp.earlyDepartureDeduction)}</td>
                                     </tr>
                                     <tr class="text-success">
                                         <td>+ المكافآت</td>
@@ -850,6 +866,9 @@
                         lateTimeMinutes: data.lateTimeMinutes,
                         lateTimeHours_Display: data.lateTimeHours_Display,
                         lateTimeDeduction: data.lateTimeDeduction,
+                        earlyDepartureMinutes: data.earlyDepartureMinutes,
+                        earlyDepartureHours_Display: data.earlyDepartureHours_Display,
+                        earlyDepartureDeduction: data.earlyDepartureDeduction,
                         workedHoursSalary: data.workedHoursSalary,
                         bonuses: data.bonuses,
                         deductions: data.deductions,
@@ -1037,57 +1056,114 @@
         }, 5000);
     }
 
-    function printSalarySlips() {
+    async function printSalarySlips() {
         if (!savedData) {
             showAlert('يجب تحميل البيانات أولاً', 'warning');
             return;
         }
 
+        // Fetch settings from API
+        let settings = { companyName: 'شركتي', slipFontSize: 12, slipWidthPercent: 48, slipFooterMessage: '' };
+        try {
+            const response = await fetch('/Settings/GetSettings');
+            const result = await response.json();
+            settings = result;
+        } catch (error) {
+            console.error('Error fetching settings:', error);
+        }
+
         const data = savedData;
         const printWindow = window.open('', '_blank');
         
-        // Generate compact salary slips - 4 per A4 page
+        // Generate professional full-width salary slips
         const slips = data.employees.map((emp, index) => `
             <div class="salary-slip">
+                <!-- Header with Company Name -->
                 <div class="slip-header">
-                    <span class="title">إيصال راتب - ${data.monthName} ${data.year}</span>
-                    <span class="slip-num">#${index + 1}</span>
+                    <span class="company-name">${settings.companyName}</span>
+                    <span class="slip-title">إيصال راتب - ${data.monthName} ${data.year}</span>
                 </div>
-                <div class="emp-row">
-                    <span><b>${emp.employeeName}</b> (${emp.employeeCode})</span>
-                    <span>${emp.departmentName || '-'} | غياب: ${emp.absentDays} يوم</span>
-                </div>
-                <table class="mini-table">
+                
+                <!-- Employee Info Row -->
+                <table class="info-table">
                     <tr>
-                        <td class="lbl">الراتب الشهري</td><td class="val">${formatCurrency(emp.baseSalary)}</td>
-                        <td class="lbl">${emp.salaryCalculationType === 'Daily' ? 'أيام الحضور' : 'ساعات العمل'}</td><td class="val">${emp.salaryCalculationType === 'Daily' ? emp.presentDays + ' يوم' : emp.actualWorkedHours_Display}</td>
-                    </tr>
-                    <tr>
-                        <td class="lbl">ساعات إضافي</td><td class="val">${emp.overtimeHours_Display}</td>
-                        <td class="lbl">راتب إضافي</td><td class="val add">+${formatCurrency(emp.overtimeAmount)}</td>
-                    </tr>
-                    <tr>
-                        <td class="lbl">ساعات تأخير</td><td class="val">${emp.lateTimeHours_Display}</td>
-                        <td class="lbl">خصم تأخير</td><td class="val ded">-${formatCurrency(emp.lateTimeDeduction)}</td>
-                    </tr>
-                    <tr>
-                        <td class="lbl">مكافآت</td><td class="val add">+${formatCurrency(emp.bonuses)}</td>
-                        <td class="lbl">خصومات</td><td class="val ded">-${formatCurrency(emp.deductions)}</td>
-                    </tr>
-                    <tr>
-                        <td class="lbl">المرتب المستحق</td><td class="val">${formatCurrency(emp.workedHoursSalary)}</td>
-                        <td class="lbl">سحوبات</td><td class="val ded">-${formatCurrency(emp.advances)}</td>
+                        <td class="info-label">الاسم</td>
+                        <td class="info-value">${emp.employeeName}</td>
+                        <td class="info-label">الكود</td>
+                        <td class="info-value">${emp.employeeCode}</td>
+                        <td class="info-label">القسم</td>
+                        <td class="info-value">${emp.departmentName || '-'}</td>
+                        <td class="info-label">الوردية</td>
+                        <td class="info-value">${emp.shiftName || '-'}</td>
                     </tr>
                 </table>
-                <div class="net-row">
-                    <span class="net-lbl">صافي:</span>
-                    <span class="net-val">${formatCurrency(emp.netSalary)}</span>
-                    <span class="paid-lbl">المدفوع:</span>
-                    <span class="paid-val">${formatCurrency(emp.paidSalary)}</span>
-                </div>
-                <div class="sign-row">
-                    <span>التوقيع: ..................</span>
-                    <span>${new Date().toLocaleDateString('ar-EG')}</span>
+
+                <!-- Main Salary Details Table -->
+                <table class="main-table">
+                    <thead>
+                        <tr>
+                            <th colspan="2">الحضور</th>
+                            <th colspan="2">الوقت الإضافي</th>
+                            <th colspan="2">التأخير</th>
+                            <th colspan="2">الانصراف المبكر</th>
+                            <th colspan="2">الإضافات</th>
+                            <th colspan="2">الخصومات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="sub-label">أيام الحضور</td>
+                            <td class="sub-value">${emp.presentDays}</td>
+                            <td class="sub-label">الساعات</td>
+                            <td class="sub-value">${emp.overtimeHours_Display}</td>
+                            <td class="sub-label">الساعات</td>
+                            <td class="sub-value">${emp.lateTimeHours_Display}</td>
+                            <td class="sub-label">الساعات</td>
+                            <td class="sub-value">${emp.earlyDepartureHours_Display}</td>
+                            <td class="sub-label">مكافآت</td>
+                            <td class="sub-value add">+${formatCurrency(emp.bonuses)}</td>
+                            <td class="sub-label">خصومات</td>
+                            <td class="sub-value ded">-${formatCurrency(emp.deductions)}</td>
+                        </tr>
+                        <tr>
+                            <td class="sub-label">أيام الغياب</td>
+                            <td class="sub-value">${emp.absentDays}</td>
+                            <td class="sub-label">المبلغ</td>
+                            <td class="sub-value add">+${formatCurrency(emp.overtimeAmount)}</td>
+                            <td class="sub-label">الخصم</td>
+                            <td class="sub-value ded">-${formatCurrency(emp.lateTimeDeduction)}</td>
+                            <td class="sub-label">الخصم</td>
+                            <td class="sub-value ded">-${formatCurrency(emp.earlyDepartureDeduction)}</td>
+                            <td class="sub-label"></td>
+                            <td class="sub-value"></td>
+                            <td class="sub-label">سلف</td>
+                            <td class="sub-value ded">-${formatCurrency(emp.advances)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Summary Row -->
+                <table class="summary-table">
+                    <tr>
+                        <td class="sum-label">الراتب الأساسي</td>
+                        <td class="sum-value">${formatCurrency(emp.baseSalary)}</td>
+                        <td class="sum-label">المرتب المستحق</td>
+                        <td class="sum-value">${formatCurrency(emp.workedHoursSalary)}</td>
+                        <td class="net-label">صافي الراتب</td>
+                        <td class="net-value">${formatCurrency(emp.netSalary)}</td>
+                        <td class="paid-label">المبلغ المدفوع</td>
+                        <td class="paid-value">${formatCurrency(emp.paidSalary)}</td>
+                    </tr>
+                </table>
+
+                <!-- Footer -->
+                <div class="slip-footer">
+                    ${settings.slipFooterMessage ? `<div class="footer-message">${settings.slipFooterMessage}</div>` : ''}
+                    <div class="sign-section">
+                        <span>التوقيع: ................................</span>
+                        <span>التاريخ: ${new Date().toLocaleDateString('ar-EG')}</span>
+                        <span>#${index + 1}</span>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -1102,99 +1178,180 @@
                     * { box-sizing: border-box; margin: 0; padding: 0; color: #000 !important; }
                     body { 
                         font-family: Arial, sans-serif; 
-                        font-size: 12px;
+                        font-size: ${settings.slipFontSize}px;
                         direction: rtl;
-                        padding: 5px;
-                        color: #000 !important;
+                        padding: 10px;
+                        background: #fff;
                     }
                     
                     .salary-slip {
-                        width: 48%;
-                        float: right;
-                        margin: 0.5%;
-                        padding: 8px;
+                        width: 100%;
+                        margin-bottom: 8px;
+                        padding: 6px;
                         border: 1px solid #000;
                         background: #fff;
                         page-break-inside: avoid;
-                        min-height: 200px;
                     }
                     
                     .slip-header {
                         display: flex;
                         justify-content: space-between;
+                        align-items: center;
                         border-bottom: 1px solid #000;
-                        padding-bottom: 4px;
+                        padding-bottom: 3px;
                         margin-bottom: 5px;
+                    }
+                    
+                    .company-name {
+                        font-size: ${parseInt(settings.slipFontSize) + 2}px;
                         font-weight: bold;
                     }
                     
-                    .title { font-size: 13px; color: #000 !important; }
-                    .slip-num { background: #ddd; color: #000 !important; padding: 2px 8px; border-radius: 3px; font-size: 11px; border: 1px solid #000; }
-                    
-                    .emp-row {
-                        display: flex;
-                        justify-content: space-between;
-                        background: #eee;
-                        padding: 4px 6px;
-                        margin-bottom: 5px;
-                        font-size: 11px;
-                        color: #000 !important;
+                    .slip-title {
+                        font-size: ${parseInt(settings.slipFontSize) + 2}px;
+                        font-weight: bold;
                     }
                     
-                    .mini-table {
+                    .info-table {
                         width: 100%;
                         border-collapse: collapse;
-                        margin-bottom: 5px;
+                        margin-bottom: 10px;
                     }
                     
-                    .mini-table td {
-                        padding: 3px 4px;
+                    .info-table td {
                         border: 1px solid #000;
-                        font-size: 11px;
-                        color: #000 !important;
+                        padding: 5px 8px;
+                        font-size: ${settings.slipFontSize}px;
                     }
                     
-                    .lbl { background: #f5f5f5; width: 22%; color: #000 !important; }
-                    .val { width: 28%; text-align: left; font-weight: bold; color: #000 !important; }
+                    .info-label {
+                        font-weight: bold;
+                        width: 8%;
+                        text-align: center;
+                    }
+                    
+                    .info-value {
+                        width: 17%;
+                        font-weight: bold;
+                    }
+                    
+                    .main-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-bottom: 10px;
+                    }
+                    
+                    .main-table th {
+                        padding: 3px;
+                        border: 1px solid #000;
+                        font-size: ${parseInt(settings.slipFontSize) - 1}px;
+                        text-align: center;
+                        font-weight: bold;
+                    }
+                    
+                    .main-table td {
+                        border: 1px solid #000;
+                        padding: 4px 6px;
+                        font-size: ${parseInt(settings.slipFontSize) - 1}px;
+                    }
+                    
+                    .sub-label {
+                        text-align: center;
+                        width: 8%;
+                    }
+                    
+                    .sub-value {
+                        text-align: center;
+                        font-weight: bold;
+                        width: 8%;
+                    }
+                    
                     .add { color: #000 !important; }
                     .ded { color: #000 !important; }
                     
-                    .net-row {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        background: #ddd;
-                        color: #000 !important;
-                        padding: 5px 8px;
-                        margin-bottom: 5px;
-                        font-size: 12px;
+                    .summary-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-bottom: 10px;
+                    }
+                    
+                    .summary-table td {
                         border: 1px solid #000;
+                        padding: 6px 8px;
+                        font-size: ${settings.slipFontSize}px;
                     }
                     
-                    .net-lbl, .paid-lbl { font-weight: bold; color: #000 !important; }
-                    .net-val { color: #000 !important; font-weight: bold; font-size: 14px; }
-                    .paid-val { color: #000 !important; font-weight: bold; font-size: 13px; }
+                    .sum-label {
+                        font-weight: bold;
+                        text-align: center;
+                        width: 10%;
+                    }
                     
-                    .sign-row {
+                    .sum-value {
+                        text-align: center;
+                        font-weight: bold;
+                        width: 10%;
+                    }
+                    
+                    .net-label {
+                        font-weight: bold;
+                        text-align: center;
+                        width: 10%;
+                        border: 2px solid #000 !important;
+                    }
+                    
+                    .net-value {
+                        font-weight: bold;
+                        font-size: ${parseInt(settings.slipFontSize)}px;
+                        text-align: center;
+                        width: 10%;
+                        border: 2px solid #000 !important;
+                    }
+                    
+                    .paid-label {
+                        font-weight: bold;
+                        text-align: center;
+                        width: 10%;
+                        border: 2px solid #000 !important;
+                    }
+                    
+                    .paid-value {
+                        font-weight: bold;
+                        font-size: ${parseInt(settings.slipFontSize)}px;
+                        text-align: center;
+                        width: 10%;
+                        border: 2px solid #000 !important;
+                    }
+                    
+                    .slip-footer {
+                        border-top: 1px dashed #000;
+                        padding-top: 8px;
+                        margin-top: 5px;
+                    }
+                    
+                    .footer-message {
+                        text-align: center;
+                        padding: 2px;
+                        margin-bottom: 3px;
+                        font-style: italic;
+                        border: 1px dashed #000;
+                    }
+                    
+                    .sign-section {
                         display: flex;
                         justify-content: space-between;
-                        font-size: 10px;
-                        color: #000 !important;
-                        border-top: 1px dashed #000;
-                        padding-top: 4px;
+                        font-size: ${parseInt(settings.slipFontSize) - 1}px;
                     }
-                    
-                    /* 4 slips per page (2x2) */
-                    .salary-slip:nth-child(4n+1) { clear: both; }
                     
                     @@media print {
-                        body { padding: 0; }
+                        body { padding: 3mm; }
                         .salary-slip { 
                             border: 1px solid #000;
+                            margin-bottom: 5px;
                         }
                         @@page {
-                            size: A4;
-                            margin: 5mm;
+                            size: A4 portrait;
+                            margin: 3mm;
                         }
                     }
                 </style>

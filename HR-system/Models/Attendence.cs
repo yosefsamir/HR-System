@@ -33,5 +33,6 @@ namespace HR_system.Models
         public virtual Employee? Employee { get; set; }
         public virtual OverTime? OverTime { get; set; }
         public virtual LateTime? LateTime { get; set; }
+        public virtual EarlyDeparture? EarlyDeparture { get; set; }
     }
 }

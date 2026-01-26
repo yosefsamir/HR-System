@@ -32,6 +32,23 @@ namespace HR_system.Domain
         }
 
         /// <summary>
+        /// Calculate early departure minutes (leaving before shift end)
+        /// Only counts if employee left early beyond the allowed tolerance
+        /// </summary>
+        public static int CalculateEarlyDepartureMinutes(TimeSpan checkOut, Shift shift)
+        {
+            // Calculate the time before which we consider it early departure
+            // (shift end time minus the allowed early departure tolerance)
+            var allowedEndTime = shift.End_time.Subtract(TimeSpan.FromMinutes(shift.Minutes_allow_departure));
+            
+            if (checkOut < allowedEndTime)
+            {
+                return (int)(allowedEndTime - checkOut).TotalMinutes;
+            }
+            return 0;
+        }
+
+        /// <summary>
         /// Calculate early check-in minutes (before shift start)
         /// </summary>
         public static int CalculateEarlyCheckInMinutes(TimeSpan checkIn, Shift shift)

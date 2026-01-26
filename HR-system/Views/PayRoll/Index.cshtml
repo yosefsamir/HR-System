@@ -204,9 +204,11 @@
                                 <th>ساعات العمل</th>
                                 <th>ساعات إضافية</th>
                                 <th>ساعات تأخير</th>
+                                <th>وقت الانصراف المبكر</th>
                                 <th>راتب ساعات العمل</th>
                                 <th>الإضافي</th>
                                 <th>التأخير</th>
+                                <th>خصم الانصراف المبكر</th>
                                 <th>المكافآت</th>
                                 <th>الخصومات</th>
                                 <th>السلف</th>
@@ -223,9 +225,11 @@
                                 <td id="footTotalHours">0</td>
                                 <td id="footOvertimeHours">0</td>
                                 <td id="footLateHours">0</td>
+                                <td id="footEarlyDepartureHours">0</td>
                                 <td id="footWorkedSalary">0</td>
                                 <td id="footOvertime">0</td>
                                 <td id="footLateTime">0</td>
+                                <td id="footEarlyDeparture">0</td>
                                 <td id="footBonuses">0</td>
                                 <td id="footDeductions">0</td>
                                 <td id="footAdvances">0</td>
@@ -442,9 +446,11 @@
                 <td>${emp.actualWorkedHours_Display}</td>
                 <td class="text-success">${emp.overtimeHours_Display}</td>
                 <td class="text-danger">${emp.lateTimeHours_Display}</td>
+                <td class="text-danger">${emp.earlyDepartureHours_Display}</td>
                 <td>${formatCurrency(emp.workedHoursSalary)}</td>
                 <td class="positive">+${formatCurrency(emp.overtimeAmount)}</td>
                 <td class="negative">-${formatCurrency(emp.lateTimeDeduction)}</td>
+                <td class="negative">-${formatCurrency(emp.earlyDepartureDeduction)}</td>
                 <td class="positive">+${formatCurrency(emp.totalBonuses)}</td>
                 <td class="negative">-${formatCurrency(emp.totalDeductions)}</td>
                 <td class="negative">-${formatCurrency(emp.totalAdvances)}</td>
@@ -459,11 +465,12 @@
 
         // Footer totals
         document.getElementById('footWorkedSalary').textContent = formatCurrency(data.employees.reduce((sum, e) => sum + e.workedHoursSalary, 0));
-        document.getElementById('footTotalHours').textContent = data.totalWorkedHours_Display;
         document.getElementById('footOvertimeHours').textContent = data.totalOvertimeHours_Display;
         document.getElementById('footLateHours').textContent = data.totalLateTimeHours_Display;
-        document.getElementById('footOvertime').textContent = formatCurrency(data.totalOvertimeAmount);
+        document.getElementById('footEarlyDepartureHours').textContent = data.totalEarlyDepartureHours_Display;
+        document.getElementById('footWorkedSalary').textContent = formatCurrency(data.employees.reduce((sum, e) => sum + e.workedHoursSalary, 0));
         document.getElementById('footLateTime').textContent = formatCurrency(data.totalLateTimeDeduction);
+        document.getElementById('footEarlyDeparture').textContent = formatCurrency(data.totalEarlyDepartureDeduction);
         document.getElementById('footBonuses').textContent = formatCurrency(data.totalBonuses);
         document.getElementById('footDeductions').textContent = formatCurrency(data.totalDeductions);
         document.getElementById('footAdvances').textContent = formatCurrency(data.totalAdvances);
@@ -515,6 +522,7 @@
                         <h6 class="text-warning mb-3"><i class="bi bi-clock me-2"></i>الوقت الإضافي/التأخير</h6>
                         <p class="mb-1"><span class="text-muted">الإضافي:</span> <span class="text-success">${emp.overtimeHours_Display} (×${emp.overtimeMultiplier})</span></p>
                         <p class="mb-1"><span class="text-muted">التأخير:</span> <span class="text-danger">${emp.lateTimeHours_Display} (×${emp.lateTimeMultiplier})</span></p>
+                        <p class="mb-1"><span class="text-muted">وقت الانصراف المبكر:</span> <span class="text-danger">${emp.earlyDepartureHours_Display} (×${emp.earlyDepartureMultiplier})</span></p>
                         <p class="mb-0"><span class="text-muted">الأذونات:</span> ${Math.round(emp.permissionMinutes)} دقيقة</p>
                     </div>
                 </div>
@@ -549,6 +557,10 @@
                                     <tr class="text-danger">
                                         <td>خصم التأخير</td>
                                         <td class="text-end">-${formatCurrency(emp.lateTimeDeduction)}</td>
+                                    </tr>
+                                    <tr class="text-danger">
+                                        <td>خصم الانصراف المبكر</td>
+                                        <td class="text-end">-${formatCurrency(emp.earlyDepartureDeduction)}</td>
                                     </tr>
                                     <tr class="text-danger">
                                         <td>الخصومات</td>

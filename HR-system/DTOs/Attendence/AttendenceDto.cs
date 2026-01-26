@@ -19,6 +19,7 @@ namespace HR_system.DTOs.Attendence
         // Related data
         public int? LateTime_minutes { get; set; }
         public int? OverTime_minutes { get; set; }
+        public int? EarlyDeparture_minutes { get; set; }
         
         // Shift info
         public int? Shift_id { get; set; }
@@ -38,6 +39,7 @@ namespace HR_system.DTOs.Attendence
         public string Permission_Display => Permission_time > 0 ? $"{Permission_time / 60}h {Permission_time % 60}m" : "-";
         public string LateTime_Display => LateTime_minutes.HasValue && LateTime_minutes > 0 ? $"{LateTime_minutes / 60}h {LateTime_minutes % 60}m" : "-";
         public string OverTime_Display => OverTime_minutes.HasValue && OverTime_minutes > 0 ? $"{OverTime_minutes / 60}h {OverTime_minutes % 60}m" : "-";
+        public string EarlyDeparture_Display => EarlyDeparture_minutes.HasValue && EarlyDeparture_minutes > 0 ? $"{EarlyDeparture_minutes / 60}h {EarlyDeparture_minutes % 60}m" : "-";
         public string Status_Display => Is_Absent ? "Absent" : (Check_out_time.HasValue ? "Complete" : (Check_In_time.HasValue ? "Checked In" : "Not Started"));
     }
 }

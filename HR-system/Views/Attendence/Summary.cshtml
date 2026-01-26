@@ -319,6 +319,12 @@
                                 </div>
                             </div>
                             <div class="col-6">
+                                <div class="summary-section danger">
+                                    <small class="text-muted d-block">ساعات الخروج المبكر</small>
+                                    <h4 class="mb-0 text-danger" id="earlyDepartureHours">0h 0m</h4>
+                                </div>
+                            </div>
+                            <div class="col-6">
                                 <div class="summary-section primary">
                                     <small class="text-muted d-block">صافي الساعات</small>
                                     <h4 class="mb-0 text-primary" id="netHours">0h 0m</h4>
@@ -516,6 +522,7 @@
                                 <th>الإذن (دقائق)</th>
                                 <th>التأخير</th>
                                 <th>الإضافي</th>
+                                <th>الخروج المبكر</th>
                                 <th>الحالة</th>
                             </tr>
                         </thead>
@@ -719,6 +726,7 @@
         document.getElementById('overtimeHours').textContent = s.totalOvertimeHours_Display;
         document.getElementById('lateHours').textContent = s.totalLateHours_Display;
         document.getElementById('permissionHours').textContent = s.totalPermissionHours_Display;
+        document.getElementById('earlyDepartureHours').textContent = s.totalEarlyDepartureHours_Display || '0h 0m';
         document.getElementById('netHours').textContent = s.netWorkedHours_Display;
 
         // Statistics
@@ -835,6 +843,7 @@
                     const workedHours = record.worked_minutes ? formatMinutes(record.worked_minutes) : '-';
                     const lateMinutes = record.lateTime_minutes > 0 ? `<span class="text-warning">${formatMinutes(record.lateTime_minutes)}</span>` : '-';
                     const overtimeMinutes = record.overTime_minutes > 0 ? `<span class="text-success">${formatMinutes(record.overTime_minutes)}</span>` : '-';
+                    const earlyDepartureMinutes = record.earlyDeparture_minutes > 0 ? `<span class="text-danger">${formatMinutes(record.earlyDeparture_minutes)}</span>` : '-';
                     
                     return `
                         <tr>
@@ -847,6 +856,7 @@
                             <td>${record.permission_time > 0 ? record.permission_time + ' د' : '-'}</td>
                             <td>${lateMinutes}</td>
                             <td>${overtimeMinutes}</td>
+                            <td>${earlyDepartureMinutes}</td>
                             <td>${statusBadge}</td>
                         </tr>
                     `;
