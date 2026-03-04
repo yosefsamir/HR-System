@@ -100,6 +100,7 @@ namespace HR_system.Domain.SalaryCalculation
             IEnumerable<Bounes> bonuses,
             IEnumerable<Deduction> deductions,
             IEnumerable<Advance> advances,
+            IEnumerable<AttendanceAdjustment> attendanceAdjustments,
             int workingDaysInMonth,
             int holidaysInMonth,
             int year,
@@ -128,6 +129,7 @@ namespace HR_system.Domain.SalaryCalculation
             var empBonuses = bonuses.Where(b => b.Employee_id == employee.Id).ToList();
             var empDeductions = deductions.Where(d => d.Employee_id == employee.Id).ToList();
             var empAdvances = advances.Where(a => a.Employee_id == employee.Id).ToList();
+            var empAdjustments = attendanceAdjustments.Where(a => a.Employee_id == employee.Id).ToList();
 
             // Calculate attendance summary
             var attendanceSummary = CalculateAttendanceSummary(empAttendances, holidaysInMonth, year, month);
@@ -148,7 +150,7 @@ namespace HR_system.Domain.SalaryCalculation
             decimal earlyDepartureDeduction = Math.Round(earlyDepartureHours * salaryPerHour * earlyDepartureMultiplier, 2);
 
             // Calculate financial summaries
-            var financialSummary = CalculateFinancialSummary(empBonuses, empDeductions, empAdvances);
+            var financialSummary = CalculateFinancialSummary(empBonuses, empDeductions, empAdvances, empAdjustments, salaryPerHour, salaryPerDay);
 
             // Calculate final salary amounts based on calculation type
             var salaryAmounts = CalculateSalaryAmounts(
@@ -181,7 +183,8 @@ namespace HR_system.Domain.SalaryCalculation
                 salaryAmounts,
                 empBonuses,
                 empDeductions,
-                empAdvances);
+                empAdvances,
+                empAdjustments);
         }
 
         private AttendanceSummary CalculateAttendanceSummary(List<Attendence> attendances, int holidaysInMonth, int year, int month)
@@ -220,13 +223,32 @@ namespace HR_system.Domain.SalaryCalculation
         private FinancialSummary CalculateFinancialSummary(
             List<Bounes> bonuses,
             List<Deduction> deductions,
-            List<Advance> advances)
+            List<Advance> advances,
+            List<AttendanceAdjustment> adjustments,
+            decimal salaryPerHour,
+            decimal salaryPerDay)
         {
+            // Calculate attendance adjustment monetary amount
+            decimal adjustmentAmount = 0;
+            foreach (var adj in adjustments)
+            {
+                if (adj.AdjustmentType == "Days")
+                {
+                    adjustmentAmount += adj.Value * salaryPerDay;
+                }
+                else // Hours
+                {
+                    adjustmentAmount += adj.Value * salaryPerHour;
+                }
+            }
+            adjustmentAmount = Math.Round(adjustmentAmount, 2);
+
             return new FinancialSummary
             {
                 TotalBonusesAmount = bonuses.Sum(b => b.Amount),
                 TotalDeductionsAmount = deductions.Sum(d => d.Amount),
-                TotalAdvancesAmount = advances.Sum(a => a.Amount)
+                TotalAdvancesAmount = advances.Sum(a => a.Amount),
+                TotalAttendanceAdjustmentAmount = adjustmentAmount
             };
         }
 
@@ -256,20 +278,23 @@ namespace HR_system.Domain.SalaryCalculation
                 baseSalary = Math.Round(salaryPerHour * totalWorkedHours, 2);
             }
 
-            // Net Salary = BaseSalary + OvertimeSalary - LateTimeDeduction - EarlyDepartureDeduction - Deductions - Advances + Bonuses
+            // Net Salary = BaseSalary + OvertimeSalary - LateTimeDeduction - EarlyDepartureDeduction - Deductions - Advances + Bonuses + AttendanceAdjustment
             decimal netSalary = baseSalary
                 + overtimeAmount
                 - lateTimeDeduction
                 - earlyDepartureDeduction
                 - financialSummary.TotalDeductionsAmount
                 - financialSummary.TotalAdvancesAmount
-                + financialSummary.TotalBonusesAmount;
+                + financialSummary.TotalBonusesAmount
+                + financialSummary.TotalAttendanceAdjustmentAmount;
 
-            // Gross salary = BaseSalary + Overtime + Bonuses
-            decimal grossSalary = baseSalary + overtimeAmount + financialSummary.TotalBonusesAmount;
+            // Gross salary = BaseSalary + Overtime + Bonuses + Positive Adjustments
+            decimal positiveAdjustment = Math.Max(0, financialSummary.TotalAttendanceAdjustmentAmount);
+            decimal negativeAdjustment = Math.Abs(Math.Min(0, financialSummary.TotalAttendanceAdjustmentAmount));
+            decimal grossSalary = baseSalary + overtimeAmount + financialSummary.TotalBonusesAmount + positiveAdjustment;
 
-            // Total deductions = LateTime + EarlyDeparture + Deductions + Advances
-            decimal totalDeductionsCalc = lateTimeDeduction + earlyDepartureDeduction + financialSummary.TotalDeductionsAmount + financialSummary.TotalAdvancesAmount;
+            // Total deductions = LateTime + EarlyDeparture + Deductions + Advances + Negative Adjustments
+            decimal totalDeductionsCalc = lateTimeDeduction + earlyDepartureDeduction + financialSummary.TotalDeductionsAmount + financialSummary.TotalAdvancesAmount + negativeAdjustment;
 
             return new SalaryAmounts
             {
@@ -298,7 +323,8 @@ namespace HR_system.Domain.SalaryCalculation
             SalaryAmounts salaryAmounts,
             List<Bounes> bonuses,
             List<Deduction> deductions,
-            List<Advance> advances)
+            List<Advance> advances,
+            List<AttendanceAdjustment> adjustments)
         {
             return new EmployeeSalaryResultDto
             {
@@ -356,6 +382,7 @@ namespace HR_system.Domain.SalaryCalculation
                 TotalBonuses = financial.TotalBonusesAmount,
                 TotalDeductions = financial.TotalDeductionsAmount,
                 TotalAdvances = financial.TotalAdvancesAmount,
+                TotalAttendanceAdjustment = financial.TotalAttendanceAdjustmentAmount,
 
                 // Bonuses List
                 BonusesList = bonuses.Select(b => new FinancialItemDto
@@ -384,6 +411,15 @@ namespace HR_system.Domain.SalaryCalculation
                     Reason = null
                 }).ToList(),
 
+                // Attendance Adjustments List
+                AttendanceAdjustmentsList = adjustments.Select(a => new FinancialItemDto
+                {
+                    Id = a.Id,
+                    Date = a.CreatedAt,
+                    Amount = a.Value,
+                    Reason = $"{(a.AdjustmentType == "Days" ? "أيام" : "ساعات")}: {a.Reason}"
+                }).ToList(),
+
                 // Worked Hours Salary
                 WorkedHoursSalary = salaryAmounts.WorkedHoursSalary,
 
@@ -405,6 +441,7 @@ namespace HR_system.Domain.SalaryCalculation
             result.TotalBonuses = result.Employees.Sum(e => e.TotalBonuses);
             result.TotalDeductions = result.Employees.Sum(e => e.TotalDeductions);
             result.TotalAdvances = result.Employees.Sum(e => e.TotalAdvances);
+            result.TotalAttendanceAdjustment = result.Employees.Sum(e => e.TotalAttendanceAdjustment);
             result.TotalOvertimeAmount = result.Employees.Sum(e => e.OvertimeAmount);
             result.TotalLateTimeDeduction = result.Employees.Sum(e => e.LateTimeDeduction);
             result.TotalEarlyDepartureDeduction = result.Employees.Sum(e => e.EarlyDepartureDeduction);
@@ -438,6 +475,7 @@ namespace HR_system.Domain.SalaryCalculation
             public decimal TotalBonusesAmount { get; set; }
             public decimal TotalDeductionsAmount { get; set; }
             public decimal TotalAdvancesAmount { get; set; }
+            public decimal TotalAttendanceAdjustmentAmount { get; set; }
         }
 
         private class SalaryAmounts

@@ -4,6 +4,7 @@ using HR_system.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HR_system.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260223060941_AddIdentity")]
+    partial class AddIdentity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -75,45 +78,6 @@ namespace HR_system.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("AppSettings");
-                });
-
-            modelBuilder.Entity("HR_system.Models.AttendanceAdjustment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AdjustmentType")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Employee_id")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Month")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<decimal>("Value")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("Year")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Employee_id");
-
-                    b.ToTable("AttendanceAdjustments");
                 });
 
             modelBuilder.Entity("HR_system.Models.Attendence", b =>
@@ -483,9 +447,6 @@ namespace HR_system.Migrations
                     b.Property<decimal>("TotalAdvances")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("TotalAttendanceAdjustment")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<decimal>("TotalBonuses")
                         .HasColumnType("decimal(18,2)");
 
@@ -762,17 +723,6 @@ namespace HR_system.Migrations
                     b.Navigation("Employee");
                 });
 
-            modelBuilder.Entity("HR_system.Models.AttendanceAdjustment", b =>
-                {
-                    b.HasOne("HR_system.Models.Employee", "Employee")
-                        .WithMany("AttendanceAdjustments")
-                        .HasForeignKey("Employee_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Employee");
-                });
-
             modelBuilder.Entity("HR_system.Models.Attendence", b =>
                 {
                     b.HasOne("HR_system.Models.Employee", "Employee")
@@ -935,8 +885,6 @@ namespace HR_system.Migrations
             modelBuilder.Entity("HR_system.Models.Employee", b =>
                 {
                     b.Navigation("Advances");
-
-                    b.Navigation("AttendanceAdjustments");
 
                     b.Navigation("Attendences");
 

@@ -96,6 +96,7 @@ namespace HR_system.DTOs.PayRoll
         public decimal Bonuses { get; set; }
         public decimal Deductions { get; set; }
         public decimal Advances { get; set; }
+        public decimal TotalAttendanceAdjustment { get; set; }
         
         // Final Calculations
         public decimal GrossSalary { get; set; }
@@ -132,6 +133,7 @@ namespace HR_system.DTOs.PayRoll
         public decimal TotalBonuses { get; set; }
         public decimal TotalDeductions { get; set; }
         public decimal TotalAdvances { get; set; }
+        public decimal TotalAttendanceAdjustment { get; set; }
         public decimal TotalOvertimeAmount { get; set; }
 
         public decimal TotalLateTimeDeduction { get; set; }

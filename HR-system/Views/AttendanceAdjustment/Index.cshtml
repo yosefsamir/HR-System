@@ -1,0 +1,437 @@
+@{
+    ViewData["Title"] = "اضافه -خصم ايام- ساعات عمل";
+    ViewData["PageTitle"] = "اضافه -خصم ايام- ساعات عمل";
+    ViewData["PageIcon"] = "bi-calendar-plus";
+}
+
+<style>
+    .month-selector { background: #1a1a1a; border-radius: 0.5rem; }
+    .employee-row:hover { background: rgba(13, 110, 253, 0.1) !important; }
+    .adjustment-saved { background: rgba(25, 135, 84, 0.15) !important; }
+    .value-positive { color: #198754; font-weight: bold; }
+    .value-negative { color: #dc3545; font-weight: bold; }
+    .summary-card { border-radius: 0.5rem; padding: 1rem; background: #1a1a1a; }
+    .summary-card .number { font-size: 1.5rem; font-weight: bold; }
+    .btn-save-row { min-width: 80px; }
+    input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
+</style>
+
+<div class="container-fluid">
+    <!-- Month/Year Selector -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">الشهر <span class="text-danger">*</span></label>
+                    <select id="monthSelect" class="form-select">
+                        <option value="1">يناير</option>
+                        <option value="2">فبراير</option>
+                        <option value="3">مارس</option>
+                        <option value="4">أبريل</option>
+                        <option value="5">مايو</option>
+                        <option value="6">يونيو</option>
+                        <option value="7">يوليو</option>
+                        <option value="8">أغسطس</option>
+                        <option value="9">سبتمبر</option>
+                        <option value="10">أكتوبر</option>
+                        <option value="11">نوفمبر</option>
+                        <option value="12">ديسمبر</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">السنة <span class="text-danger">*</span></label>
+                    <input type="number" id="yearInput" class="form-control" min="2000" max="2100" />
+                </div>
+                <div class="col-md-3">
+                    <button type="button" class="btn btn-primary w-100" id="loadBtn">
+                        <i class="bi bi-search me-1"></i>تحميل الموظفين
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button type="button" class="btn btn-success w-100 d-none" id="saveAllBtn">
+                        <i class="bi bi-check-all me-1"></i>حفظ الكل
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4 d-none" id="summarySection">
+        <div class="col-md-3">
+            <div class="summary-card text-center">
+                <small class="text-muted d-block">إجمالي الموظفين</small>
+                <span class="number text-primary" id="totalEmployees">0</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card text-center">
+                <small class="text-muted d-block">تسويات مُسجلة</small>
+                <span class="number text-info" id="totalAdjustments">0</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card text-center">
+                <small class="text-muted d-block">إضافات (أيام/ساعات)</small>
+                <span class="number text-success" id="totalPositive">0</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card text-center">
+                <small class="text-muted d-block">خصومات (أيام/ساعات)</small>
+                <span class="number text-danger" id="totalNegative">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employees Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-people me-2"></i>الموظفين
+                <span class="badge bg-secondary ms-2" id="monthBadge" style="font-size: 0.75rem;"></span>
+            </h5>
+            <span class="badge bg-primary" id="recordCount">0 موظف</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th style="width: 90px;">الكود</th>
+                            <th>الموظف</th>
+                            <th>القسم</th>
+                            <th style="width: 130px;">النوع</th>
+                            <th style="width: 120px;">القيمة</th>
+                            <th>السبب</th>
+                            <th style="width: 160px;">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+            <div id="noRecordsMessage" class="text-center py-5">
+                <i class="bi bi-calendar-plus display-1 text-muted"></i>
+                <p class="text-muted mt-3">اختر الشهر والسنة ثم اضغط "تحميل الموظفين"</p>
+            </div>
+            <div id="loadingMessage" class="text-center py-5 d-none">
+                <div class="spinner-border text-primary"></div>
+                <p class="text-muted mt-2">جاري التحميل...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const baseUrl = '/AttendanceAdjustment';
+    let employeesData = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set current month and year
+        const now = new Date();
+        document.getElementById('monthSelect').value = now.getMonth() + 1;
+        document.getElementById('yearInput').value = now.getFullYear();
+
+        document.getElementById('loadBtn').addEventListener('click', loadEmployees);
+        document.getElementById('saveAllBtn').addEventListener('click', saveAll);
+    });
+
+    async function loadEmployees() {
+        const month = document.getElementById('monthSelect').value;
+        const year = document.getElementById('yearInput').value;
+
+        if (!month || !year) {
+            showAlert('الرجاء اختيار الشهر والسنة', 'danger');
+            return;
+        }
+
+        const btn = document.getElementById('loadBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري التحميل...';
+
+        document.getElementById('noRecordsMessage').classList.add('d-none');
+        document.getElementById('loadingMessage').classList.remove('d-none');
+        document.getElementById('tableBody').innerHTML = '';
+
+        try {
+            const response = await fetch(`${baseUrl}/GetEmployeesWithAdjustments?month=${month}&year=${year}`);
+            const result = await response.json();
+
+            document.getElementById('loadingMessage').classList.add('d-none');
+
+            if (result.success) {
+                employeesData = result.data;
+                renderTable();
+                updateSummary();
+
+                const monthNames = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+                    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+                document.getElementById('monthBadge').textContent = `${monthNames[month]} ${year}`;
+
+                if (employeesData.length > 0) {
+                    document.getElementById('saveAllBtn').classList.remove('d-none');
+                }
+            } else {
+                showAlert(result.message, 'danger');
+                document.getElementById('noRecordsMessage').classList.remove('d-none');
+            }
+        } catch (error) {
+            document.getElementById('loadingMessage').classList.add('d-none');
+            document.getElementById('noRecordsMessage').classList.remove('d-none');
+            showAlert('حدث خطأ في التحميل', 'danger');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-search me-1"></i>تحميل الموظفين';
+        }
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        const noRecords = document.getElementById('noRecordsMessage');
+
+        if (employeesData.length === 0) {
+            tbody.innerHTML = '';
+            noRecords.classList.remove('d-none');
+            return;
+        }
+
+        noRecords.classList.add('d-none');
+
+        tbody.innerHTML = employeesData.map((emp, idx) => {
+            const hasAdjustment = emp.adjustmentId != null;
+            const rowClass = hasAdjustment ? 'adjustment-saved' : '';
+            const typeValue = emp.adjustmentType || 'Days';
+            const value = emp.value != null ? emp.value : '';
+            const reason = emp.reason || '';
+
+            return `
+                <tr class="employee-row ${rowClass}" data-employee-id="${emp.employeeId}" data-adjustment-id="${emp.adjustmentId || ''}">
+                    <td>${idx + 1}</td>
+                    <td><span class="badge bg-dark border">${emp.employeeCode}</span></td>
+                    <td class="fw-semibold">${emp.employeeName}</td>
+                    <td><small class="text-muted">${emp.departmentName || '-'}</small></td>
+                    <td>
+                        <select class="form-select form-select-sm adj-type" data-idx="${idx}">
+                            <option value="Days" ${typeValue === 'Days' ? 'selected' : ''}>أيام</option>
+                            <option value="Hours" ${typeValue === 'Hours' ? 'selected' : ''}>ساعات</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm adj-value text-center" 
+                               data-idx="${idx}" step="0.5" placeholder="0"
+                               value="${value}" style="direction: ltr;" />
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm adj-reason" 
+                               data-idx="${idx}" placeholder="السبب..."
+                               value="${reason}" />
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-success btn-save-row" onclick="saveRow(${idx})" title="حفظ">
+                                <i class="bi bi-check-lg me-1"></i>حفظ
+                            </button>
+                            ${hasAdjustment ? `
+                                <button class="btn btn-outline-danger" onclick="deleteRow(${idx})" title="حذف">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        document.getElementById('recordCount').textContent = `${employeesData.length} موظف`;
+        document.getElementById('summarySection').classList.remove('d-none');
+    }
+
+    function updateSummary() {
+        const total = employeesData.length;
+        const withAdjustments = employeesData.filter(e => e.adjustmentId != null).length;
+        const positive = employeesData.filter(e => e.value != null && e.value > 0).length;
+        const negative = employeesData.filter(e => e.value != null && e.value < 0).length;
+
+        document.getElementById('totalEmployees').textContent = total;
+        document.getElementById('totalAdjustments').textContent = withAdjustments;
+        document.getElementById('totalPositive').textContent = positive;
+        document.getElementById('totalNegative').textContent = negative;
+    }
+
+    async function saveRow(idx) {
+        const month = document.getElementById('monthSelect').value;
+        const year = document.getElementById('yearInput').value;
+        const emp = employeesData[idx];
+
+        const row = document.querySelector(`tr[data-employee-id="${emp.employeeId}"]`);
+        const type = row.querySelector('.adj-type').value;
+        const valueStr = row.querySelector('.adj-value').value;
+        const reason = row.querySelector('.adj-reason').value;
+
+        if (!valueStr || parseFloat(valueStr) === 0) {
+            showAlert('الرجاء إدخال قيمة (موجبة للإضافة أو سالبة للخصم)', 'warning');
+            return;
+        }
+
+        const value = parseFloat(valueStr);
+
+        const saveBtn = row.querySelector('.btn-save-row');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        try {
+            const response = await fetch(`${baseUrl}/SaveAjax`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    Employee_id: emp.employeeId,
+                    Month: parseInt(month),
+                    Year: parseInt(year),
+                    AdjustmentType: type,
+                    Value: value,
+                    Reason: reason
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert(`تم حفظ تسوية ${emp.employeeName} بنجاح`, 'success');
+
+                // Update local data
+                employeesData[idx].adjustmentId = result.data.id;
+                employeesData[idx].adjustmentType = type;
+                employeesData[idx].value = value;
+                employeesData[idx].reason = reason;
+
+                renderTable();
+                updateSummary();
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في الحفظ', 'danger');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>حفظ';
+        }
+    }
+
+    async function deleteRow(idx) {
+        const emp = employeesData[idx];
+        if (!emp.adjustmentId) return;
+
+        if (!confirm(`هل أنت متأكد من حذف تسوية ${emp.employeeName}؟`)) return;
+
+        try {
+            const response = await fetch(`${baseUrl}/DeleteAjax?id=${emp.adjustmentId}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert(`تم حذف تسوية ${emp.employeeName}`, 'success');
+
+                // Clear local data
+                employeesData[idx].adjustmentId = null;
+                employeesData[idx].adjustmentType = null;
+                employeesData[idx].value = null;
+                employeesData[idx].reason = null;
+
+                renderTable();
+                updateSummary();
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في الحذف', 'danger');
+        }
+    }
+
+    async function saveAll() {
+        const month = parseInt(document.getElementById('monthSelect').value);
+        const year = parseInt(document.getElementById('yearInput').value);
+        const btn = document.getElementById('saveAllBtn');
+
+        // Collect all rows with values
+        const rows = document.querySelectorAll('.employee-row');
+        let savedCount = 0;
+        let errorCount = 0;
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري الحفظ...';
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const valueStr = row.querySelector('.adj-value').value;
+            
+            if (!valueStr || parseFloat(valueStr) === 0) continue;
+
+            const empId = parseInt(row.dataset.employeeId);
+            const type = row.querySelector('.adj-type').value;
+            const value = parseFloat(valueStr);
+            const reason = row.querySelector('.adj-reason').value;
+
+            try {
+                const response = await fetch(`${baseUrl}/SaveAjax`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        Employee_id: empId,
+                        Month: month,
+                        Year: year,
+                        AdjustmentType: type,
+                        Value: value,
+                        Reason: reason
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    savedCount++;
+                    employeesData[i].adjustmentId = result.data.id;
+                    employeesData[i].adjustmentType = type;
+                    employeesData[i].value = value;
+                    employeesData[i].reason = reason;
+                } else {
+                    errorCount++;
+                }
+            } catch {
+                errorCount++;
+            }
+        }
+
+        renderTable();
+        updateSummary();
+
+        if (errorCount > 0) {
+            showAlert(`تم حفظ ${savedCount} تسوية مع ${errorCount} خطأ`, 'warning');
+        } else if (savedCount > 0) {
+            showAlert(`تم حفظ ${savedCount} تسوية بنجاح`, 'success');
+        } else {
+            showAlert('لا توجد تسويات لحفظها (أدخل قيم أولاً)', 'info');
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-all me-1"></i>حفظ الكل';
+    }
+
+    function showAlert(message, type) {
+        const container = document.getElementById('alertContainer');
+        const id = 'alert-' + Date.now();
+        const icon = type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'info' ? 'info-circle' : 'exclamation-circle';
+        container.innerHTML = `
+            <div id="${id}" class="alert alert-${type} alert-dismissible fade show">
+                <i class="bi bi-${icon} me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
+        setTimeout(() => document.getElementById(id)?.remove(), 5000);
+    }
+</script>
+}

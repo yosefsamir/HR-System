@@ -128,6 +128,12 @@ namespace HR_system.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAdvances { get; set; }
 
+        /// <summary>
+        /// Monetary amount from attendance adjustments (bonus days/hours)
+        /// </summary>
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalAttendanceAdjustment { get; set; }
+
         // Worked Hours Salary (SalaryPerHour × ActualWorkedHours)
         [Column(TypeName = "decimal(18,2)")]
         public decimal WorkedHoursSalary { get; set; }

@@ -1,9 +1,10 @@
 using HR_system.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace HR_system.Data
 {
-    public class ApplicationDbContext : DbContext
+    public class ApplicationDbContext : IdentityDbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
@@ -23,6 +24,7 @@ namespace HR_system.Data
         public DbSet<EarlyDeparture> EarlyDepartures { get; set; }
         public DbSet<PayRoll> PayRolls { get; set; }
         public DbSet<AppSettings> AppSettings { get; set; }
+        public DbSet<AttendanceAdjustment> AttendanceAdjustments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

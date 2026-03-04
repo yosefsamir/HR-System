@@ -37,6 +37,7 @@ namespace HR_system.DTOs.Salary
         public decimal TotalBonuses { get; set; }
         public decimal TotalDeductions { get; set; }
         public decimal TotalAdvances { get; set; }
+        public decimal TotalAttendanceAdjustment { get; set; }
         public decimal TotalOvertimeAmount { get; set; }
         public decimal TotalLateTimeDeduction { get; set; }
         public decimal TotalEarlyDepartureDeduction { get; set; }
@@ -122,6 +123,7 @@ namespace HR_system.DTOs.Salary
         public decimal TotalBonuses { get; set; }
         public decimal TotalDeductions { get; set; }
         public decimal TotalAdvances { get; set; }
+        public decimal TotalAttendanceAdjustment { get; set; }
         
         // Bonuses Breakdown
         public List<FinancialItemDto> BonusesList { get; set; } = new();
@@ -131,6 +133,9 @@ namespace HR_system.DTOs.Salary
         
         // Advances Breakdown
         public List<FinancialItemDto> AdvancesList { get; set; } = new();
+
+        // Attendance Adjustments Breakdown
+        public List<FinancialItemDto> AttendanceAdjustmentsList { get; set; } = new();
         
         // Worked Hours Salary (SalaryPerHour × ActualWorkedHours)
         public decimal WorkedHoursSalary { get; set; }

@@ -546,9 +546,14 @@
                                         <td>المكافآت</td>
                                         <td class="text-end">+${formatCurrency(emp.totalBonuses)}</td>
                                     </tr>
+                                    ${emp.totalAttendanceAdjustment > 0 ? `
+                                    <tr class="text-success">
+                                        <td>تسوية حضور (إضافة)</td>
+                                        <td class="text-end">+${formatCurrency(emp.totalAttendanceAdjustment)}</td>
+                                    </tr>` : ''}
                                     <tr class="table-success">
                                         <td><strong>إجمالي الإضافات</strong></td>
-                                        <td class="text-end"><strong>+${formatCurrency(emp.overtimeAmount + emp.totalBonuses)}</strong></td>
+                                        <td class="text-end"><strong>+${formatCurrency(emp.overtimeAmount + emp.totalBonuses + Math.max(0, emp.totalAttendanceAdjustment || 0))}</strong></td>
                                     </tr>
                                 </table>
                             </div>
@@ -570,6 +575,11 @@
                                         <td>السلف</td>
                                         <td class="text-end">-${formatCurrency(emp.totalAdvances)}</td>
                                     </tr>
+                                    ${emp.totalAttendanceAdjustment < 0 ? `
+                                    <tr class="text-danger">
+                                        <td>تسوية حضور (خصم)</td>
+                                        <td class="text-end">-${formatCurrency(Math.abs(emp.totalAttendanceAdjustment))}</td>
+                                    </tr>` : ''}
                                     <tr class="table-danger">
                                         <td><strong>إجمالي الخصومات</strong></td>
                                         <td class="text-end"><strong>-${formatCurrency(emp.totalDeductionsAmount)}</strong></td>

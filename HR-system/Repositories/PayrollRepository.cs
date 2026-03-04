@@ -75,6 +75,16 @@ namespace HR_system.Repositories
         }
 
         /// <summary>
+        /// Get attendance adjustment records for a specific month and year
+        /// </summary>
+        public async Task<List<AttendanceAdjustment>> GetAttendanceAdjustmentRecordsAsync(int month, int year)
+        {
+            return await _context.AttendanceAdjustments
+                .Where(a => a.Month == month && a.Year == year)
+                .ToListAsync();
+        }
+
+        /// <summary>
         /// Get list of employee IDs who have any records in the specified month
         /// </summary>
         public async Task<List<int>> GetEmployeesWithRecordsInMonthAsync(int month, int year)
@@ -107,11 +117,19 @@ namespace HR_system.Repositories
                 .Distinct()
                 .ToListAsync();
 
+            // Get employees from attendance adjustments
+            var adjustmentEmployees = await _context.AttendanceAdjustments
+                .Where(a => a.Month == month && a.Year == year)
+                .Select(a => a.Employee_id)
+                .Distinct()
+                .ToListAsync();
+
             // Combine all unique employee IDs
             return attendanceEmployees
                 .Union(bonusEmployees)
                 .Union(deductionEmployees)
                 .Union(advanceEmployees)
+                .Union(adjustmentEmployees)
                 .Distinct()
                 .ToList();
         }
@@ -229,6 +247,7 @@ namespace HR_system.Repositories
                 TotalBonuses = records.Sum(r => r.TotalBonuses),
                 TotalDeductions = records.Sum(r => r.TotalDeductions),
                 TotalAdvances = records.Sum(r => r.TotalAdvances),
+                TotalAttendanceAdjustment = records.Sum(r => r.TotalAttendanceAdjustment),
                 TotalOvertimeAmount = records.Sum(r => r.OvertimeAmount),
                 TotalLateTimeDeduction = records.Sum(r => r.LateTimeDeduction),
                 TotalEarlyDepartureDeduction = records.Sum(r => r.EarlyDepartureDeduction),
@@ -267,6 +286,7 @@ namespace HR_system.Repositories
                     Bonuses = r.TotalBonuses,
                     Deductions = r.TotalDeductions,
                     Advances = r.TotalAdvances,
+                    TotalAttendanceAdjustment = r.TotalAttendanceAdjustment,
                     GrossSalary = r.GrossSalary,
                     TotalDeductionsAmount = r.TotalDeductionsAmount,
                     NetSalary = r.NetSalary,
@@ -377,6 +397,7 @@ namespace HR_system.Repositories
                 TotalBonuses = empSalary.TotalBonuses,
                 TotalDeductions = empSalary.TotalDeductions,
                 TotalAdvances = empSalary.TotalAdvances,
+                TotalAttendanceAdjustment = empSalary.TotalAttendanceAdjustment,
 
                 // Worked Hours Salary
                 WorkedHoursSalary = empSalary.WorkedHoursSalary,
@@ -452,6 +473,7 @@ namespace HR_system.Repositories
             payRoll.TotalBonuses = empSalary.TotalBonuses;
             payRoll.TotalDeductions = empSalary.TotalDeductions;
             payRoll.TotalAdvances = empSalary.TotalAdvances;
+            payRoll.TotalAttendanceAdjustment = empSalary.TotalAttendanceAdjustment;
 
             // Worked Hours Salary
             payRoll.WorkedHoursSalary = empSalary.WorkedHoursSalary;
@@ -523,9 +545,13 @@ namespace HR_system.Repositories
                 .Where(a => a.Date.Month == month && a.Date.Year == year && a.Employee_id == employee.Id)
                 .ToListAsync();
 
+            var adjustments = await _context.AttendanceAdjustments
+                .Where(a => a.Month == month && a.Year == year && a.Employee_id == employee.Id)
+                .ToListAsync();
+
             // Recalculate salary
             var empSalary = salaryCalculator.CalculateEmployeeSalary(
-                employee, attendances, bonuses, deductions, advances,
+                employee, attendances, bonuses, deductions, advances, adjustments,
                 workingDaysInMonth, holidaysInMonth, year, month);
 
             // Update payroll record
@@ -563,6 +589,7 @@ namespace HR_system.Repositories
             payroll.TotalBonuses = empSalary.TotalBonuses;
             payroll.TotalDeductions = empSalary.TotalDeductions;
             payroll.TotalAdvances = empSalary.TotalAdvances;
+            payroll.TotalAttendanceAdjustment = empSalary.TotalAttendanceAdjustment;
             payroll.WorkedHoursSalary = empSalary.WorkedHoursSalary;
             payroll.GrossSalary = empSalary.GrossSalary;
             payroll.TotalDeductionsAmount = empSalary.TotalDeductionsAmount;

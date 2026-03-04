@@ -47,7 +47,7 @@ namespace HR_system.Services
                 await connection.OpenAsync();
 
                 var backupQuery = $@"BACKUP DATABASE [{databaseName}] TO DISK = N'{backupPath}' 
-                    WITH FORMAT, INIT, COMPRESSION, NAME = N'HR System Backup - {timestamp}'";
+                    WITH FORMAT, INIT, NAME = N'HR System Backup - {timestamp}'";
 
                 using var command = new SqlCommand(backupQuery, connection);
                 command.CommandTimeout = 600;

@@ -732,6 +732,16 @@
                                         <td>- السلف</td>
                                         <td class="text-end">-${formatCurrency(emp.advances)}</td>
                                     </tr>
+                                    ${(emp.totalAttendanceAdjustment || 0) > 0 ? `
+                                    <tr class="text-success">
+                                        <td>+ تسوية حضور (إضافة)</td>
+                                        <td class="text-end">+${formatCurrency(emp.totalAttendanceAdjustment)}</td>
+                                    </tr>` : ''}
+                                    ${(emp.totalAttendanceAdjustment || 0) < 0 ? `
+                                    <tr class="text-danger">
+                                        <td>- تسوية حضور (خصم)</td>
+                                        <td class="text-end">-${formatCurrency(Math.abs(emp.totalAttendanceAdjustment))}</td>
+                                    </tr>` : ''}
                                     <tr class="table-primary">
                                         <td><strong>صافي الراتب</strong></td>
                                         <td class="text-end"><strong>${formatCurrency(emp.netSalary)}</strong></td>
@@ -873,6 +883,7 @@
                         bonuses: data.bonuses,
                         deductions: data.deductions,
                         advances: data.advances,
+                        totalAttendanceAdjustment: data.totalAttendanceAdjustment,
                         netSalary: data.netSalary,
                         paidSalary: data.paidSalary,
                         isPaid: data.isPaid
@@ -1138,6 +1149,12 @@
                             <td class="sub-value"></td>
                             <td class="sub-label">سلف</td>
                             <td class="sub-value ded">-${formatCurrency(emp.advances)}</td>
+                        </tr>
+                        <tr>
+                            <td class="sub-label" colspan="2">تسوية حضور</td>
+                            <td class="sub-label">المبلغ</td>
+                            <td class="sub-value ${(emp.totalAttendanceAdjustment || 0) >= 0 ? 'add' : 'ded'}">${(emp.totalAttendanceAdjustment || 0) >= 0 ? '+' : ''}${formatCurrency(emp.totalAttendanceAdjustment || 0)}</td>
+                            <td class="sub-label" colspan="8"></td>
                         </tr>
                     </tbody>
                 </table>

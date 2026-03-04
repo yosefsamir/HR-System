@@ -49,6 +49,7 @@ namespace HR_system.Services
             var bonuses = await _payrollRepository.GetBonusRecordsAsync(month, year);
             var deductions = await _payrollRepository.GetDeductionRecordsAsync(month, year);
             var advances = await _payrollRepository.GetAdvanceRecordsAsync(month, year);
+            var adjustments = await _payrollRepository.GetAttendanceAdjustmentRecordsAsync(month, year);
 
             // Initialize result
             var result = new AllEmployeesSalaryResultDto
@@ -65,7 +66,7 @@ namespace HR_system.Services
             foreach (var employee in employees)
             {
                 var employeeSalary = _salaryCalculator.CalculateEmployeeSalary(
-                    employee, attendances, bonuses, deductions, advances,
+                    employee, attendances, bonuses, deductions, advances, adjustments,
                     workingDaysInMonth, holidaysInMonth, year, month);
 
                 result.Employees.Add(employeeSalary);
