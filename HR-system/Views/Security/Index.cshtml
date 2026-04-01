@@ -1,0 +1,497 @@
+@model List<HR_system.DTOs.Security.UserListItemDto>
+
+@{
+    ViewData["Title"] = "الأمان وإدارة المستخدمين";
+    bool isFirstRun = !Model.Any();
+}
+
+<div class="container-fluid">
+
+    <!-- ── Page Header ──────────────────────────────────────────────────────── -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-0">
+                <i class="bi bi-shield-lock me-2 text-primary"></i>الأمان وإدارة المستخدمين
+            </h2>
+            <small class="text-muted">إضافة المستخدمين وإدارة كلمات المرور وصلاحيات الوصول</small>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    @if (isFirstRun)
+    {
+        <!-- ── First-Run Banner ──────────────────────────────────────────────── -->
+        <div class="alert alert-warning border-warning d-flex align-items-start gap-3 mb-4">
+            <i class="bi bi-shield-exclamation fs-3 flex-shrink-0 mt-1"></i>
+            <div>
+                <strong class="d-block mb-1">النظام غير محمي حتى الآن</strong>
+                أنشئ الحساب الأول أدناه. بمجرد إضافة أي مستخدم سيُطلب تسجيل الدخول عند كل زيارة.
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info border-info d-flex align-items-center gap-2 mb-4">
+            <i class="bi bi-info-circle fs-5 flex-shrink-0"></i>
+            <span>النظام محمي بكلمة مرور. لا يمكن حذف المستخدم الوحيد أو تعطيله لضمان الوصول الدائم.</span>
+        </div>
+    }
+
+    <!-- ── Add User Form ─────────────────────────────────────────────────────── -->
+    <div class="card bg-dark border-@(isFirstRun ? "warning" : "secondary") mb-4">
+        <div class="card-header @(isFirstRun ? "bg-warning text-dark" : "bg-secondary")">
+            <h5 class="mb-0">
+                <i class="bi bi-person-plus me-2"></i>
+                @(isFirstRun ? "إنشاء الحساب الأول" : "إضافة مستخدم جديد")
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-sm-6 col-lg-3">
+                    <label class="form-label">الاسم الأول <span class="text-danger">*</span></label>
+                    <input type="text" id="f_firstName" class="form-control bg-dark text-light border-secondary"
+                           placeholder="الاسم الأول" />
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label class="form-label">الاسم الأخير</label>
+                    <input type="text" id="f_lastName" class="form-control bg-dark text-light border-secondary"
+                           placeholder="اختياري" />
+                </div>
+                <div class="col-sm-6 col-lg-2">
+                    <label class="form-label">اسم المستخدم <span class="text-danger">*</span></label>
+                    <input type="text" id="f_userName" class="form-control bg-dark text-light border-secondary"
+                           placeholder="مثال: ahmed" autocomplete="off" />
+                </div>
+                <div class="col-sm-6 col-lg-2">
+                    <label class="form-label">كلمة المرور <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="password" id="f_password" class="form-control bg-dark text-light border-secondary"
+                               placeholder="6 أحرف على الأقل" autocomplete="new-password" />
+                        <button class="btn btn-outline-secondary" type="button" tabindex="-1" onclick="toggleVis('f_password')">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-lg-2">
+                    <label class="form-label">تأكيد كلمة المرور <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="password" id="f_confirmPassword" class="form-control bg-dark text-light border-secondary"
+                               placeholder="أعد الكتابة" autocomplete="new-password" />
+                        <button class="btn btn-outline-secondary" type="button" tabindex="-1" onclick="toggleVis('f_confirmPassword')">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3 d-flex flex-wrap align-items-center gap-3">
+                <button type="button"
+                        class="btn @(isFirstRun ? "btn-warning text-dark fw-semibold" : "btn-primary") px-4"
+                        onclick="createUser()">
+                    <i class="bi bi-@(isFirstRun ? "check-lg" : "person-plus") me-2"></i>
+                    @(isFirstRun ? "إنشاء الحساب والبدء" : "إضافة المستخدم")
+                </button>
+                <div id="formError"   class="alert alert-danger  mb-0 py-2 d-none flex-grow-1"></div>
+                <div id="formSuccess" class="alert alert-success mb-0 py-2 d-none flex-grow-1"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Users List ────────────────────────────────────────────────────────── -->
+    <div class="card bg-dark border-secondary">
+        <div class="card-header bg-secondary d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-people me-2"></i>المستخدمون
+                <span class="badge bg-dark ms-2" id="userCount">@Model.Count</span>
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الاسم</th>
+                            <th>اسم المستخدم</th>
+                            <th>الحالة</th>
+                            <th>آخر دخول</th>
+                            <th>تاريخ الإنشاء</th>
+                            <th class="text-center">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        @for (int i = 0; i < Model.Count; i++)
+                        {
+                            var u = Model[i];
+                            <tr id="row-@u.Id">
+                                <td class="align-middle">@(i + 1)</td>
+                                <td class="align-middle">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center"
+                                             style="width:36px;height:36px;min-width:36px">
+                                            <i class="bi bi-person text-white"></i>
+                                        </div>
+                                        <div class="fw-semibold">@u.FirstName @u.LastName</div>
+                                    </div>
+                                </td>
+                                <td class="align-middle"><code class="text-info">@u.UserName</code></td>
+                                <td class="align-middle">
+                                    <span id="badge-@u.Id" class="badge @(u.IsActive ? "bg-success" : "bg-secondary")">
+                                        @(u.IsActive ? "نشط" : "معطّل")
+                                    </span>
+                                </td>
+                                <td class="align-middle text-muted small">
+                                    @(u.LastLogin.HasValue ? u.LastLogin.Value.ToString("yyyy/MM/dd HH:mm") : "لم يدخل بعد")
+                                </td>
+                                <td class="align-middle text-muted small">
+                                    @(u.CreatedOn.HasValue ? u.CreatedOn.Value.ToString("yyyy/MM/dd") : "-")
+                                </td>
+                                <td class="align-middle text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" title="تعديل"
+                                                onclick="openEditModal('@u.Id','@u.FirstName','@(u.LastName ?? "")','@u.UserName',@(u.IsActive ? "true" : "false"))">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" title="تغيير كلمة المرور"
+                                                onclick="openPasswordModal('@u.Id','@u.FirstName')">
+                                            <i class="bi bi-key"></i>
+                                        </button>
+                                        <button id="toggle-@u.Id"
+                                                class="btn @(u.IsActive ? "btn-outline-secondary" : "btn-outline-success")"
+                                                title="@(u.IsActive ? "تعطيل" : "تفعيل")"
+                                                onclick="toggleActive('@u.Id')">
+                                            <i class="bi @(u.IsActive ? "bi-pause-circle" : "bi-play-circle")"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" title="حذف"
+                                                onclick="confirmDelete('@u.Id','@u.FirstName @u.LastName')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (!Model.Any())
+            {
+                <div class="text-center py-5 text-muted" id="emptyState">
+                    <i class="bi bi-people fs-1 d-block mb-2"></i>
+                    لا يوجد مستخدمون بعد. أضف الحساب الأول من النموذج أعلاه.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- ── Edit User Modal ───────────────────────────────────────────────────── -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-pencil me-2 text-warning"></i>تعديل المستخدم</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="e_id" />
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label">الاسم الأول <span class="text-danger">*</span></label>
+                        <input type="text" id="e_firstName" class="form-control bg-dark text-light border-secondary" />
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label">الاسم الأخير</label>
+                        <input type="text" id="e_lastName" class="form-control bg-dark text-light border-secondary" />
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">اسم المستخدم <span class="text-danger">*</span></label>
+                    <input type="text" id="e_userName" class="form-control bg-dark text-light border-secondary" />
+                </div>
+                <div class="mb-3 form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="e_isActive" role="switch">
+                    <label class="form-check-label" for="e_isActive">مستخدم نشط</label>
+                </div>
+                <div id="editError" class="alert alert-danger d-none py-2"></div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-warning" onclick="editUser()">
+                    <i class="bi bi-check-lg me-1"></i>حفظ التغييرات
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Change Password Modal ─────────────────────────────────────────────── -->
+<div class="modal fade" id="passwordModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-key me-2 text-warning"></i>تغيير كلمة المرور</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="p_userId" />
+                <p class="text-muted mb-3">تغيير كلمة مرور: <strong id="p_userName" class="text-light"></strong></p>
+                <div class="mb-3">
+                    <label class="form-label">كلمة المرور الجديدة <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="password" id="p_newPassword"
+                               class="form-control bg-dark text-light border-secondary"
+                               placeholder="6 أحرف على الأقل" />
+                        <button class="btn btn-outline-secondary" type="button" onclick="toggleVis('p_newPassword')">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">تأكيد كلمة المرور <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="password" id="p_confirmPassword"
+                               class="form-control bg-dark text-light border-secondary"
+                               placeholder="أعد كتابة كلمة المرور" />
+                        <button class="btn btn-outline-secondary" type="button" onclick="toggleVis('p_confirmPassword')">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="passwordError" class="alert alert-danger d-none py-2"></div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-warning" onclick="changePassword()">
+                    <i class="bi bi-check-lg me-1"></i>تغيير كلمة المرور
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Delete Confirm Modal ──────────────────────────────────────────────── -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content bg-dark border-danger">
+            <div class="modal-header border-danger">
+                <h5 class="modal-title text-danger"><i class="bi bi-trash me-2"></i>تأكيد الحذف</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p>هل تريد حذف المستخدم <strong id="deleteUserName" class="text-light"></strong>؟</p>
+                <p class="text-danger small mb-0">لا يمكن التراجع عن هذا الإجراء.</p>
+                <input type="hidden" id="deleteUserId" />
+            </div>
+            <div class="modal-footer border-danger">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-danger" onclick="deleteUser()">
+                    <i class="bi bi-trash me-1"></i>حذف
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+@Html.AntiForgeryToken()
+<script>
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function toggleVis(id) {
+        const el = document.getElementById(id);
+        el.type = el.type === 'password' ? 'text' : 'password';
+    }
+
+    function getToken() {
+        return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    }
+
+    async function sendRequest(url, body) {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getToken() },
+            body: JSON.stringify(body)
+        });
+        return res.json();
+    }
+
+    function showPageAlert(msg, type = 'success') {
+        const div = document.getElementById('alertContainer');
+        div.innerHTML = `
+            <div class="alert alert-${type} alert-dismissible fade show">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                ${msg}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => { const a = div.querySelector('.alert'); if (a) a.remove(); }, 5000);
+    }
+
+    function showFormMsg(type, msg) {
+        document.getElementById('formError').classList.add('d-none');
+        document.getElementById('formSuccess').classList.add('d-none');
+        const el = document.getElementById(type === 'error' ? 'formError' : 'formSuccess');
+        el.innerHTML = `<i class="bi bi-${type === 'error' ? 'exclamation-triangle' : 'check-circle'} me-2"></i>${msg}`;
+        el.classList.remove('d-none');
+        if (type !== 'error') setTimeout(() => el.classList.add('d-none'), 4000);
+    }
+
+    function showModalError(id, msg) {
+        const el = document.getElementById(id);
+        el.textContent = msg;
+        el.classList.remove('d-none');
+    }
+
+    function hideModalError(id) {
+        document.getElementById(id).classList.add('d-none');
+    }
+
+    // ── Create (inline form) ─────────────────────────────────────────────────
+
+    async function createUser() {
+        const firstName       = document.getElementById('f_firstName').value.trim();
+        const lastName        = document.getElementById('f_lastName').value.trim();
+        const userName        = document.getElementById('f_userName').value.trim();
+        const password        = document.getElementById('f_password').value;
+        const confirmPassword = document.getElementById('f_confirmPassword').value;
+
+        if (!firstName || !userName || !password || !confirmPassword)
+            return showFormMsg('error', 'يرجى ملء جميع الحقول المطلوبة');
+        if (password.length < 6)
+            return showFormMsg('error', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+        if (password !== confirmPassword)
+            return showFormMsg('error', 'كلمتا المرور غير متطابقتين');
+
+        const result = await sendRequest('/Security/Create', { firstName, lastName, userName, password, confirmPassword });
+
+        if (result.success) {
+            ['f_firstName','f_lastName','f_userName','f_password','f_confirmPassword']
+                .forEach(id => document.getElementById(id).value = '');
+            showFormMsg('success', result.message);
+
+            const isFirstRun = @(isFirstRun ? "true" : "false");
+            if (isFirstRun) {
+                // First user created → go to login
+                setTimeout(() => location.href = '/Account/Login', 1500);
+            } else {
+                setTimeout(() => location.reload(), 1200);
+            }
+        } else {
+            showFormMsg('error', result.message);
+        }
+    }
+
+    // ── Edit ─────────────────────────────────────────────────────────────────
+
+    function openEditModal(id, firstName, lastName, userName, isActive) {
+        document.getElementById('e_id').value = id;
+        document.getElementById('e_firstName').value = firstName;
+        document.getElementById('e_lastName').value = lastName;
+        document.getElementById('e_userName').value = userName;
+        document.getElementById('e_isActive').checked = isActive === true || isActive === 'true';
+        hideModalError('editError');
+        new bootstrap.Modal(document.getElementById('editModal')).show();
+    }
+
+    async function editUser() {
+        const id        = document.getElementById('e_id').value;
+        const firstName = document.getElementById('e_firstName').value.trim();
+        const lastName  = document.getElementById('e_lastName').value.trim();
+        const userName  = document.getElementById('e_userName').value.trim();
+        const isActive  = document.getElementById('e_isActive').checked;
+
+        if (!firstName || !userName)
+            return showModalError('editError', 'الاسم الأول واسم المستخدم مطلوبان');
+
+        const result = await sendRequest('/Security/Edit', { id, firstName, lastName, userName, isActive });
+
+        if (result.success) {
+            bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+            showPageAlert(result.message);
+            setTimeout(() => location.reload(), 1200);
+        } else {
+            showModalError('editError', result.message);
+        }
+    }
+
+    // ── Password ─────────────────────────────────────────────────────────────
+
+    function openPasswordModal(userId, userName) {
+        document.getElementById('p_userId').value = userId;
+        document.getElementById('p_userName').textContent = userName;
+        document.getElementById('p_newPassword').value = '';
+        document.getElementById('p_confirmPassword').value = '';
+        hideModalError('passwordError');
+        new bootstrap.Modal(document.getElementById('passwordModal')).show();
+    }
+
+    async function changePassword() {
+        const userId          = document.getElementById('p_userId').value;
+        const newPassword     = document.getElementById('p_newPassword').value;
+        const confirmPassword = document.getElementById('p_confirmPassword').value;
+
+        if (!newPassword || !confirmPassword)
+            return showModalError('passwordError', 'يرجى إدخال كلمة المرور وتأكيدها');
+        if (newPassword.length < 6)
+            return showModalError('passwordError', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+        if (newPassword !== confirmPassword)
+            return showModalError('passwordError', 'كلمتا المرور غير متطابقتين');
+
+        const result = await sendRequest('/Security/ChangePassword', { userId, newPassword, confirmPassword });
+
+        if (result.success) {
+            bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
+            showPageAlert(result.message);
+        } else {
+            showModalError('passwordError', result.message);
+        }
+    }
+
+    // ── Toggle Active ─────────────────────────────────────────────────────────
+
+    async function toggleActive(id) {
+        const result = await sendRequest('/Security/ToggleActive', { id });
+        if (result.success) {
+            const badge = document.getElementById('badge-' + id);
+            const btn   = document.getElementById('toggle-' + id);
+            if (result.isActive) {
+                badge.className = 'badge bg-success'; badge.textContent = 'نشط';
+                btn.className = 'btn btn-outline-secondary btn-sm'; btn.title = 'تعطيل';
+                btn.innerHTML = '<i class="bi bi-pause-circle"></i>';
+            } else {
+                badge.className = 'badge bg-secondary'; badge.textContent = 'معطّل';
+                btn.className = 'btn btn-outline-success btn-sm'; btn.title = 'تفعيل';
+                btn.innerHTML = '<i class="bi bi-play-circle"></i>';
+            }
+            showPageAlert(result.message);
+        } else {
+            showPageAlert(result.message, 'danger');
+        }
+    }
+
+    // ── Delete ────────────────────────────────────────────────────────────────
+
+    function confirmDelete(id, name) {
+        document.getElementById('deleteUserId').value = id;
+        document.getElementById('deleteUserName').textContent = name;
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    }
+
+    async function deleteUser() {
+        const id = document.getElementById('deleteUserId').value;
+        const result = await sendRequest('/Security/Delete', { id });
+        bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+        if (result.success) {
+            const row = document.getElementById('row-' + id);
+            if (row) row.remove();
+            const cnt = document.getElementById('userCount');
+            cnt.textContent = parseInt(cnt.textContent) - 1;
+            showPageAlert(result.message);
+        } else {
+            showPageAlert(result.message, 'danger');
+        }
+    }
+</script>
+}

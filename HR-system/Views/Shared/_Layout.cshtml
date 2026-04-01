@@ -43,12 +43,20 @@
                     <div class="dropdown">
                         <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle me-2"></i>
-                            المسؤول
+                            @User.Identity?.Name
                         </button>
                         <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-start">
                             <li><a class="dropdown-item" asp-controller="Settings" asp-action="Index"><i class="bi bi-gear me-2"></i>الإعدادات</a></li>
+                            <li><a class="dropdown-item" asp-controller="Security" asp-action="Index"><i class="bi bi-shield-lock me-2"></i>الأمان والمستخدمون</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right me-2"></i>تسجيل الخروج</a></li>
+                            <li>
+                                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="bi bi-box-arrow-right me-2"></i>تسجيل الخروج
+                                    </button>
+                                </form>
+                            </li>
                         </ul>
                     </div>
                 </div>
@@ -56,6 +64,21 @@
             
             <!-- Page Content -->
             <main class="content-area p-4">
+                <!-- First-Run Security Banner -->
+                @if (Context.Items.ContainsKey("NoUsersYet"))
+                {
+                    <div class="alert alert-warning alert-dismissible mb-4 d-flex align-items-center gap-3" role="alert">
+                        <i class="bi bi-shield-exclamation fs-4 flex-shrink-0"></i>
+                        <div class="flex-grow-1">
+                            <strong>النظام غير محمي بكلمة مرور</strong> — يمكن لأي شخص الوصول إليه الآن.
+                            أنشئ حسابك الأول لتفعيل نظام تسجيل الدخول.
+                        </div>
+                        <a asp-controller="Security" asp-action="Index" class="btn btn-warning btn-sm flex-shrink-0">
+                            <i class="bi bi-person-plus me-1"></i>إنشاء الحساب الأول
+                        </a>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
                 <!-- Alerts -->
                 @if (TempData["Success"] != null)
                 {

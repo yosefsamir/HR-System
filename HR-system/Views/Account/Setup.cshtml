@@ -1,0 +1,112 @@
+@model HR_system.DTOs.Security.CreateUserDto
+
+@{
+    ViewData["Title"] = "إعداد الحساب الأول";
+    Layout = "~/Views/Account/_AuthLayout.cshtml";
+}
+
+<div class="container">
+    <div class="auth-card p-4 p-md-5 mx-auto" style="max-width:520px">
+        <div class="auth-logo">
+            <i class="bi bi-person-plus"></i>
+        </div>
+        <h3 class="text-center text-white mb-1">إعداد الحساب الأول</h3>
+        <p class="text-center text-muted mb-4">
+            مرحباً! لم يتم إنشاء أي مستخدم بعد.<br>
+            أنشئ حساب المسؤول للبدء.
+        </p>
+
+        <div class="alert alert-info border-0" role="alert">
+            <i class="bi bi-info-circle me-2"></i>
+            بعد إنشاء هذا الحساب، سيُطلب منك تسجيل الدخول في كل مرة تفتح النظام.
+        </div>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                @Html.ValidationSummary(true, null, new { @class = "mb-0" })
+            </div>
+        }
+
+        <form asp-action="Setup" asp-controller="Account" method="post">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="FirstName" class="form-label text-light">الاسم الأول *</label>
+                    <input asp-for="FirstName" class="form-control bg-dark text-light border-secondary"
+                           placeholder="الاسم الأول" autofocus />
+                    <span asp-validation-for="FirstName" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="LastName" class="form-label text-light">الاسم الأخير</label>
+                    <input asp-for="LastName" class="form-control bg-dark text-light border-secondary"
+                           placeholder="الاسم الأخير (اختياري)" />
+                    <span asp-validation-for="LastName" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="UserName" class="form-label text-light">
+                    <i class="bi bi-person me-1"></i>اسم المستخدم *
+                </label>
+                <input asp-for="UserName" class="form-control bg-dark text-light border-secondary"
+                       placeholder="مثال: admin" autocomplete="username" />
+                <span asp-validation-for="UserName" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label text-light">
+                    <i class="bi bi-lock me-1"></i>كلمة المرور *
+                </label>
+                <div class="input-group">
+                    <input asp-for="Password" type="password"
+                           class="form-control bg-dark text-light border-secondary"
+                           placeholder="6 أحرف على الأقل" id="pwd1" />
+                    <button class="btn btn-outline-secondary" type="button" onclick="togglePwd('pwd1','eye1')">
+                        <i class="bi bi-eye" id="eye1"></i>
+                    </button>
+                </div>
+                <span asp-validation-for="Password" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="ConfirmPassword" class="form-label text-light">
+                    <i class="bi bi-lock-fill me-1"></i>تأكيد كلمة المرور *
+                </label>
+                <div class="input-group">
+                    <input asp-for="ConfirmPassword" type="password"
+                           class="form-control bg-dark text-light border-secondary"
+                           placeholder="أعد كتابة كلمة المرور" id="pwd2" />
+                    <button class="btn btn-outline-secondary" type="button" onclick="togglePwd('pwd2','eye2')">
+                        <i class="bi bi-eye" id="eye2"></i>
+                    </button>
+                </div>
+                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100 btn-lg">
+                <i class="bi bi-check-lg me-2"></i>إنشاء الحساب والبدء
+            </button>
+        </form>
+
+        <div class="text-center mt-4">
+            <small class="text-muted">&copy; @DateTime.Now.Year نظام الموارد البشرية</small>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function togglePwd(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'bi bi-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'bi bi-eye';
+        }
+    }
+</script>
+}

@@ -1,10 +1,11 @@
 using HR_system.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace HR_system.Data
 {
-    public class ApplicationDbContext : IdentityDbContext
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser , ApplicationRole , Guid> 
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
@@ -27,8 +28,17 @@ namespace HR_system.Data
         public DbSet<AttendanceAdjustment> AttendanceAdjustments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
+        {       
             base.OnModelCreating(modelBuilder);
+
+            // Rename tables
+            modelBuilder.Entity<ApplicationUser>().ToTable("Users");
+            modelBuilder.Entity<ApplicationRole>().ToTable("Roles");
+            modelBuilder.Entity<IdentityUserRole<Guid>>().ToTable("UserRoles");
+            modelBuilder.Entity<IdentityUserClaim<Guid>>().ToTable("UserClaims");
+            modelBuilder.Entity<IdentityUserLogin<Guid>>().ToTable("UserLogins");
+            modelBuilder.Entity<IdentityRoleClaim<Guid>>().ToTable("RoleClaims");
+            modelBuilder.Entity<IdentityUserToken<Guid>>().ToTable("UserTokens");
 
             // Configure one-to-one relationship: Attendence -> OverTime
             modelBuilder.Entity<OverTime>()

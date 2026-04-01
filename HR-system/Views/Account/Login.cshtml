@@ -1,0 +1,87 @@
+@model HR_system.DTOs.Account.LoginDto
+
+@{
+    ViewData["Title"] = "تسجيل الدخول";
+    Layout = "~/Views/Account/_AuthLayout.cshtml";
+}
+
+<div class="container">
+    <div class="auth-card p-4 p-md-5 mx-auto">
+        <div class="auth-logo">
+            <i class="bi bi-building"></i>
+        </div>
+        <h3 class="text-center text-white mb-1">نظام الموارد البشرية</h3>
+        <p class="text-center text-muted mb-4">سجّل دخولك للمتابعة</p>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                @Html.ValidationSummary(true, null, new { @class = "mb-0" })
+            </div>
+        }
+
+        <form asp-action="Login" asp-controller="Account" method="post">
+            <input type="hidden" asp-for="RememberMe" value="false" />
+            @if (ViewData["ReturnUrl"] != null)
+            {
+                <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+            }
+
+            <div class="mb-3">
+                <label asp-for="UserName" class="form-label text-light">
+                    <i class="bi bi-person me-1"></i>اسم المستخدم
+                </label>
+                <input asp-for="UserName" class="form-control bg-dark text-light border-secondary"
+                       placeholder="أدخل اسم المستخدم" autocomplete="username" autofocus />
+                <span asp-validation-for="UserName" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label text-light">
+                    <i class="bi bi-lock me-1"></i>كلمة المرور
+                </label>
+                <div class="input-group">
+                    <input asp-for="Password" type="password"
+                           class="form-control bg-dark text-light border-secondary"
+                           placeholder="أدخل كلمة المرور" autocomplete="current-password" id="passwordInput" />
+                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                        <i class="bi bi-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
+                <span asp-validation-for="Password" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-4 form-check">
+                <input asp-for="RememberMe" class="form-check-input" type="checkbox" id="rememberMe" />
+                <label asp-for="RememberMe" class="form-check-label text-light" for="rememberMe">
+                    تذكرني
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 btn-lg">
+                <i class="bi bi-box-arrow-in-right me-2"></i>تسجيل الدخول
+            </button>
+        </form>
+
+        <div class="text-center mt-4">
+            <small class="text-muted">&copy; @DateTime.Now.Year نظام الموارد البشرية</small>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function togglePassword() {
+        const input = document.getElementById('passwordInput');
+        const icon = document.getElementById('eyeIcon');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'bi bi-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'bi bi-eye';
+        }
+    }
+</script>
+}

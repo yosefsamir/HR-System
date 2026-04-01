@@ -1,8 +1,9 @@
 using HR_system.Data;
+using HR_system.Middleware;
+using HR_system.Models;
 using HR_system.Repositories;
 using HR_system.Services;
 using HR_system.Services.Interfaces;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,8 +12,32 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddIdentity<IdentityUser , IdentityRole>()
-                .AddEntityFrameworkStores<ApplicationDbContext>();
+// Add Identity service
+builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+{
+    // Password settings
+    options.Password.RequireDigit = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequiredLength = 6;
+    // Lockout settings
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.AllowedForNewUsers = true;
+    // User settings
+    options.User.RequireUniqueEmail = false;
+})
+.AddEntityFrameworkStores<ApplicationDbContext>();
+
+// Configure application cookie (login path, etc.)
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+    options.SlidingExpiration = false;
+    options.ExpireTimeSpan = TimeSpan.FromHours(2);
+});
 
 // Register Repositories
 builder.Services.AddScoped<IAttendenceRepository, AttendenceRepository>();
@@ -78,6 +103,10 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Enforce login only when at least one user account exists.
+// If the DB has no users yet, the system is freely accessible.
+app.UseMiddleware<ConditionalAuthMiddleware>();
+
 app.MapStaticAssets();
 
 app.MapControllerRoute(
@@ -86,4 +115,4 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 
-app.Run();
+app.Run("http://0.0.0.0:5000");

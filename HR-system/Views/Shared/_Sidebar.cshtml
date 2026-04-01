@@ -232,6 +232,15 @@
                     <span>الإعدادات</span>
                 </a>
             </li>
+            
+            <!-- Security -->
+            <li class="nav-item mb-2">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Security" ? "active" : "")" 
+                   asp-controller="Security" asp-action="Index">
+                    <i class="bi bi-shield-lock me-3"></i>
+                    <span>الأمان والمستخدمون</span>
+                </a>
+            </li>
         </ul>
     </nav>
     
@@ -242,7 +251,7 @@
                 <i class="bi bi-person text-white"></i>
             </div>
             <div class="user-info">
-                <span class="text-white d-block">المسؤول</span>
+                <span class="text-white d-block">@User.Identity?.Name</span>
                 <small class="text-muted">مدير النظام</small>
             </div>
         </div>
