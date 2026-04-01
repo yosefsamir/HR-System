@@ -1,0 +1,648 @@
+@{
+    ViewData["Title"] = "إضافة حضور شهري";
+    ViewData["PageTitle"] = "إضافة حضور شهري";
+    ViewData["PageIcon"] = "bi-calendar-month";
+}
+
+<style>
+    /* Autocomplete styles */
+    .autocomplete-container {
+        position: relative;
+    }
+    .autocomplete-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1050;
+        max-height: 250px;
+        overflow-y: auto;
+        background: #212529;
+        border: 1px solid #495057;
+        border-radius: 0.375rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
+        display: none;
+    }
+    .autocomplete-results.show {
+        display: block;
+    }
+    .autocomplete-item {
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid #495057;
+        transition: background 0.15s;
+    }
+    .autocomplete-item:last-child {
+        border-bottom: none;
+    }
+    .autocomplete-item:hover,
+    .autocomplete-item.active {
+        background: #0d6efd;
+        color: white;
+    }
+    .autocomplete-item .employee-code {
+        font-size: 0.8rem;
+        opacity: 0.7;
+    }
+    .autocomplete-item .employee-shift {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+    .autocomplete-item:hover .employee-shift,
+    .autocomplete-item.active .employee-shift {
+        color: rgba(255,255,255,0.7);
+    }
+    .row-manual { background: rgba(25, 135, 84, 0.10) !important; }
+    .badge-manual { background: #198754; }
+    .badge-auto { background: #6c757d; }
+</style>
+
+<div class="container-fluid">
+    <!-- Add Monthly Attendance Form Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-plus-circle me-2"></i>
+                تسجيل حضور شهري جديد
+            </h5>
+        </div>
+        <div class="card-body">
+            <form id="monthlyForm">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label">الشهر <span class="text-danger">*</span></label>
+                        <select id="monthSelect" class="form-select">
+                            <option value="1">يناير</option>
+                            <option value="2">فبراير</option>
+                            <option value="3">مارس</option>
+                            <option value="4">أبريل</option>
+                            <option value="5">مايو</option>
+                            <option value="6">يونيو</option>
+                            <option value="7">يوليو</option>
+                            <option value="8">أغسطس</option>
+                            <option value="9">سبتمبر</option>
+                            <option value="10">أكتوبر</option>
+                            <option value="11">نوفمبر</option>
+                            <option value="12">ديسمبر</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">السنة <span class="text-danger">*</span></label>
+                        <input type="number" id="yearInput" class="form-control" min="2000" max="2100" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">الموظف <span class="text-danger">*</span></label>
+                        <div class="autocomplete-container">
+                            <input type="hidden" id="employeeId" />
+                            <input type="text" id="employeeSearch" class="form-control" 
+                                   placeholder="ابحث عن الموظف بالاسم أو الكود..." autocomplete="off" />
+                            <div id="employeeResults" class="autocomplete-results"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">أيام حضور</label>
+                        <input type="number" id="presentDays" class="form-control" min="0" max="31" value="0" />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">أيام غياب</label>
+                        <input type="number" id="absentDays" class="form-control" min="0" max="31" value="0" />
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-primary w-100" id="submitBtn">
+                            <i class="bi bi-check-lg me-1"></i>
+                            حفظ
+                        </button>
+                    </div>
+                </div>
+                <div class="row g-3 mt-1">
+                    <div class="col-md-2">
+                        <label class="form-label">دقائق العمل</label>
+                        <input type="number" id="workedMinutes" class="form-control" min="0" value="0" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">دقائق التأخير</label>
+                        <input type="number" id="lateMinutes" class="form-control" min="0" value="0" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">دقائق الإضافي</label>
+                        <input type="number" id="overtimeMinutes" class="form-control" min="0" value="0" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">دقائق الانصراف المبكر</label>
+                        <input type="number" id="earlyDepartureMinutes" class="form-control" min="0" value="0" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">دقائق الاستئذان</label>
+                        <input type="number" id="permissionMinutes" class="form-control" min="0" value="0" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">ملاحظات</label>
+                        <input type="text" id="notes" class="form-control" placeholder="اختياري..." />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    <!-- Session Records Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-table me-2"></i>
+                السجلات المضافة في هذه الجلسة
+            </h5>
+            <span class="badge bg-primary" id="recordCount">0 سجل</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 45px;">#</th>
+                            <th style="width: 80px;">الكود</th>
+                            <th>الموظف</th>
+                            <th>القسم</th>
+                            <th style="width: 70px;">حضور</th>
+                            <th style="width: 70px;">غياب</th>
+                            <th style="width: 85px;">عمل (د)</th>
+                            <th style="width: 75px;">تأخير (د)</th>
+                            <th style="width: 80px;">إضافي (د)</th>
+                            <th style="width: 80px;">انصراف (د)</th>
+                            <th style="width: 80px;">النوع</th>
+                            <th style="width: 120px;">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+            <div id="noRecordsMessage" class="text-center py-5">
+                <i class="bi bi-calendar-month display-1 text-muted"></i>
+                <p class="text-muted mt-3">لم يتم إضافة سجلات بعد في هذه الجلسة</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil me-2"></i>
+                    تعديل سجل الحضور الشهري
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId" />
+                <div class="mb-3">
+                    <label class="form-label">الموظف</label>
+                    <input type="text" id="editEmployeeName" class="form-control" readonly />
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">أيام الحضور</label>
+                        <input type="number" id="editPresentDays" class="form-control" min="0" max="31" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">أيام الغياب</label>
+                        <input type="number" id="editAbsentDays" class="form-control" min="0" max="31" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">دقائق العمل</label>
+                        <input type="number" id="editWorkedMinutes" class="form-control" min="0" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">دقائق التأخير</label>
+                        <input type="number" id="editLateMinutes" class="form-control" min="0" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">دقائق الإضافي</label>
+                        <input type="number" id="editOvertimeMinutes" class="form-control" min="0" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">دقائق الانصراف المبكر</label>
+                        <input type="number" id="editEarlyDepartureMinutes" class="form-control" min="0" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">دقائق الاستئذان</label>
+                        <input type="number" id="editPermissionMinutes" class="form-control" min="0" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">ملاحظات</label>
+                        <input type="text" id="editNotes" class="form-control" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="saveEditBtn">
+                    <i class="bi bi-check-lg me-1"></i>
+                    حفظ التغييرات
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                    تأكيد الحذف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="deleteId" />
+                <p>هل أنت متأكد من حذف سجل الحضور الشهري لـ <strong id="deleteEmployeeName"></strong>؟</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="bi bi-trash me-1"></i>
+                    حذف
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const baseUrl = '/MonthlyAttendance';
+    let allEmployees = [];
+    let sessionRecords = [];
+    let editModal, deleteModal;
+
+    document.addEventListener('DOMContentLoaded', async function() {
+        editModal = new bootstrap.Modal(document.getElementById('editModal'));
+        deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+        // Set current month/year
+        const now = new Date();
+        document.getElementById('monthSelect').value = now.getMonth() + 1;
+        document.getElementById('yearInput').value = now.getFullYear();
+
+        // Load employees for autocomplete
+        await loadEmployees();
+
+        // Form submission
+        document.getElementById('monthlyForm').addEventListener('submit', handleFormSubmit);
+
+        // Edit/Delete buttons
+        document.getElementById('saveEditBtn').addEventListener('click', saveEdit);
+        document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
+
+        // Employee search autocomplete
+        setupAutocomplete('employeeSearch', 'employeeResults', 'employeeId');
+
+        // Close autocomplete when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.autocomplete-container')) {
+                document.querySelectorAll('.autocomplete-results').forEach(r => r.classList.remove('show'));
+            }
+        });
+
+        renderTable();
+    });
+
+    async function loadEmployees() {
+        try {
+            const response = await fetch(`${baseUrl}/GetEmployees`);
+            const result = await response.json();
+            if (result.success) {
+                allEmployees = result.data;
+            }
+        } catch (error) {
+            console.error('Error loading employees:', error);
+        }
+    }
+
+    function setupAutocomplete(inputId, resultsId, hiddenId) {
+        const input = document.getElementById(inputId);
+        const results = document.getElementById(resultsId);
+        const hidden = document.getElementById(hiddenId);
+        let activeIndex = -1;
+
+        input.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            activeIndex = -1;
+            hidden.value = '';
+
+            if (query.length < 1) {
+                results.classList.remove('show');
+                return;
+            }
+
+            const filtered = allEmployees.filter(emp =>
+                emp.name.toLowerCase().includes(query) ||
+                emp.code.toLowerCase().includes(query)
+            );
+
+            if (filtered.length === 0) {
+                results.innerHTML = '<div class="autocomplete-item text-muted">لا توجد نتائج</div>';
+            } else {
+                results.innerHTML = filtered.map((emp, idx) => `
+                    <div class="autocomplete-item" data-id="${emp.id}" data-name="${emp.name}" data-code="${emp.code}" data-index="${idx}">
+                        <div><strong>${emp.name}</strong></div>
+                        <div class="employee-code">${emp.code}</div>
+                        <div class="employee-shift">${emp.shiftName || ''}</div>
+                    </div>
+                `).join('');
+            }
+
+            results.classList.add('show');
+
+            results.querySelectorAll('.autocomplete-item[data-id]').forEach(item => {
+                item.addEventListener('click', function() {
+                    selectEmployee(this, inputId, resultsId, hiddenId);
+                });
+            });
+        });
+
+        input.addEventListener('focus', function() {
+            if (this.value.length >= 1 && !hidden.value) {
+                const event = new Event('input');
+                this.dispatchEvent(event);
+            }
+        });
+
+        input.addEventListener('keydown', function(e) {
+            const items = results.querySelectorAll('.autocomplete-item[data-id]');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeIndex = Math.min(activeIndex + 1, items.length - 1);
+                updateActiveItem(items, activeIndex);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeIndex = Math.max(activeIndex - 1, 0);
+                updateActiveItem(items, activeIndex);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (activeIndex >= 0 && items[activeIndex]) {
+                    selectEmployee(items[activeIndex], inputId, resultsId, hiddenId);
+                }
+            } else if (e.key === 'Escape') {
+                results.classList.remove('show');
+            }
+        });
+    }
+
+    function updateActiveItem(items, activeIndex) {
+        items.forEach((item, idx) => {
+            item.classList.toggle('active', idx === activeIndex);
+        });
+        if (items[activeIndex]) {
+            items[activeIndex].scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    function selectEmployee(item, inputId, resultsId, hiddenId) {
+        document.getElementById(hiddenId).value = item.dataset.id;
+        document.getElementById(inputId).value = `${item.dataset.code} - ${item.dataset.name}`;
+        document.getElementById(resultsId).classList.remove('show');
+    }
+
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>جاري الحفظ...';
+
+        const employeeId = document.getElementById('employeeId').value;
+        if (!employeeId) {
+            showAlert('الرجاء اختيار الموظف', 'danger');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>حفظ';
+            return;
+        }
+
+        const data = {
+            Employee_id: parseInt(employeeId),
+            Month: parseInt(document.getElementById('monthSelect').value),
+            Year: parseInt(document.getElementById('yearInput').value),
+            PresentDays: parseInt(document.getElementById('presentDays').value) || 0,
+            AbsentDays: parseInt(document.getElementById('absentDays').value) || 0,
+            WorkedMinutes: parseInt(document.getElementById('workedMinutes').value) || 0,
+            LateMinutes: parseInt(document.getElementById('lateMinutes').value) || 0,
+            OvertimeMinutes: parseInt(document.getElementById('overtimeMinutes').value) || 0,
+            EarlyDepartureMinutes: parseInt(document.getElementById('earlyDepartureMinutes').value) || 0,
+            PermissionMinutes: parseInt(document.getElementById('permissionMinutes').value) || 0,
+            Notes: document.getElementById('notes').value || null
+        };
+
+        try {
+            const response = await fetch(`${baseUrl}/CreateAjax`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert(result.message, 'success');
+                if (result.data) {
+                    sessionRecords.push(result.data);
+                    renderTable();
+                }
+                // Reset form (keep month/year)
+                document.getElementById('employeeId').value = '';
+                document.getElementById('employeeSearch').value = '';
+                document.getElementById('presentDays').value = '0';
+                document.getElementById('absentDays').value = '0';
+                document.getElementById('workedMinutes').value = '0';
+                document.getElementById('lateMinutes').value = '0';
+                document.getElementById('overtimeMinutes').value = '0';
+                document.getElementById('earlyDepartureMinutes').value = '0';
+                document.getElementById('permissionMinutes').value = '0';
+                document.getElementById('notes').value = '';
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في الاتصال بالخادم', 'danger');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>حفظ';
+        }
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        const noRecords = document.getElementById('noRecordsMessage');
+        const recordCount = document.getElementById('recordCount');
+
+        if (sessionRecords.length === 0) {
+            tbody.innerHTML = '';
+            noRecords.classList.remove('d-none');
+            recordCount.textContent = '0 سجل';
+            return;
+        }
+
+        noRecords.classList.add('d-none');
+        recordCount.textContent = `${sessionRecords.length} سجل`;
+
+        tbody.innerHTML = sessionRecords.map((rec, idx) => {
+            const badgeClass = rec.isManuallyEntered ? 'badge-manual' : 'badge-auto';
+            const badgeText = rec.isManuallyEntered ? 'يدوي' : 'تلقائي';
+
+            return `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td><span class="badge bg-dark border">${rec.employee_code}</span></td>
+                    <td class="fw-semibold">${rec.employee_name}</td>
+                    <td><small class="text-muted">${rec.department_name || '-'}</small></td>
+                    <td class="text-center">${rec.presentDays}</td>
+                    <td class="text-center">${rec.absentDays}</td>
+                    <td class="text-center">${rec.workedMinutes}</td>
+                    <td class="text-center">${rec.lateMinutes}</td>
+                    <td class="text-center">${rec.overtimeMinutes}</td>
+                    <td class="text-center">${rec.earlyDepartureMinutes}</td>
+                    <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-warning" onclick="openEditModal(${rec.id})" title="تعديل">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" onclick="openDeleteModal(${rec.id}, '${rec.employee_name}')" title="حذف">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    async function openEditModal(id) {
+        try {
+            const response = await fetch(`${baseUrl}/GetById?id=${id}`);
+            const result = await response.json();
+            if (result.success) {
+                const d = result.data;
+                document.getElementById('editId').value = d.id;
+                document.getElementById('editEmployeeName').value = `${d.employee_code} - ${d.employee_name}`;
+                document.getElementById('editPresentDays').value = d.presentDays;
+                document.getElementById('editAbsentDays').value = d.absentDays;
+                document.getElementById('editWorkedMinutes').value = d.workedMinutes;
+                document.getElementById('editLateMinutes').value = d.lateMinutes;
+                document.getElementById('editOvertimeMinutes').value = d.overtimeMinutes;
+                document.getElementById('editEarlyDepartureMinutes').value = d.earlyDepartureMinutes;
+                document.getElementById('editPermissionMinutes').value = d.permissionMinutes;
+                document.getElementById('editNotes').value = d.notes || '';
+                editModal.show();
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في تحميل البيانات', 'danger');
+        }
+    }
+
+    async function saveEdit() {
+        const id = parseInt(document.getElementById('editId').value);
+        const btn = document.getElementById('saveEditBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>جاري الحفظ...';
+
+        // Find the record to get employee_id, month, year
+        const rec = sessionRecords.find(r => r.id === id);
+
+        const data = {
+            Employee_id: rec ? rec.employee_id : 0,
+            Month: rec ? rec.month : parseInt(document.getElementById('monthSelect').value),
+            Year: rec ? rec.year : parseInt(document.getElementById('yearInput').value),
+            PresentDays: parseInt(document.getElementById('editPresentDays').value) || 0,
+            AbsentDays: parseInt(document.getElementById('editAbsentDays').value) || 0,
+            WorkedMinutes: parseInt(document.getElementById('editWorkedMinutes').value) || 0,
+            LateMinutes: parseInt(document.getElementById('editLateMinutes').value) || 0,
+            OvertimeMinutes: parseInt(document.getElementById('editOvertimeMinutes').value) || 0,
+            EarlyDepartureMinutes: parseInt(document.getElementById('editEarlyDepartureMinutes').value) || 0,
+            PermissionMinutes: parseInt(document.getElementById('editPermissionMinutes').value) || 0,
+            Notes: document.getElementById('editNotes').value || null
+        };
+
+        try {
+            const response = await fetch(`${baseUrl}/UpdateAjax?id=${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (result.success) {
+                editModal.hide();
+                showAlert(result.message, 'success');
+                const index = sessionRecords.findIndex(r => r.id === id);
+                if (index !== -1 && result.data) {
+                    sessionRecords[index] = result.data;
+                    renderTable();
+                }
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في حفظ البيانات', 'danger');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>حفظ التغييرات';
+        }
+    }
+
+    function openDeleteModal(id, name) {
+        document.getElementById('deleteId').value = id;
+        document.getElementById('deleteEmployeeName').textContent = name;
+        deleteModal.show();
+    }
+
+    async function confirmDelete() {
+        const id = parseInt(document.getElementById('deleteId').value);
+        const btn = document.getElementById('confirmDeleteBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>جاري الحذف...';
+
+        try {
+            const response = await fetch(`${baseUrl}/DeleteAjax?id=${id}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (result.success) {
+                deleteModal.hide();
+                showAlert(result.message, 'success');
+                sessionRecords = sessionRecords.filter(r => r.id !== id);
+                renderTable();
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في حذف السجل', 'danger');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-trash me-1"></i>حذف';
+        }
+    }
+
+    function showAlert(message, type) {
+        const container = document.getElementById('alertContainer');
+        const id = 'alert-' + Date.now();
+        const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+        container.innerHTML = `
+            <div id="${id}" class="alert alert-${type} alert-dismissible fade show">
+                <i class="bi bi-${icon} me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
+        setTimeout(() => document.getElementById(id)?.remove(), 5000);
+    }
+</script>
+}

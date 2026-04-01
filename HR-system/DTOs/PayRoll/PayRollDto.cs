@@ -20,6 +20,7 @@ namespace HR_system.DTOs.PayRoll
         public int EmployeeId { get; set; }
         public decimal PaidSalary { get; set; }
         public bool IsPaid { get; set; }
+        public decimal SalaryCarryOver { get; set; }
     }
 
     /// <summary>
@@ -41,6 +42,7 @@ namespace HR_system.DTOs.PayRoll
         public int PayRollId { get; set; }
         public decimal PaidSalary { get; set; }
         public bool IsPaid { get; set; }
+        public decimal SalaryCarryOver { get; set; }
     }
 
     /// <summary>
@@ -102,8 +104,10 @@ namespace HR_system.DTOs.PayRoll
         public decimal GrossSalary { get; set; }
         public decimal TotalDeductionsAmount { get; set; }
         public decimal NetSalary { get; set; }
+        public decimal PreviousMonthCarryOver { get; set; }
         public decimal PaidSalary { get; set; }
         public bool IsPaid { get; set; }
+        public decimal SalaryCarryOver { get; set; }
         
         public DateTime DateSaved { get; set; }
         

@@ -61,6 +61,7 @@ namespace HR_system.DTOs.PayRoll
         // Payment Status
         public decimal PaidSalary { get; set; }
         public bool IsPaid { get; set; }
+        public decimal SalaryCarryOver { get; set; }
         public DateTime DateSaved { get; set; }
 
         private static string FormatHours(decimal totalMinutes)

@@ -52,5 +52,6 @@ namespace HR_system.Models
         public virtual ICollection<Attendence> Attendences { get; set; } = new List<Attendence>();
         public virtual ICollection<PayRoll> PayRolls { get; set; } = new List<PayRoll>();
         public virtual ICollection<AttendanceAdjustment> AttendanceAdjustments { get; set; } = new List<AttendanceAdjustment>();
+        public virtual ICollection<MonthlyAttendance> MonthlyAttendances { get; set; } = new List<MonthlyAttendance>();
     }
 }

@@ -3,6 +3,7 @@ using HR_system.Domain.SalaryCalculation;
 using HR_system.DTOs.PayRoll;
 using HR_system.DTOs.Salary;
 using HR_system.Models;
+using HR_system.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace HR_system.Repositories
@@ -96,6 +97,13 @@ namespace HR_system.Repositories
                 .Distinct()
                 .ToListAsync();
 
+            // Get employees from monthly attendance
+            var monthlyAttendanceEmployees = await _context.MonthlyAttendances
+                .Where(m => m.Month == month && m.Year == year)
+                .Select(m => m.Employee_id)
+                .Distinct()
+                .ToListAsync();
+
             // Get employees from bonuses
             var bonusEmployees = await _context.Bounes
                 .Where(b => b.Date.Month == month && b.Date.Year == year)
@@ -126,12 +134,33 @@ namespace HR_system.Repositories
 
             // Combine all unique employee IDs
             return attendanceEmployees
+                .Union(monthlyAttendanceEmployees)
                 .Union(bonusEmployees)
                 .Union(deductionEmployees)
                 .Union(advanceEmployees)
                 .Union(adjustmentEmployees)
                 .Distinct()
                 .ToList();
+        }
+
+        /// <summary>
+        /// Get monthly attendance records for a specific month/year
+        /// </summary>
+        public async Task<List<MonthlyAttendance>> GetMonthlyAttendanceRecordsAsync(int month, int year)
+        {
+            return await _context.MonthlyAttendances
+                .Where(m => m.Month == month && m.Year == year)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Auto-populate MonthlyAttendance from daily records.
+        /// Delegates to MonthlyAttendanceRepository.
+        /// </summary>
+        public async Task PopulateMonthlyAttendanceAsync(int month, int year, List<int> employeeIds)
+        {
+            var monthlyRepo = new MonthlyAttendanceRepository(_context);
+            await monthlyRepo.PopulateFromDailyRecordsAsync(month, year, employeeIds);
         }
 
         /// <summary>
@@ -169,6 +198,7 @@ namespace HR_system.Repositories
                     var empRequest = request.Employees.FirstOrDefault(e => e.EmployeeId == empSalary.EmployeeId);
                     decimal paidSalary = empRequest?.PaidSalary ?? RoundUpToNearest5(empSalary.NetSalary);
                     bool isPaid = empRequest?.IsPaid ?? false;
+                    decimal carryOver = empRequest?.SalaryCarryOver ?? 0m;
 
                     // Check if record exists
                     var existingPayRoll = await _context.PayRolls
@@ -179,13 +209,13 @@ namespace HR_system.Repositories
                     if (existingPayRoll != null)
                     {
                         // Update existing record
-                        UpdatePayrollRecord(existingPayRoll, empSalary, request, paidSalary, isPaid);
+                        UpdatePayrollRecord(existingPayRoll, empSalary, request, paidSalary, isPaid, carryOver);
                         updatedCount++;
                     }
                     else
                     {
                         // Create new record
-                        var newPayRoll = CreatePayrollRecord(empSalary, request, paidSalary, isPaid);
+                        var newPayRoll = CreatePayrollRecord(empSalary, request, paidSalary, isPaid, carryOver);
                         _context.PayRolls.Add(newPayRoll);
                         savedCount++;
                     }
@@ -233,6 +263,61 @@ namespace HR_system.Repositories
 
             if (!records.Any()) return null;
 
+            int prevMonth = month == 1 ? 12 : month - 1;
+            int prevYear = month == 1 ? year - 1 : year;
+            var prevMonthPayrolls = await _context.PayRolls
+                .Where(p => p.Month == prevMonth && p.Year == prevYear)
+                .ToDictionaryAsync(p => p.Employee_id, p => p.SalaryCarryOver);
+
+            var employeesList = records.Select(r => new SavedPayRollDto
+            {
+                Id = r.Id,
+                EmployeeId = r.Employee_id,
+                EmployeeName = r.EmployeeName,
+                EmployeeCode = r.EmployeeCode,
+                DepartmentName = r.DepartmentName ?? "",
+                ShiftName = r.ShiftName ?? "",
+                PresentDays = r.ActualPresentDays,
+                AbsentDays = r.AbsentDays,
+                ActualWorkedMinutes = r.ActualWorkedMinutes,
+                ActualWorkedHours = r.ActualWorkedHours,
+                OvertimeMinutes = r.OvertimeMinutes,
+                OvertimeHours = r.OvertimeHours,
+                OvertimeMultiplier = r.OvertimeMultiplier,
+                LateTimeMinutes = r.LateTimeMinutes,
+                LateTimeHours = r.LateTimeHours,
+                LateTimeMultiplier = r.LateTimeMultiplier,
+                EarlyDepartureMinutes = r.EarlyDepartureMinutes,
+                EarlyDepartureHours = r.EarlyDepartureHours,
+                EarlyDepartureMultiplier = r.EarlyDepartureMultiplier,
+                BaseSalary = r.BaseSalary,
+                SalaryPerHour = r.SalaryPerHour,
+                SalaryPerDay = r.SalaryPerDay,
+                SalaryCalculationType = r.SalaryCalculationType,
+                SalaryCalculationTypeDisplay = r.SalaryCalculationTypeDisplay,
+                WorkedHoursSalary = r.WorkedHoursSalary,
+                OvertimeAmount = r.OvertimeAmount,
+                LateTimeDeduction = r.LateTimeDeduction,
+                EarlyDepartureDeduction = r.EarlyDepartureDeduction,
+                Bonuses = r.TotalBonuses,
+                Deductions = r.TotalDeductions,
+                Advances = r.TotalAdvances,
+                TotalAttendanceAdjustment = r.TotalAttendanceAdjustment,
+                GrossSalary = r.GrossSalary,
+                TotalDeductionsAmount = r.TotalDeductionsAmount,
+                NetSalary = r.NetSalary,
+                PaidSalary = r.ActualPaidAmount,
+                IsPaid = r.IsPaid,
+                SalaryCarryOver = r.SalaryCarryOver,
+                DateSaved = r.DateSaved
+            }).ToList();
+
+            // Map previous month carryovers
+            foreach (var emp in employeesList)
+            {
+                emp.PreviousMonthCarryOver = prevMonthPayrolls.GetValueOrDefault(emp.EmployeeId, 0m);
+            }
+
             var result = new SavedMonthlyPayRollDto
             {
                 Month = month,
@@ -253,47 +338,7 @@ namespace HR_system.Repositories
                 TotalEarlyDepartureDeduction = records.Sum(r => r.EarlyDepartureDeduction),
                 PaidCount = records.Count(r => r.IsPaid),
                 UnpaidCount = records.Count(r => !r.IsPaid),
-                Employees = records.Select(r => new SavedPayRollDto
-                {
-                    Id = r.Id,
-                    EmployeeId = r.Employee_id,
-                    EmployeeName = r.EmployeeName,
-                    EmployeeCode = r.EmployeeCode,
-                    DepartmentName = r.DepartmentName ?? "",
-                    ShiftName = r.ShiftName ?? "",
-                    PresentDays = r.ActualPresentDays,
-                    AbsentDays = r.AbsentDays,
-                    ActualWorkedMinutes = r.ActualWorkedMinutes,
-                    ActualWorkedHours = r.ActualWorkedHours,
-                    OvertimeMinutes = r.OvertimeMinutes,
-                    OvertimeHours = r.OvertimeHours,
-                    OvertimeMultiplier = r.OvertimeMultiplier,
-                    LateTimeMinutes = r.LateTimeMinutes,
-                    LateTimeHours = r.LateTimeHours,
-                    LateTimeMultiplier = r.LateTimeMultiplier,
-                    EarlyDepartureMinutes = r.EarlyDepartureMinutes,
-                    EarlyDepartureHours = r.EarlyDepartureHours,
-                    EarlyDepartureMultiplier = r.EarlyDepartureMultiplier,
-                    BaseSalary = r.BaseSalary,
-                    SalaryPerHour = r.SalaryPerHour,
-                    SalaryPerDay = r.SalaryPerDay,
-                    SalaryCalculationType = r.SalaryCalculationType,
-                    SalaryCalculationTypeDisplay = r.SalaryCalculationTypeDisplay,
-                    WorkedHoursSalary = r.WorkedHoursSalary,
-                    OvertimeAmount = r.OvertimeAmount,
-                    LateTimeDeduction = r.LateTimeDeduction,
-                    EarlyDepartureDeduction = r.EarlyDepartureDeduction,
-                    Bonuses = r.TotalBonuses,
-                    Deductions = r.TotalDeductions,
-                    Advances = r.TotalAdvances,
-                    TotalAttendanceAdjustment = r.TotalAttendanceAdjustment,
-                    GrossSalary = r.GrossSalary,
-                    TotalDeductionsAmount = r.TotalDeductionsAmount,
-                    NetSalary = r.NetSalary,
-                    PaidSalary = r.ActualPaidAmount,
-                    IsPaid = r.IsPaid,
-                    DateSaved = r.DateSaved
-                }).ToList()
+                Employees = employeesList
             };
 
             return result;
@@ -310,6 +355,7 @@ namespace HR_system.Repositories
             // Round up paid salary to nearest 5
             payRoll.ActualPaidAmount = RoundUpToNearest5(request.PaidSalary);
             payRoll.IsPaid = request.IsPaid;
+            payRoll.SalaryCarryOver = request.SalaryCarryOver;
             payRoll.DateSaved = DateTime.Now;
 
             await _context.SaveChangesAsync();
@@ -332,7 +378,7 @@ namespace HR_system.Repositories
             return true;
         }
 
-        private PayRoll CreatePayrollRecord(EmployeeSalaryResultDto empSalary, SavePayRollRequestDto request, decimal paidSalary, bool isPaid)
+        private PayRoll CreatePayrollRecord(EmployeeSalaryResultDto empSalary, SavePayRollRequestDto request, decimal paidSalary, bool isPaid, decimal carryOver)
         {
             return new PayRoll
             {
@@ -410,11 +456,12 @@ namespace HR_system.Repositories
                 // Payment Status
                 ActualPaidAmount = paidSalary,
                 IsPaid = isPaid,
+                SalaryCarryOver = carryOver,
                 DateSaved = DateTime.Now
             };
         }
 
-        private void UpdatePayrollRecord(PayRoll payRoll, EmployeeSalaryResultDto empSalary, SavePayRollRequestDto request, decimal paidSalary, bool isPaid)
+        private void UpdatePayrollRecord(PayRoll payRoll, EmployeeSalaryResultDto empSalary, SavePayRollRequestDto request, decimal paidSalary, bool isPaid, decimal carryOver)
         {
             // Employee Info
             payRoll.EmployeeName = empSalary.EmployeeName;
@@ -486,6 +533,7 @@ namespace HR_system.Repositories
             // Payment Status
             payRoll.ActualPaidAmount = paidSalary;
             payRoll.IsPaid = isPaid;
+            payRoll.SalaryCarryOver = carryOver;
             payRoll.DateSaved = DateTime.Now;
         }
 
@@ -549,10 +597,14 @@ namespace HR_system.Repositories
                 .Where(a => a.Month == month && a.Year == year && a.Employee_id == employee.Id)
                 .ToListAsync();
 
+            // Get monthly attendance record (if exists)
+            var monthlyAttendance = await _context.MonthlyAttendances
+                .FirstOrDefaultAsync(m => m.Employee_id == employee.Id && m.Month == month && m.Year == year);
+
             // Recalculate salary
             var empSalary = salaryCalculator.CalculateEmployeeSalary(
                 employee, attendances, bonuses, deductions, advances, adjustments,
-                workingDaysInMonth, holidaysInMonth, year, month);
+                workingDaysInMonth, holidaysInMonth, year, month, monthlyAttendance);
 
             // Update payroll record
             payroll.EmployeeName = empSalary.EmployeeName;
@@ -639,6 +691,7 @@ namespace HR_system.Repositories
                 NetSalary = payroll.NetSalary,
                 PaidSalary = payroll.ActualPaidAmount,
                 IsPaid = payroll.IsPaid,
+                SalaryCarryOver = payroll.SalaryCarryOver,
                 DateSaved = payroll.DateSaved
             };
         }

@@ -1,0 +1,49 @@
+@model HR_system.ViewModels.TwoFactorLoginViewModel
+
+@{
+    ViewData["Title"] = "التحقق بخطوتين";
+    Layout = "~/Views/Account/_AuthLayout.cshtml";
+}
+
+<div class="container">
+    <div class="auth-card p-4 p-md-5 mx-auto">
+        <div class="auth-logo">
+            <i class="bi bi-shield-check"></i>
+        </div>
+        <h3 class="text-center text-white mb-1">التحقق بخطوتين</h3>
+        <p class="text-center text-muted mb-4">أدخل رمز التطبيق لإكمال تسجيل الدخول</p>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                @Html.ValidationSummary(true, null, new { @class = "mb-0" })
+            </div>
+        }
+
+        <form asp-action="LoginWith2fa" asp-controller="Account" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="ReturnUrl" />
+
+            <div class="mb-3">
+                <label asp-for="Code" class="form-label text-light">
+                    <i class="bi bi-key me-1"></i>رمز التحقق
+                </label>
+                <input asp-for="Code" class="form-control bg-dark text-light border-secondary"
+                       placeholder="مثال: 123456" inputmode="numeric" autocomplete="one-time-code" autofocus />
+                <span asp-validation-for="Code" class="text-danger small"></span>
+                <div class="form-text text-muted mt-2">
+                    يمكنك كتابة الرمز مع مسافات أو شرطات — سيتم تجاهلها تلقائياً.
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 btn-lg">
+                <i class="bi bi-check2-circle me-2"></i>تأكيد
+            </button>
+        </form>
+
+        <div class="text-center mt-4">
+            <small class="text-muted">&copy; @DateTime.Now.Year نظام الموارد البشرية</small>
+        </div>
+    </div>
+</div>

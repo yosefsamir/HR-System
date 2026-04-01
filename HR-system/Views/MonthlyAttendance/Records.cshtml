@@ -1,0 +1,665 @@
+@{
+    ViewData["Title"] = "سجلات الحضور الشهري";
+    ViewData["PageTitle"] = "البحث في سجلات الحضور الشهري";
+    ViewData["PageIcon"] = "bi-search";
+}
+
+<style>
+    .autocomplete-container {
+        position: relative;
+    }
+    .autocomplete-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1050;
+        max-height: 250px;
+        overflow-y: auto;
+        background: #212529;
+        border: 1px solid #495057;
+        border-radius: 0.375rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
+        display: none;
+    }
+    .autocomplete-results.show {
+        display: block;
+    }
+    .autocomplete-item {
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid #495057;
+        transition: background 0.15s;
+    }
+    .autocomplete-item:last-child {
+        border-bottom: none;
+    }
+    .autocomplete-item:hover,
+    .autocomplete-item.active {
+        background: #0d6efd;
+        color: white;
+    }
+    .autocomplete-item .employee-code {
+        font-size: 0.8rem;
+        opacity: 0.7;
+    }
+    .row-manual { background: rgba(25, 135, 84, 0.10) !important; }
+    .row-auto { background: rgba(108, 117, 125, 0.05) !important; }
+    .badge-manual { background: #198754; }
+    .badge-auto { background: #6c757d; }
+</style>
+
+<div class="container-fluid">
+    <!-- Search/Filter Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-funnel me-2"></i>
+                البحث والتصفية
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label">الشهر <span class="text-danger">*</span></label>
+                    <select id="monthSelect" class="form-select">
+                        <option value="1">يناير</option>
+                        <option value="2">فبراير</option>
+                        <option value="3">مارس</option>
+                        <option value="4">أبريل</option>
+                        <option value="5">مايو</option>
+                        <option value="6">يونيو</option>
+                        <option value="7">يوليو</option>
+                        <option value="8">أغسطس</option>
+                        <option value="9">سبتمبر</option>
+                        <option value="10">أكتوبر</option>
+                        <option value="11">نوفمبر</option>
+                        <option value="12">ديسمبر</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">السنة <span class="text-danger">*</span></label>
+                    <input type="number" id="yearInput" class="form-control" min="2000" max="2100" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">القسم</label>
+                    <select id="departmentFilter" class="form-select">
+                        <option value="">الكل</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">نوع السجل</label>
+                    <select id="typeFilter" class="form-select">
+                        <option value="">الكل</option>
+                        <option value="manual">يدوي فقط</option>
+                        <option value="auto">تلقائي فقط</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">الموظف</label>
+                    <div class="autocomplete-container">
+                        <input type="hidden" id="employeeId" />
+                        <input type="text" id="employeeSearch" class="form-control"
+                               placeholder="ابحث بالاسم..." autocomplete="off" />
+                        <div id="employeeResults" class="autocomplete-results"></div>
+                    </div>
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-primary w-100" id="searchBtn">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-outline-secondary w-100" id="resetBtn" title="إعادة تعيين">
+                        <i class="bi bi-x-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    <!-- Results Table Card -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-table me-2"></i>
+                نتائج البحث
+            </h5>
+            <div class="d-flex align-items-center gap-2">
+                <a asp-controller="MonthlyAttendance" asp-action="Index" class="btn btn-success btn-sm">
+                    <i class="bi bi-plus-circle me-1"></i>إضافة حضور
+                </a>
+                <span class="badge bg-primary" id="recordCount">0 سجل</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 45px;">#</th>
+                            <th>الكود</th>
+                            <th>الموظف</th>
+                            <th>القسم</th>
+                            <th>الوردية</th>
+                            <th>حضور</th>
+                            <th>غياب</th>
+                            <th>عمل (د)</th>
+                            <th>تأخير (د)</th>
+                            <th>إضافي (د)</th>
+                            <th>انصراف (د)</th>
+                            <th>استئذان (د)</th>
+                            <th>النوع</th>
+                            <th style="width: 120px;">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+            <div id="noRecordsMessage" class="text-center py-5">
+                <i class="bi bi-search display-1 text-muted"></i>
+                <p class="text-muted mt-3">اختر معايير البحث واضغط بحث لعرض النتائج</p>
+            </div>
+            <div id="loadingMessage" class="text-center py-5 d-none">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">جاري التحميل...</span>
+                </div>
+                <p class="text-muted mt-3">جاري البحث...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil me-2"></i>
+                    تعديل سجل الحضور الشهري
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId" />
+                <input type="hidden" id="editEmployeeId" />
+                <input type="hidden" id="editMonth" />
+                <input type="hidden" id="editYear" />
+                <div class="mb-3">
+                    <label class="form-label">الموظف</label>
+                    <input type="text" id="editEmployeeName" class="form-control" readonly />
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">أيام الحضور</label>
+                        <input type="number" id="editPresentDays" class="form-control" min="0" max="31" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">أيام الغياب</label>
+                        <input type="number" id="editAbsentDays" class="form-control" min="0" max="31" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">دقائق العمل</label>
+                        <input type="number" id="editWorkedMinutes" class="form-control" min="0" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">دقائق التأخير</label>
+                        <input type="number" id="editLateMinutes" class="form-control" min="0" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">دقائق الإضافي</label>
+                        <input type="number" id="editOvertimeMinutes" class="form-control" min="0" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">دقائق الانصراف المبكر</label>
+                        <input type="number" id="editEarlyDepartureMinutes" class="form-control" min="0" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">دقائق الاستئذان</label>
+                        <input type="number" id="editPermissionMinutes" class="form-control" min="0" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">ملاحظات</label>
+                        <input type="text" id="editNotes" class="form-control" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="saveEditBtn">
+                    <i class="bi bi-check-lg me-1"></i>
+                    حفظ التغييرات
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                    تأكيد الحذف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="deleteId" />
+                <p>هل أنت متأكد من حذف سجل الحضور الشهري لـ <strong id="deleteEmployeeName"></strong>؟</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="bi bi-trash me-1"></i>
+                    حذف
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const baseUrl = '/MonthlyAttendance';
+    let editModal, deleteModal;
+    let allEmployees = [];
+    let currentRecords = [];
+
+    document.addEventListener('DOMContentLoaded', async function() {
+        editModal = new bootstrap.Modal(document.getElementById('editModal'));
+        deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+        // Set current month/year
+        const now = new Date();
+        document.getElementById('monthSelect').value = now.getMonth() + 1;
+        document.getElementById('yearInput').value = now.getFullYear();
+
+        // Load dropdowns
+        await loadEmployeesAndDepartments();
+
+        // Buttons
+        document.getElementById('searchBtn').addEventListener('click', performSearch);
+        document.getElementById('resetBtn').addEventListener('click', resetSearch);
+        document.getElementById('saveEditBtn').addEventListener('click', saveEdit);
+        document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
+
+        // Employee autocomplete
+        setupAutocomplete('employeeSearch', 'employeeResults', 'employeeId');
+
+        // Close autocomplete when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.autocomplete-container')) {
+                document.querySelectorAll('.autocomplete-results').forEach(r => r.classList.remove('show'));
+            }
+        });
+
+        // Enter key to search
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.target.closest('.modal') && !e.target.closest('.autocomplete-container')) {
+                performSearch();
+            }
+        });
+    });
+
+    async function loadEmployeesAndDepartments() {
+        try {
+            const response = await fetch(`${baseUrl}/GetEmployees`);
+            const result = await response.json();
+            if (result.success) {
+                allEmployees = result.data;
+
+                // Populate department filter from employees
+                const deptSelect = document.getElementById('departmentFilter');
+                const departments = [...new Set(allEmployees.map(e => e.departmentName).filter(d => d))];
+                departments.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept;
+                    option.textContent = dept;
+                    deptSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading employees:', error);
+        }
+    }
+
+    function setupAutocomplete(inputId, resultsId, hiddenId) {
+        const input = document.getElementById(inputId);
+        const results = document.getElementById(resultsId);
+        const hidden = document.getElementById(hiddenId);
+        let activeIndex = -1;
+
+        input.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            activeIndex = -1;
+            hidden.value = '';
+
+            if (query.length < 1) {
+                results.classList.remove('show');
+                return;
+            }
+
+            const filtered = allEmployees.filter(emp =>
+                emp.name.toLowerCase().includes(query) ||
+                emp.code.toLowerCase().includes(query)
+            );
+
+            if (filtered.length === 0) {
+                results.innerHTML = '<div class="autocomplete-item text-muted">لا توجد نتائج</div>';
+            } else {
+                results.innerHTML = filtered.map((emp, idx) => `
+                    <div class="autocomplete-item" data-id="${emp.id}" data-name="${emp.name}" data-code="${emp.code}">
+                        <div><strong>${emp.name}</strong></div>
+                        <div class="employee-code">${emp.code}</div>
+                    </div>
+                `).join('');
+            }
+
+            results.classList.add('show');
+
+            results.querySelectorAll('.autocomplete-item[data-id]').forEach(item => {
+                item.addEventListener('click', function() {
+                    hidden.value = this.dataset.id;
+                    input.value = `${this.dataset.code} - ${this.dataset.name}`;
+                    results.classList.remove('show');
+                });
+            });
+        });
+
+        input.addEventListener('keydown', function(e) {
+            const items = results.querySelectorAll('.autocomplete-item[data-id]');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeIndex = Math.min(activeIndex + 1, items.length - 1);
+                items.forEach((item, idx) => item.classList.toggle('active', idx === activeIndex));
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeIndex = Math.max(activeIndex - 1, 0);
+                items.forEach((item, idx) => item.classList.toggle('active', idx === activeIndex));
+            } else if (e.key === 'Enter' && activeIndex >= 0 && items[activeIndex]) {
+                e.preventDefault();
+                items[activeIndex].click();
+            } else if (e.key === 'Escape') {
+                results.classList.remove('show');
+            }
+        });
+    }
+
+    async function performSearch() {
+        const month = document.getElementById('monthSelect').value;
+        const year = document.getElementById('yearInput').value;
+
+        if (!month || !year) {
+            showAlert('الرجاء اختيار الشهر والسنة', 'danger');
+            return;
+        }
+
+        // Show loading
+        document.getElementById('noRecordsMessage').classList.add('d-none');
+        document.getElementById('loadingMessage').classList.remove('d-none');
+        document.getElementById('tableBody').innerHTML = '';
+
+        try {
+            const response = await fetch(`${baseUrl}/GetAll?month=${month}&year=${year}`);
+            const result = await response.json();
+
+            document.getElementById('loadingMessage').classList.add('d-none');
+
+            if (result.success) {
+                currentRecords = result.data;
+                renderTable();
+            } else {
+                showAlert(result.message, 'danger');
+                document.getElementById('noRecordsMessage').classList.remove('d-none');
+            }
+        } catch (error) {
+            document.getElementById('loadingMessage').classList.add('d-none');
+            showAlert('حدث خطأ في البحث', 'danger');
+        }
+    }
+
+    function getFilteredRecords() {
+        const deptFilter = document.getElementById('departmentFilter').value;
+        const typeFilter = document.getElementById('typeFilter').value;
+        const employeeId = document.getElementById('employeeId').value;
+
+        return currentRecords.filter(rec => {
+            // Employee filter (by selected autocomplete)
+            if (employeeId && rec.employee_id != employeeId) return false;
+            // Department filter
+            if (deptFilter && rec.department_name !== deptFilter) return false;
+            // Type filter
+            if (typeFilter === 'manual' && !rec.isManuallyEntered) return false;
+            if (typeFilter === 'auto' && rec.isManuallyEntered) return false;
+            return true;
+        });
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        const noRecords = document.getElementById('noRecordsMessage');
+        const recordCount = document.getElementById('recordCount');
+        const filtered = getFilteredRecords();
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = '';
+            noRecords.innerHTML = `
+                <i class="bi bi-inbox display-1 text-muted"></i>
+                <p class="text-muted mt-3">لا توجد نتائج للبحث</p>
+            `;
+            noRecords.classList.remove('d-none');
+            recordCount.textContent = '0 سجل';
+            return;
+        }
+
+        noRecords.classList.add('d-none');
+        recordCount.textContent = `${filtered.length} سجل`;
+
+        tbody.innerHTML = filtered.map((item, index) => {
+            const rowClass = item.isManuallyEntered ? 'row-manual' : 'row-auto';
+            const badgeClass = item.isManuallyEntered ? 'badge-manual' : 'badge-auto';
+            const badgeText = item.isManuallyEntered ? 'يدوي' : 'تلقائي';
+
+            return `
+                <tr class="${rowClass}" data-id="${item.id}">
+                    <td>${index + 1}</td>
+                    <td><span class="badge bg-dark border">${item.employee_code}</span></td>
+                    <td>${item.employee_name}</td>
+                    <td><span class="badge bg-info">${item.department_name || '-'}</span></td>
+                    <td><span class="badge bg-secondary">${item.shift_name || '-'}</span></td>
+                    <td class="text-center">${item.presentDays}</td>
+                    <td class="text-center">${item.absentDays}</td>
+                    <td class="text-center">${item.workedMinutes}</td>
+                    <td class="text-center">${item.lateMinutes > 0 ? '<span class="text-warning">' + item.lateMinutes + '</span>' : '0'}</td>
+                    <td class="text-center">${item.overtimeMinutes > 0 ? '<span class="text-success">' + item.overtimeMinutes + '</span>' : '0'}</td>
+                    <td class="text-center">${item.earlyDepartureMinutes > 0 ? '<span class="text-danger">' + item.earlyDepartureMinutes + '</span>' : '0'}</td>
+                    <td class="text-center">${item.permissionMinutes}</td>
+                    <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-warning" onclick="openEditModal(${item.id})" title="تعديل">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" onclick="openDeleteModal(${item.id}, '${item.employee_name}')" title="حذف">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    async function openEditModal(id) {
+        try {
+            const response = await fetch(`${baseUrl}/GetById?id=${id}`);
+            const result = await response.json();
+
+            if (result.success) {
+                const d = result.data;
+                document.getElementById('editId').value = d.id;
+                document.getElementById('editEmployeeId').value = d.employee_id;
+                document.getElementById('editMonth').value = d.month;
+                document.getElementById('editYear').value = d.year;
+                document.getElementById('editEmployeeName').value = `${d.employee_code} - ${d.employee_name}`;
+                document.getElementById('editPresentDays').value = d.presentDays;
+                document.getElementById('editAbsentDays').value = d.absentDays;
+                document.getElementById('editWorkedMinutes').value = d.workedMinutes;
+                document.getElementById('editLateMinutes').value = d.lateMinutes;
+                document.getElementById('editOvertimeMinutes').value = d.overtimeMinutes;
+                document.getElementById('editEarlyDepartureMinutes').value = d.earlyDepartureMinutes;
+                document.getElementById('editPermissionMinutes').value = d.permissionMinutes;
+                document.getElementById('editNotes').value = d.notes || '';
+                editModal.show();
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في تحميل البيانات', 'danger');
+        }
+    }
+
+    async function saveEdit() {
+        const id = parseInt(document.getElementById('editId').value);
+        const saveBtn = document.getElementById('saveEditBtn');
+
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>جاري الحفظ...';
+
+        const data = {
+            Employee_id: parseInt(document.getElementById('editEmployeeId').value),
+            Month: parseInt(document.getElementById('editMonth').value),
+            Year: parseInt(document.getElementById('editYear').value),
+            PresentDays: parseInt(document.getElementById('editPresentDays').value) || 0,
+            AbsentDays: parseInt(document.getElementById('editAbsentDays').value) || 0,
+            WorkedMinutes: parseInt(document.getElementById('editWorkedMinutes').value) || 0,
+            LateMinutes: parseInt(document.getElementById('editLateMinutes').value) || 0,
+            OvertimeMinutes: parseInt(document.getElementById('editOvertimeMinutes').value) || 0,
+            EarlyDepartureMinutes: parseInt(document.getElementById('editEarlyDepartureMinutes').value) || 0,
+            PermissionMinutes: parseInt(document.getElementById('editPermissionMinutes').value) || 0,
+            Notes: document.getElementById('editNotes').value || null
+        };
+
+        try {
+            const response = await fetch(`${baseUrl}/UpdateAjax?id=${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                editModal.hide();
+                showAlert(result.message, 'success');
+                // Update record in array
+                const index = currentRecords.findIndex(r => r.id === id);
+                if (index !== -1 && result.data) {
+                    currentRecords[index] = result.data;
+                    renderTable();
+                }
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في حفظ البيانات', 'danger');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>حفظ التغييرات';
+        }
+    }
+
+    function openDeleteModal(id, employeeName) {
+        document.getElementById('deleteId').value = id;
+        document.getElementById('deleteEmployeeName').textContent = employeeName;
+        deleteModal.show();
+    }
+
+    async function confirmDelete() {
+        const id = parseInt(document.getElementById('deleteId').value);
+        const deleteBtn = document.getElementById('confirmDeleteBtn');
+
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>جاري الحذف...';
+
+        try {
+            const response = await fetch(`${baseUrl}/DeleteAjax?id=${id}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                deleteModal.hide();
+                showAlert(result.message, 'success');
+                currentRecords = currentRecords.filter(r => r.id !== id);
+                renderTable();
+            } else {
+                showAlert(result.message, 'danger');
+            }
+        } catch (error) {
+            showAlert('حدث خطأ في حذف السجل', 'danger');
+        } finally {
+            deleteBtn.disabled = false;
+            deleteBtn.innerHTML = '<i class="bi bi-trash me-1"></i>حذف';
+        }
+    }
+
+    function resetSearch() {
+        const now = new Date();
+        document.getElementById('monthSelect').value = now.getMonth() + 1;
+        document.getElementById('yearInput').value = now.getFullYear();
+        document.getElementById('departmentFilter').value = '';
+        document.getElementById('typeFilter').value = '';
+        document.getElementById('employeeId').value = '';
+        document.getElementById('employeeSearch').value = '';
+
+        currentRecords = [];
+        document.getElementById('tableBody').innerHTML = '';
+        document.getElementById('recordCount').textContent = '0 سجل';
+        document.getElementById('noRecordsMessage').innerHTML = `
+            <i class="bi bi-search display-1 text-muted"></i>
+            <p class="text-muted mt-3">اختر معايير البحث واضغط بحث لعرض النتائج</p>
+        `;
+        document.getElementById('noRecordsMessage').classList.remove('d-none');
+    }
+
+    function showAlert(message, type) {
+        const container = document.getElementById('alertContainer');
+        const alertId = 'alert-' + Date.now();
+        const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+
+        container.innerHTML = `
+            <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                <i class="bi bi-${icon} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) alert.remove();
+        }, 5000);
+    }
+
+    // Re-apply filters when department or type changes (after data is loaded)
+    document.getElementById('departmentFilter').addEventListener('change', function() {
+        if (currentRecords.length > 0) renderTable();
+    });
+    document.getElementById('typeFilter').addEventListener('change', function() {
+        if (currentRecords.length > 0) renderTable();
+    });
+</script>
+}

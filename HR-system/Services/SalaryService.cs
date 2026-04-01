@@ -41,6 +41,9 @@ namespace HR_system.Services
             // Get employee IDs with records in this month
             var employeeIds = await _payrollRepository.GetEmployeesWithRecordsInMonthAsync(month, year);
 
+            // Auto-populate MonthlyAttendance from daily records (won't overwrite manual entries)
+            await _payrollRepository.PopulateMonthlyAttendanceAsync(month, year, employeeIds);
+
             // Get all employees with their data
             var employees = await _payrollRepository.GetEmployeesWithRelatedDataAsync(employeeIds);
 
@@ -50,6 +53,13 @@ namespace HR_system.Services
             var deductions = await _payrollRepository.GetDeductionRecordsAsync(month, year);
             var advances = await _payrollRepository.GetAdvanceRecordsAsync(month, year);
             var adjustments = await _payrollRepository.GetAttendanceAdjustmentRecordsAsync(month, year);
+            var monthlyAttendances = await _payrollRepository.GetMonthlyAttendanceRecordsAsync(month, year);
+
+            // Fetch previous month carry overs
+            int prevMonth = month == 1 ? 12 : month - 1;
+            int prevYear = month == 1 ? year - 1 : year;
+            var prevMonthPayroll = await _payrollRepository.GetSavedPayrollAsync(prevMonth, prevYear);
+            var prevCarryOvers = prevMonthPayroll?.Employees.ToDictionary(e => e.EmployeeId, e => e.SalaryCarryOver) ?? new Dictionary<int, decimal>();
 
             // Initialize result
             var result = new AllEmployeesSalaryResultDto
@@ -65,9 +75,15 @@ namespace HR_system.Services
             // Calculate salary for each employee
             foreach (var employee in employees)
             {
+                // Find monthly attendance record for this employee (if exists)
+                var monthlyAttendance = monthlyAttendances
+                    .FirstOrDefault(m => m.Employee_id == employee.Id);
+
+                decimal previousMonthCarryOver = prevCarryOvers.GetValueOrDefault(employee.Id, 0m);
+
                 var employeeSalary = _salaryCalculator.CalculateEmployeeSalary(
                     employee, attendances, bonuses, deductions, advances, adjustments,
-                    workingDaysInMonth, holidaysInMonth, year, month);
+                    workingDaysInMonth, holidaysInMonth, year, month, monthlyAttendance, previousMonthCarryOver);
 
                 result.Employees.Add(employeeSalary);
             }

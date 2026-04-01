@@ -40,6 +40,12 @@
         border: 1px solid #444;
         color: #fff;
     }
+    .details-section {
+        background: #1a1d21;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-top: 0.5rem;
+    }
     .paid-input:focus {
         background: #343a40;
         border-color: #0d6efd;
@@ -301,7 +307,9 @@
                                 <th>المكافآت</th>
                                 <th>الخصومات</th>
                                 <th>السلف</th>
+                                <th>مُرحّل (سابق)</th>
                                 <th>صافي الراتب</th>
+                                <th>مُرحّل (قادم)</th>
                                 <th>المبلغ المدفوع</th>
                                 <th>الحالة</th>
                                 <th></th>
@@ -324,7 +332,9 @@
                                 <td id="footBonuses">0</td>
                                 <td id="footDeductions">0</td>
                                 <td id="footAdvances">0</td>
+                                <td id="footPrevCarryOver">0</td>
                                 <td id="footNetSalary">0</td>
+                                <td id="footNextCarryOver">0</td>
                                 <td id="footPaidSalary">0</td>
                                 <td>-</td>
                                 <td></td>
@@ -577,9 +587,15 @@
                 <td class="positive">+${formatCurrency(emp.bonuses)}</td>
                 <td class="negative">-${formatCurrency(emp.deductions)}</td>
                 <td class="negative">-${formatCurrency(emp.advances)}</td>
+                <td class="${emp.previousMonthCarryOver >= 0 ? 'positive' : 'negative'}">${emp.previousMonthCarryOver >= 0 ? '+' : '-'}${formatCurrency(Math.abs(emp.previousMonthCarryOver || 0))}</td>
                 <td><strong>${formatCurrency(emp.netSalary)}</strong></td>
                 <td>
-                    <input type="number" class="form-control form-control-sm paid-input" 
+                    <input type="number" step="any" class="form-control form-control-sm paid-input" 
+                           value="${emp.salaryCarryOver}" data-id="${emp.id}" 
+                           onchange="updateSalaryCarryOver(${emp.id}, this.value)">
+                </td>
+                <td>
+                    <input type="number" step="any" class="form-control form-control-sm paid-input" 
                            value="${emp.paidSalary}" data-id="${emp.id}" 
                            onchange="updatePaidSalary(${emp.id}, this.value)">
                 </td>
@@ -611,7 +627,9 @@
         document.getElementById('footBonuses').textContent = formatCurrency(data.totalBonuses);
         document.getElementById('footDeductions').textContent = formatCurrency(data.totalDeductions);
         document.getElementById('footAdvances').textContent = formatCurrency(data.totalAdvances);
+        document.getElementById('footPrevCarryOver').textContent = formatCurrency(data.employees.reduce((sum, e) => sum + e.previousMonthCarryOver, 0));
         document.getElementById('footNetSalary').textContent = formatCurrency(data.totalNetSalaries);
+        document.getElementById('footNextCarryOver').textContent = formatCurrency(data.employees.reduce((sum, e) => sum + e.salaryCarryOver, 0));
         document.getElementById('footPaidSalary').textContent = formatCurrency(data.totalPaidSalaries);
     }
 
@@ -632,133 +650,128 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- Attendance Summary -->
-                <div class="col-md-6">
-                    <div class="card bg-secondary h-100">
-                        <div class="card-header py-2">
-                            <i class="bi bi-calendar-check me-2"></i>الحضور
-                        </div>
-                        <div class="card-body">
-                            <div class="row text-center">
-                                <div class="col-6">
-                                    <span class="badge bg-success fs-6">${emp.presentDays}</span>
-                                    <p class="mb-0 small">أيام الحضور</p>
-                                </div>
-                                <div class="col-6">
-                                    <span class="badge bg-danger fs-6">${emp.absentDays}</span>
-                                    <p class="mb-0 small">أيام الغياب</p>
-                                </div>
-                            </div>
-                        </div>
+
+                <!-- Salary Info -->
+                <div class="col-md-4">
+                    <div class="details-section">
+                        <h6 class="text-primary mb-3"><i class="bi bi-cash-stack me-2"></i>معلومات الراتب</h6>
+                        <p class="mb-1"><span class="text-muted">الراتب الأساسي (شهري):</span> <strong>${formatCurrency(emp.baseSalary)}</strong></p>
+                        <p class="mb-1"><span class="text-muted">طريقة الحساب:</span> <span class="badge ${emp.salaryCalculationType === 'Daily' ? 'bg-warning text-dark' : 'bg-primary'}">${emp.salaryCalculationTypeDisplay || (emp.salaryCalculationType === 'Daily' ? 'باليوم' : 'بالساعة')}</span></p>
+                        <p class="mb-1"><span class="text-muted">${emp.salaryCalculationType === 'Daily' ? 'الراتب باليوم:' : 'الراتب بالساعة:'}</span> ${formatCurrency(emp.salaryCalculationType === 'Daily' ? emp.salaryPerDay : emp.salaryPerHour)}</p>
+                        <p class="mb-0"><span class="text-muted">راتب ${emp.salaryCalculationType === 'Daily' ? 'أيام الحضور' : 'ساعات العمل'}:</span> <span class="text-info">${formatCurrency(emp.workedHoursSalary)}</span></p>
                     </div>
                 </div>
-                
-                <!-- Hours Summary -->
-                <div class="col-md-6">
-                    <div class="card bg-secondary h-100">
-                        <div class="card-header py-2">
-                            <i class="bi bi-clock me-2"></i>ساعات العمل
-                        </div>
-                        <div class="card-body">
-                            <div class="row text-center">
-                                <div class="col-3">
-                                    <span class="badge bg-info fs-6">${emp.actualWorkedHours_Display}</span>
-                                    <p class="mb-0 small">العمل</p>
-                                </div>
-                                <div class="col-3">
-                                    <span class="badge bg-success fs-6">${emp.overtimeHours_Display}</span>
-                                    <p class="mb-0 small">إضافي</p>
-                                </div>
-                                <div class="col-3">
-                                    <span class="badge bg-danger fs-6">${emp.lateTimeHours_Display}</span>
-                                    <p class="mb-0 small">تأخير</p>
-                                </div>
-                                <div class="col-3">
-                                    <span class="badge bg-danger fs-6">${emp.earlyDepartureHours_Display}</span>
-                                    <p class="mb-0 small">وقت الانصراف المبكر</p>
-                                </div>
-                            </div>
-                        </div>
+
+                <!-- Attendance -->
+                <div class="col-md-4">
+                    <div class="details-section">
+                        <h6 class="text-success mb-3"><i class="bi bi-calendar-check me-2"></i>الحضور</h6>
+                        <p class="mb-1"><span class="text-muted">أيام الحضور:</span> <strong>${emp.presentDays}</strong></p>
+                        <p class="mb-1"><span class="text-muted">أيام الغياب:</span> <span class="text-danger">${emp.absentDays}</span></p>
+                        <p class="mb-0"><span class="text-muted">ساعات العمل:</span> ${emp.actualWorkedHours_Display}</p>
                     </div>
                 </div>
-                
-                <!-- Salary Breakdown -->
+
+                <!-- Time Difference -->
+                <div class="col-md-4">
+                    <div class="details-section">
+                        <h6 class="text-warning mb-3"><i class="bi bi-clock me-2"></i>الوقت الإضافي/التأخير</h6>
+                        <p class="mb-1"><span class="text-muted">الإضافي:</span> <span class="text-success">${emp.overtimeHours_Display}</span></p>
+                        <p class="mb-1"><span class="text-muted">التأخير:</span> <span class="text-danger">${emp.lateTimeHours_Display}</span></p>
+                        <p class="mb-1"><span class="text-muted">وقت الانصراف المبكر:</span> <span class="text-danger">${emp.earlyDepartureHours_Display}</span></p>
+                        <p class="mb-0"><span class="text-muted">الأذونات:</span> ${Math.round(emp.permissionMinutes || 0)} دقيقة</p>
+                    </div>
+                </div>
+
+                <!-- Financial Details -->
                 <div class="col-12">
-                    <div class="card bg-secondary">
-                        <div class="card-header py-2">
-                            <i class="bi bi-wallet2 me-2"></i>تفاصيل الراتب
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-dark table-sm mb-0">
-                                <tbody>
-                                    <tr>
-                                        <td>الراتب الأساسي</td>
-                                        <td class="text-end">${formatCurrency(emp.baseSalary)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>طريقة الحساب</td>
-                                        <td class="text-end"><span class="badge ${emp.salaryCalculationType === 'Daily' ? 'bg-warning text-dark' : 'bg-primary'}">${emp.salaryCalculationTypeDisplay || (emp.salaryCalculationType === 'Daily' ? 'باليوم' : 'بالساعة')}</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>${emp.salaryCalculationType === 'Daily' ? 'سعر اليوم' : 'سعر الساعة'}</td>
-                                        <td class="text-end">${formatCurrency(emp.salaryCalculationType === 'Daily' ? emp.salaryPerDay : emp.salaryPerHour)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>راتب ${emp.salaryCalculationType === 'Daily' ? 'أيام الحضور' : 'ساعات العمل'}</td>
+                    <div class="details-section">
+                        <h6 class="text-info mb-3"><i class="bi bi-wallet2 me-2"></i>التفاصيل المالية</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-sm table-dark mb-0">
+                                    <tr class="text-info">
+                                        <td>راتب ساعات العمل</td>
                                         <td class="text-end">${formatCurrency(emp.workedHoursSalary)}</td>
                                     </tr>
                                     <tr class="text-success">
-                                        <td>+ الساعات الإضافية</td>
+                                        <td>مكافأة الإضافي</td>
                                         <td class="text-end">+${formatCurrency(emp.overtimeAmount)}</td>
                                     </tr>
+                                    <tr class="text-success">
+                                        <td>المكافآت</td>
+                                        <td class="text-end">+${formatCurrency(emp.bonuses)}</td>
+                                    </tr>
+                                    ${emp.totalAttendanceAdjustment > 0 ? `
+                                    <tr class="text-success">
+                                        <td>تسوية حضور (إضافة)</td>
+                                        <td class="text-end">+${formatCurrency(emp.totalAttendanceAdjustment)}</td>
+                                    </tr>` : ''}
+                                    <tr class="table-success">
+                                        <td><strong>إجمالي الإضافات</strong></td>
+                                        <td class="text-end"><strong>+${formatCurrency(emp.overtimeAmount + emp.bonuses + Math.max(0, emp.totalAttendanceAdjustment || 0))}</strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-sm table-dark mb-0">
                                     <tr class="text-danger">
-                                        <td>- خصم التأخير</td>
+                                        <td>خصم التأخير</td>
                                         <td class="text-end">-${formatCurrency(emp.lateTimeDeduction)}</td>
                                     </tr>
                                     <tr class="text-danger">
-                                        <td>- خصم الانصراف المبكر</td>
+                                        <td>خصم الانصراف المبكر</td>
                                         <td class="text-end">-${formatCurrency(emp.earlyDepartureDeduction)}</td>
                                     </tr>
-                                    <tr class="text-success">
-                                        <td>+ المكافآت</td>
-                                        <td class="text-end">+${formatCurrency(emp.bonuses)}</td>
-                                    </tr>
                                     <tr class="text-danger">
-                                        <td>- الخصومات</td>
+                                        <td>الخصومات</td>
                                         <td class="text-end">-${formatCurrency(emp.deductions)}</td>
                                     </tr>
                                     <tr class="text-warning">
-                                        <td>- السلف</td>
+                                        <td>السلف</td>
                                         <td class="text-end">-${formatCurrency(emp.advances)}</td>
                                     </tr>
-                                    ${(emp.totalAttendanceAdjustment || 0) > 0 ? `
-                                    <tr class="text-success">
-                                        <td>+ تسوية حضور (إضافة)</td>
-                                        <td class="text-end">+${formatCurrency(emp.totalAttendanceAdjustment)}</td>
-                                    </tr>` : ''}
-                                    ${(emp.totalAttendanceAdjustment || 0) < 0 ? `
+                                    ${emp.totalAttendanceAdjustment < 0 ? `
                                     <tr class="text-danger">
-                                        <td>- تسوية حضور (خصم)</td>
+                                        <td>تسوية حضور (خصم)</td>
                                         <td class="text-end">-${formatCurrency(Math.abs(emp.totalAttendanceAdjustment))}</td>
                                     </tr>` : ''}
-                                    <tr class="table-primary">
-                                        <td><strong>صافي الراتب</strong></td>
-                                        <td class="text-end"><strong>${formatCurrency(emp.netSalary)}</strong></td>
+                                    <tr class="table-danger">
+                                        <td><strong>إجمالي الخصومات</strong></td>
+                                        <td class="text-end"><strong>-${formatCurrency(emp.totalDeductionsAmount)}</strong></td>
                                     </tr>
-                                    <tr class="table-success">
-                                        <td><strong>المبلغ المدفوع</strong></td>
-                                        <td class="text-end"><strong>${formatCurrency(emp.paidSalary)}</strong></td>
-                                    </tr>
-                                    <tr>
-                                        <td>حالة الدفع</td>
-                                        <td class="text-end">
-                                            ${emp.isPaid ? '<span class="badge bg-success">تم الدفع</span>' : '<span class="badge bg-warning">لم يتم الدفع</span>'}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                </table>
+                            </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Carry Over -->
+                <div class="col-12 mt-2">
+                    <div class="alert alert-${(emp.previousMonthCarryOver || 0) > 0 ? 'success' : ((emp.previousMonthCarryOver || 0) < 0 ? 'danger' : 'secondary')} d-flex justify-content-between align-items-center mb-0 py-2">
+                        <span class="fs-6"><i class="bi bi-clock-history me-2"></i>مُرحّل من الشهر السابق</span>
+                        <span class="fs-5 fw-bold">${(emp.previousMonthCarryOver || 0) >= 0 ? '+' : '-'}${formatCurrency(Math.abs(emp.previousMonthCarryOver || 0))}</span>
+                    </div>
+                </div>
+
+                <!-- Net Salary -->
+                <div class="col-12 mt-2">
+                    <div class="alert alert-primary d-flex justify-content-between align-items-center mb-0">
+                        <span class="fs-5">صافي الراتب</span>
+                        <span class="fs-3 fw-bold">${formatCurrency(emp.netSalary)}</span>
+                    </div>
+                </div>
+
+                <!-- Paid Status -->
+                <div class="col-12 mt-2">
+                    <div class="alert alert-success d-flex justify-content-between align-items-center mb-0">
+                        <div>
+                            <span class="fs-5">المبلغ المدفوع</span>
+                            <div class="mt-1">
+                                ${emp.isPaid ? '<span class="badge bg-success">تم الدفع</span>' : '<span class="badge bg-warning text-dark">لم يتم الدفع</span>'}
+                            </div>
+                        </div>
+                        <span class="fs-3 fw-bold">${formatCurrency(emp.paidSalary)}</span>
                     </div>
                 </div>
             </div>
@@ -779,7 +792,8 @@
                 body: JSON.stringify({
                     payRollId: payRollId,
                     paidSalary: parseFloat(newValue) || 0,
-                    isPaid: emp.isPaid
+                    isPaid: emp.isPaid,
+                    salaryCarryOver: emp.salaryCarryOver
                 })
             });
 
@@ -797,6 +811,36 @@
         }
     }
 
+    async function updateSalaryCarryOver(payRollId, newValue) {
+        const emp = savedData.employees.find(e => e.id === payRollId);
+        if (!emp) return;
+
+        try {
+            const response = await fetch('/PayRoll/UpdatePaid', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    payRollId: payRollId,
+                    paidSalary: emp.paidSalary,
+                    isPaid: emp.isPaid,
+                    salaryCarryOver: parseFloat(newValue) || 0
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                emp.salaryCarryOver = parseFloat(newValue) || 0;
+                updateTotals();
+                showAlert('تم تحديث المُرحّل للشهر القادم', 'success');
+            } else {
+                showAlert('حدث خطأ في التحديث', 'danger');
+            }
+        } catch (error) {
+            console.error('Error updating carry over:', error);
+            showAlert('حدث خطأ في التحديث', 'danger');
+        }
+    }
+
     async function updatePaidStatus(payRollId, isPaid) {
         const emp = savedData.employees.find(e => e.id === payRollId);
         if (!emp) return;
@@ -808,7 +852,8 @@
                 body: JSON.stringify({
                     payRollId: payRollId,
                     paidSalary: emp.paidSalary,
-                    isPaid: isPaid
+                    isPaid: isPaid,
+                    salaryCarryOver: emp.salaryCarryOver
                 })
             });
 

@@ -12,8 +12,5 @@ namespace HR_system.DTOs.Account
         [DataType(DataType.Password)]
         [Display(Name = "كلمة المرور")]
         public string Password { get; set; } = null!;
-
-        [Display(Name = "تذكرني")]
-        public bool RememberMe { get; set; }
     }
 }

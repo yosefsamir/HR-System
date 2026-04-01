@@ -26,6 +26,7 @@ namespace HR_system.Data
         public DbSet<PayRoll> PayRolls { get; set; }
         public DbSet<AppSettings> AppSettings { get; set; }
         public DbSet<AttendanceAdjustment> AttendanceAdjustments { get; set; }
+        public DbSet<MonthlyAttendance> MonthlyAttendances { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {       
@@ -57,6 +58,11 @@ namespace HR_system.Data
                 .HasOne(e => e.Attendence)
                 .WithOne(a => a.EarlyDeparture)
                 .HasForeignKey<EarlyDeparture>(e => e.Attendence_id);
+
+            // Unique index: one monthly attendance record per employee per month
+            modelBuilder.Entity<MonthlyAttendance>()
+                .HasIndex(m => new { m.Employee_id, m.Month, m.Year })
+                .IsUnique();
         }
     }
 }

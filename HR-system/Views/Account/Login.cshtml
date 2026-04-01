@@ -22,7 +22,6 @@
         }
 
         <form asp-action="Login" asp-controller="Account" method="post">
-            <input type="hidden" asp-for="RememberMe" value="false" />
             @if (ViewData["ReturnUrl"] != null)
             {
                 <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
@@ -50,13 +49,6 @@
                     </button>
                 </div>
                 <span asp-validation-for="Password" class="text-danger small"></span>
-            </div>
-
-            <div class="mb-4 form-check">
-                <input asp-for="RememberMe" class="form-check-input" type="checkbox" id="rememberMe" />
-                <label asp-for="RememberMe" class="form-check-label text-light" for="rememberMe">
-                    تذكرني
-                </label>
             </div>
 
             <button type="submit" class="btn btn-primary w-100 btn-lg">

@@ -156,7 +156,11 @@ namespace HR_system.Models
 
         public DateTime DateSaved { get; set; }
 
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal SalaryCarryOver { get; set; }
+
         // Navigation property
-        public virtual Employee? Employee { get; set; }
+        [ForeignKey("Employee_id")]
+        public virtual Employee Employee { get; set; } = null!;
     }
 }

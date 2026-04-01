@@ -1,0 +1,70 @@
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+}
+
+<div class="card mb-4 bg-dark border-secondary pb-0">
+    <div class="card-body p-0">
+        <ul class="nav nav-tabs nav-tabs-bottom border-bottom-0 ms-3 me-3 pt-3">
+            <li class="nav-item">
+                <a class="nav-link @(currentController == "Settings" ? "active" : "text-light")" 
+                   asp-controller="Settings" asp-action="Index">
+                    <i class="bi bi-gear me-2"></i>إعدادات عامة
+                </a>
+            </li>
+            
+            @if (User.IsInRole(RoleNames.Admin))
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(currentController == "Security" ? "active" : "text-light")" 
+                       asp-controller="Security" asp-action="Index">
+                        <i class="bi bi-shield-lock me-2"></i>الأمان والمستخدمين
+                    </a>
+                </li>
+            }
+
+            <li class="nav-item">
+                <a class="nav-link @(currentController == "Account" && currentAction == "TwoFactor" ? "active" : "text-light")" 
+                   asp-controller="Account" asp-action="TwoFactor">
+                    <i class="bi bi-shield-check me-2"></i>المصادقة الثنائية
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link @(currentController == "Backup" ? "active" : "text-light")" 
+                   asp-controller="Backup" asp-action="Index">
+                    <i class="bi bi-cloud-arrow-up me-2"></i>النسخ الاحتياطي
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<style>
+    .nav-tabs-bottom {
+        border-bottom: 2px solid #555 !important;
+    }
+    .nav-tabs-bottom .nav-link {
+        border: none;
+        color: #adb5bd;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        position: relative;
+    }
+    .nav-tabs-bottom .nav-link:hover {
+        color: #fff;
+    }
+    .nav-tabs-bottom .nav-link.active {
+        background-color: transparent !important;
+        color: #0d6efd !important;
+    }
+    .nav-tabs-bottom .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #0d6efd;
+    }
+</style>

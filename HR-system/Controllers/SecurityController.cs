@@ -1,11 +1,14 @@
 using HR_system.DTOs.Security;
 using HR_system.Models;
+using HR_system.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace HR_system.Controllers
 {
+    [Authorize(Roles = RoleNames.Admin)]
     public class SecurityController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;

@@ -4,6 +4,7 @@ using HR_system.Models;
 using HR_system.Repositories;
 using HR_system.Services;
 using HR_system.Services.Interfaces;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,7 +29,8 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
     // User settings
     options.User.RequireUniqueEmail = false;
 })
-.AddEntityFrameworkStores<ApplicationDbContext>();
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
 
 // Configure application cookie (login path, etc.)
 builder.Services.ConfigureApplicationCookie(options =>
@@ -54,6 +56,7 @@ builder.Services.AddScoped<IAttendanceAdjustmentService, AttendanceAdjustmentSer
 builder.Services.AddScoped<IAttendenceService, AttendenceService>();
 builder.Services.AddScoped<IAttendanceExcelService, AttendanceExcelService>();
 builder.Services.AddScoped<ISalaryService, SalaryService>();
+builder.Services.AddScoped<IMonthlyAttendanceService, MonthlyAttendanceService>();
 
 builder.Services.AddScoped<IBackupService, BackupService>();
 
@@ -84,6 +87,49 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"Warning: Could not apply migrations: {ex.Message}");
+    }
+}
+
+// Seed roles / ensure the very first user is Admin (backfill for fresh installs)
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+    if (!await roleManager.RoleExistsAsync(HR_system.Security.RoleNames.Admin))
+    {
+        var createRole = await roleManager.CreateAsync(new ApplicationRole
+        {
+            Name = HR_system.Security.RoleNames.Admin,
+            NormalizedName = HR_system.Security.RoleNames.Admin.ToUpperInvariant(),
+            IsActive = true,
+            CreatedOn = DateTime.Now
+        });
+        if (!createRole.Succeeded)
+            Console.WriteLine($"Warning: Could not create role '{HR_system.Security.RoleNames.Admin}': {string.Join(", ", createRole.Errors.Select(e => e.Description))}");
+    }
+
+    // IMPORTANT:
+    // - Creating the first user via /Account/Setup already assigns Admin immediately.
+    // - This startup logic is only a safety net: if the DB already has users but no Admins,
+    //   we only auto-assign Admin when there is exactly ONE user in the system.
+    if (userManager.Users.Any())
+    {
+        var admins = await userManager.GetUsersInRoleAsync(HR_system.Security.RoleNames.Admin);
+        if (!admins.Any())
+        {
+            var userCount = userManager.Users.Count();
+            if (userCount == 1)
+            {
+                var onlyUser = userManager.Users.FirstOrDefault();
+                if (onlyUser != null)
+                {
+                    var addRole = await userManager.AddToRoleAsync(onlyUser, HR_system.Security.RoleNames.Admin);
+                    if (!addRole.Succeeded)
+                        Console.WriteLine($"Warning: Could not assign '{HR_system.Security.RoleNames.Admin}' to the only user: {string.Join(", ", addRole.Errors.Select(e => e.Description))}");
+                }
+            }
+        }
     }
 }
 

@@ -41,6 +41,7 @@ namespace HR_system.DTOs.Salary
         public decimal TotalOvertimeAmount { get; set; }
         public decimal TotalLateTimeDeduction { get; set; }
         public decimal TotalEarlyDepartureDeduction { get; set; }
+        public decimal TotalPreviousMonthCarryOver { get; set; }
         
         // Total Hours
         public decimal TotalWorkedHours { get; set; }
@@ -141,8 +142,9 @@ namespace HR_system.DTOs.Salary
         public decimal WorkedHoursSalary { get; set; }
         
         // Final Calculations
-        public decimal GrossSalary { get; set; }  // WorkedHoursSalary + Overtime + Bonuses
+        public decimal GrossSalary { get; set; }  // WorkedHoursSalary + Overtime + Bonuses + PreviousMonthCarryOver
         public decimal TotalDeductionsAmount { get; set; }  // LateTime + EarlyDeparture + Deductions + Advances
+        public decimal PreviousMonthCarryOver { get; set; }
         public decimal NetSalary { get; set; }  // Gross - TotalDeductions
         
         // Display Helpers

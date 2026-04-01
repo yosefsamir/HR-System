@@ -92,7 +92,9 @@ namespace HR_system.Domain.SalaryCalculation
         }
 
         /// <summary>
-        /// Calculate complete salary details for an employee
+        /// Calculate complete salary details for an employee.
+        /// If monthlyAttendance is provided, it is used as the source of truth for attendance data.
+        /// Otherwise, attendance is aggregated from daily records.
         /// </summary>
         public EmployeeSalaryResultDto CalculateEmployeeSalary(
             Employee employee,
@@ -104,7 +106,9 @@ namespace HR_system.Domain.SalaryCalculation
             int workingDaysInMonth,
             int holidaysInMonth,
             int year,
-            int month)
+            int month,
+            MonthlyAttendance? monthlyAttendance = null,
+            decimal previousMonthCarryOver = 0m)
         {
             // Calculate actual working days in month
             int acctualWorkingDaysInMonth = DateTime.DaysInMonth(year, month) - holidaysInMonth;
@@ -131,11 +135,36 @@ namespace HR_system.Domain.SalaryCalculation
             var empAdvances = advances.Where(a => a.Employee_id == employee.Id).ToList();
             var empAdjustments = attendanceAdjustments.Where(a => a.Employee_id == employee.Id).ToList();
 
-            // Calculate attendance summary
-            var attendanceSummary = CalculateAttendanceSummary(empAttendances, holidaysInMonth, year, month);
+            // Calculate attendance summary and time differences
+            // If MonthlyAttendance exists, use it as source of truth; otherwise aggregate from daily
+            AttendanceSummary attendanceSummary;
+            TimeDifferences timeDifferences;
 
-            // Calculate time differences
-            var timeDifferences = CalculateTimeDifferences(empAttendances);
+            if (monthlyAttendance != null)
+            {
+                // Use MonthlyAttendance record (manually entered or auto-generated)
+                attendanceSummary = new AttendanceSummary
+                {
+                    PresentDays = monthlyAttendance.PresentDays,
+                    AbsentDays = monthlyAttendance.AbsentDays,
+                    ActualDaysInMonth = DateTime.DaysInMonth(year, month)
+                };
+
+                timeDifferences = new TimeDifferences
+                {
+                    TotalWorkedMinutes = monthlyAttendance.WorkedMinutes,
+                    TotalOvertimeMinutes = monthlyAttendance.OvertimeMinutes,
+                    TotalLateMinutes = monthlyAttendance.LateMinutes,
+                    TotalEarlyDepartureMinutes = monthlyAttendance.EarlyDepartureMinutes,
+                    TotalPermissionMinutes = monthlyAttendance.PermissionMinutes
+                };
+            }
+            else
+            {
+                // Fallback: aggregate from daily attendance records
+                attendanceSummary = CalculateAttendanceSummary(empAttendances, holidaysInMonth, year, month);
+                timeDifferences = CalculateTimeDifferences(empAttendances);
+            }
 
             // Calculate time difference amounts (using hourly rate for overtime/latetime calculations)
             var (overtimeAmount, lateTimeDeduction, netTimeDiffAmount) = CalculateTimeDifferenceAmount(
@@ -162,7 +191,8 @@ namespace HR_system.Domain.SalaryCalculation
                 overtimeAmount,
                 lateTimeDeduction,
                 earlyDepartureDeduction,
-                financialSummary);
+                financialSummary,
+                previousMonthCarryOver);
 
             // Build result DTO
             return BuildEmployeeSalaryResult(
@@ -184,7 +214,8 @@ namespace HR_system.Domain.SalaryCalculation
                 empBonuses,
                 empDeductions,
                 empAdvances,
-                empAdjustments);
+                empAdjustments,
+                previousMonthCarryOver);
         }
 
         private AttendanceSummary CalculateAttendanceSummary(List<Attendence> attendances, int holidaysInMonth, int year, int month)
@@ -261,7 +292,8 @@ namespace HR_system.Domain.SalaryCalculation
             decimal overtimeAmount,
             decimal lateTimeDeduction,
             decimal earlyDepartureDeduction,
-            FinancialSummary financialSummary)
+            FinancialSummary financialSummary,
+            decimal previousMonthCarryOver)
         {
             decimal baseSalary;
             decimal totalWorkedHours = totalWorkedMinutes / 60m;
@@ -278,7 +310,7 @@ namespace HR_system.Domain.SalaryCalculation
                 baseSalary = Math.Round(salaryPerHour * totalWorkedHours, 2);
             }
 
-            // Net Salary = BaseSalary + OvertimeSalary - LateTimeDeduction - EarlyDepartureDeduction - Deductions - Advances + Bonuses + AttendanceAdjustment
+            // Net Salary = BaseSalary + OvertimeSalary - LateTimeDeduction - EarlyDepartureDeduction - Deductions - Advances + Bonuses + AttendanceAdjustment + PreviousMonthCarryOver
             decimal netSalary = baseSalary
                 + overtimeAmount
                 - lateTimeDeduction
@@ -286,7 +318,8 @@ namespace HR_system.Domain.SalaryCalculation
                 - financialSummary.TotalDeductionsAmount
                 - financialSummary.TotalAdvancesAmount
                 + financialSummary.TotalBonusesAmount
-                + financialSummary.TotalAttendanceAdjustmentAmount;
+                + financialSummary.TotalAttendanceAdjustmentAmount
+                + previousMonthCarryOver;
 
             // Gross salary = BaseSalary + Overtime + Bonuses + Positive Adjustments
             decimal positiveAdjustment = Math.Max(0, financialSummary.TotalAttendanceAdjustmentAmount);
@@ -324,7 +357,8 @@ namespace HR_system.Domain.SalaryCalculation
             List<Bounes> bonuses,
             List<Deduction> deductions,
             List<Advance> advances,
-            List<AttendanceAdjustment> adjustments)
+            List<AttendanceAdjustment> adjustments,
+            decimal previousMonthCarryOver)
         {
             return new EmployeeSalaryResultDto
             {
@@ -426,6 +460,7 @@ namespace HR_system.Domain.SalaryCalculation
                 // Final Calculations
                 GrossSalary = salaryAmounts.GrossSalary,
                 TotalDeductionsAmount = salaryAmounts.TotalDeductionsAmount,
+                PreviousMonthCarryOver = previousMonthCarryOver,
                 NetSalary = salaryAmounts.NetSalary
             };
         }
@@ -442,6 +477,7 @@ namespace HR_system.Domain.SalaryCalculation
             result.TotalDeductions = result.Employees.Sum(e => e.TotalDeductions);
             result.TotalAdvances = result.Employees.Sum(e => e.TotalAdvances);
             result.TotalAttendanceAdjustment = result.Employees.Sum(e => e.TotalAttendanceAdjustment);
+            result.TotalPreviousMonthCarryOver = result.Employees.Sum(e => e.PreviousMonthCarryOver);
             result.TotalOvertimeAmount = result.Employees.Sum(e => e.OvertimeAmount);
             result.TotalLateTimeDeduction = result.Employees.Sum(e => e.LateTimeDeduction);
             result.TotalEarlyDepartureDeduction = result.Employees.Sum(e => e.EarlyDepartureDeduction);
