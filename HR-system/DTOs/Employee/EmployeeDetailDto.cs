@@ -9,6 +9,7 @@ namespace HR_system.DTOs.Employee
         public string Emp_name { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
         public decimal Salary { get; set; }
+        public decimal MonthlyFixedAllowance { get; set; }
         public string? Gender { get; set; }
         public int? Age { get; set; }
         public string? Status { get; set; }
@@ -29,6 +30,7 @@ namespace HR_system.DTOs.Employee
         // Rates
         public decimal Rate_overtime_multiplier { get; set; }
         public decimal Rate_latetime_multiplier { get; set; }
+        public string? WhatsAppNumber { get; set; }
 
         // Formatted values for display
         public string Salary_Display => Salary.ToString("N2");

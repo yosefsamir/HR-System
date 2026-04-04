@@ -1,4 +1,3 @@
-using HR_system.Data;
 using HR_system.DTOs.MonthlyAttendance;
 using HR_system.Repositories;
 using HR_system.Services.Interfaces;
@@ -7,11 +6,11 @@ namespace HR_system.Services
 {
     public class MonthlyAttendanceService : IMonthlyAttendanceService
     {
-        private readonly MonthlyAttendanceRepository _repository;
+        private readonly IMonthlyAttendanceRepository _repository;
 
-        public MonthlyAttendanceService(ApplicationDbContext context)
+        public MonthlyAttendanceService(IMonthlyAttendanceRepository repository)
         {
-            _repository = new MonthlyAttendanceRepository(context);
+            _repository = repository;
         }
 
         public async Task<List<MonthlyAttendanceDto>> GetByMonthAsync(int month, int year)

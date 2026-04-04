@@ -35,7 +35,10 @@ cp "../Deployment/UpdateHRSystem.bat" "../Deployment/publish/"
 cp "../Deployment/Install.bat" "../Deployment/publish/"
 cp "../Deployment/CheckForUpdates.bat" "../Deployment/publish/"
 cp "../Deployment/INSTALLATION_GUIDE.md" "../Deployment/publish/"
+cp "../Deployment/StartWhatsAppService.bat" "../Deployment/publish/" 2>/dev/null
+cp "../Deployment/StopWhatsAppService.bat" "../Deployment/publish/" 2>/dev/null
 cp "../Deployment/DownloadRequirements.bat" "../Deployment/publish/" 2>/dev/null
+cp -r "../OpenWa" "../Deployment/publish/OpenWa"
 
 # Create version file
 echo "$VERSION" > "../Deployment/publish/version.txt"

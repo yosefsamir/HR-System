@@ -18,6 +18,7 @@ namespace HR_system.Services
             "الكود",
             "الاسم",
             "الراتب",
+            "البدل الثابت الشهري",
             "النوع",
             "العمر",
             "القسم",
@@ -47,6 +48,7 @@ namespace HR_system.Services
                 "الكود",
                 "الاسم",
                 "الراتب",
+                "البدل الثابت الشهري",
                 "النوع",
                 "العمر",
                 "القسم",
@@ -73,13 +75,14 @@ namespace HR_system.Services
                 worksheet.Cell(row, 1).Value = emp.Code;
                 worksheet.Cell(row, 2).Value = emp.Emp_name;
                 worksheet.Cell(row, 3).Value = emp.Salary;
-                worksheet.Cell(row, 4).Value = emp.Gender ?? "";
-                worksheet.Cell(row, 5).Value = emp.Age ?? 0;
-                worksheet.Cell(row, 6).Value = emp.Department_name ?? "";
-                worksheet.Cell(row, 7).Value = emp.Shift_name;
-                worksheet.Cell(row, 8).Value = emp.Status ?? "Active";
-                worksheet.Cell(row, 9).Value = emp.Rate_overtime_multiplier;
-                worksheet.Cell(row, 10).Value = emp.Rate_latetime_multiplier;
+                worksheet.Cell(row, 4).Value = emp.MonthlyFixedAllowance;
+                worksheet.Cell(row, 5).Value = emp.Gender ?? "";
+                worksheet.Cell(row, 6).Value = emp.Age ?? 0;
+                worksheet.Cell(row, 7).Value = emp.Department_name ?? "";
+                worksheet.Cell(row, 8).Value = emp.Shift_name;
+                worksheet.Cell(row, 9).Value = emp.Status ?? "Active";
+                worksheet.Cell(row, 10).Value = emp.Rate_overtime_multiplier;
+                worksheet.Cell(row, 11).Value = emp.Rate_latetime_multiplier;
                 row++;
             }
 
@@ -108,6 +111,7 @@ namespace HR_system.Services
                 "الكود",
                 "الاسم",
                 "الراتب",
+                "البدل الثابت الشهري",
                 "النوع",
                 "العمر",
                 "القسم",
@@ -131,16 +135,17 @@ namespace HR_system.Services
             worksheet.Cell(2, 1).Value = "EMP001";
             worksheet.Cell(2, 2).Value = "أحمد محمد";
             worksheet.Cell(2, 3).Value = 5000;
-            worksheet.Cell(2, 4).Value = "ذكر";
-            worksheet.Cell(2, 5).Value = 30;
-            worksheet.Cell(2, 6).Value = "الإدارة";
-            worksheet.Cell(2, 7).Value = "الصباحية";
-            worksheet.Cell(2, 8).Value = "Active";
-            worksheet.Cell(2, 9).Value = 1.5;
-            worksheet.Cell(2, 10).Value = 1;
+            worksheet.Cell(2, 4).Value = 250;
+            worksheet.Cell(2, 5).Value = "ذكر";
+            worksheet.Cell(2, 6).Value = 30;
+            worksheet.Cell(2, 7).Value = "الإدارة";
+            worksheet.Cell(2, 8).Value = "الصباحية";
+            worksheet.Cell(2, 9).Value = "Active";
+            worksheet.Cell(2, 10).Value = 1.5;
+            worksheet.Cell(2, 11).Value = 1;
 
             // Style sample row
-            for (int i = 1; i <= 10; i++)
+            for (int i = 1; i <= 11; i++)
             {
                 worksheet.Cell(2, i).Style.Font.Italic = true;
                 worksheet.Cell(2, i).Style.Font.FontColor = XLColor.Gray;
@@ -166,6 +171,7 @@ namespace HR_system.Services
                 "• الوردية - اسم الوردية (مطلوب، يجب أن يكون موجود في النظام)",
                 "",
                 "الحقول الاختيارية:",
+                "• البدل الثابت الشهري - مبلغ ثابت يضاف للراتب كل شهر (الافتراضي: 0)",
                 "• النوع - ذكر أو أنثى",
                 "• العمر - عدد صحيح بين 18 و 100",
                 "• القسم - اسم القسم (يجب أن يكون موجود في النظام)",
@@ -263,7 +269,7 @@ namespace HR_system.Services
                 // Check required columns exist
                 var headerRow = worksheet.Row(1);
                 var existingHeaders = new List<string>();
-                for (int col = 1; col <= 10; col++)
+                for (int col = 1; col <= 11; col++)
                 {
                     var cellValue = headerRow.Cell(col).GetString().Trim();
                     if (!string.IsNullOrEmpty(cellValue))
@@ -344,6 +350,15 @@ namespace HR_system.Services
                             importDto.Salary = salary;
                         }
 
+                        if (decimal.TryParse(GetCellValue(currentRow, columnMap, "البدل الثابت الشهري"), out decimal fixedAllowance))
+                        {
+                            importDto.MonthlyFixedAllowance = fixedAllowance;
+                        }
+                        else
+                        {
+                            importDto.MonthlyFixedAllowance = 0m;
+                        }
+
                         if (int.TryParse(GetCellValue(currentRow, columnMap, "العمر"), out int age))
                         {
                             importDto.Age = age;
@@ -407,6 +422,7 @@ namespace HR_system.Services
                                 // Update existing employee
                                 existingEmployee.Emp_name = importDto.Emp_name;
                                 existingEmployee.Salary = importDto.Salary;
+                                existingEmployee.MonthlyFixedAllowance = importDto.MonthlyFixedAllowance;
                                 existingEmployee.Gender = importDto.Gender;
                                 existingEmployee.Age = importDto.Age;
                                 existingEmployee.Department_id = department?.Id;
@@ -437,6 +453,7 @@ namespace HR_system.Services
                                 Emp_name = importDto.Emp_name,
                                 Code = importDto.Code,
                                 Salary = importDto.Salary,
+                                MonthlyFixedAllowance = importDto.MonthlyFixedAllowance,
                                 Gender = importDto.Gender,
                                 Age = importDto.Age,
                                 Department_id = department?.Id,
@@ -506,6 +523,11 @@ namespace HR_system.Services
             if (dto.Salary <= 0)
             {
                 errors.Add("الراتب يجب أن يكون أكبر من صفر");
+            }
+
+            if (dto.MonthlyFixedAllowance < 0)
+            {
+                errors.Add("البدل الثابت الشهري يجب أن يكون صفر أو أكثر");
             }
 
             if (string.IsNullOrWhiteSpace(dto.Shift_name))

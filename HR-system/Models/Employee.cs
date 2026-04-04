@@ -21,6 +21,9 @@ namespace HR_system.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal Salary { get; set; }
 
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal MonthlyFixedAllowance { get; set; } = 0m;
+
         [StringLength(10)]
         public string? Gender { get; set; }
 
@@ -42,6 +45,9 @@ namespace HR_system.Models
 
         [Column(TypeName = "decimal(5,2)")]
         public decimal Rate_latetime_multiplier { get; set; } = 1;
+
+        [StringLength(20)]
+        public string? WhatsAppNumber { get; set; }
 
         // Navigation properties
         public virtual Department? Department { get; set; }

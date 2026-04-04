@@ -43,7 +43,7 @@ namespace HR_system.Migrations
 
                     b.HasIndex("Employee_id");
 
-                    b.ToTable("Advances");
+                    b.ToTable("Advances", (string)null);
                 });
 
             modelBuilder.Entity("HR_system.Models.AppSettings", b =>
@@ -74,7 +74,7 @@ namespace HR_system.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AppSettings");
+                    b.ToTable("AppSettings", (string)null);
                 });
 
             modelBuilder.Entity("HR_system.Models.ApplicationRole", b =>
@@ -241,7 +241,7 @@ namespace HR_system.Migrations
 
                     b.HasIndex("Employee_id");
 
-                    b.ToTable("AttendanceAdjustments");
+                    b.ToTable("AttendanceAdjustments", (string)null);
                 });
 
             modelBuilder.Entity("HR_system.Models.Attendence", b =>
@@ -277,7 +277,7 @@ namespace HR_system.Migrations
 
                     b.HasIndex("Employee_id");
 
-                    b.ToTable("Attendences");
+                    b.ToTable("Attendences", (string)null);
                 });
 
             modelBuilder.Entity("HR_system.Models.Bounes", b =>
@@ -305,7 +305,7 @@ namespace HR_system.Migrations
 
                     b.HasIndex("Employee_id");
 
-                    b.ToTable("Bounes");
+                    b.ToTable("Bounes", (string)null);
                 });
 
             modelBuilder.Entity("HR_system.Models.Deduction", b =>
@@ -333,7 +333,7 @@ namespace HR_system.Migrations
 
                     b.HasIndex("Employee_id");
 
-                    b.ToTable("Deductions");
+                    b.ToTable("Deductions", (string)null);
                 });
 
             modelBuilder.Entity("HR_system.Models.Department", b =>
@@ -351,7 +351,7 @@ namespace HR_system.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Departments");
+                    b.ToTable("Departments", (string)null);
                 });
 
             modelBuilder.Entity("HR_system.Models.EarlyDeparture", b =>
@@ -373,7 +373,7 @@ namespace HR_system.Migrations
                     b.HasIndex("Attendence_id")
                         .IsUnique();
 
-                    b.ToTable("EarlyDepartures");
+                    b.ToTable("EarlyDepartures", (string)null);
                 });
 
             modelBuilder.Entity("HR_system.Models.Employee", b =>
@@ -404,6 +404,9 @@ namespace HR_system.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
+                    b.Property<decimal>("MonthlyFixedAllowance")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("Rate_latetime_multiplier")
                         .HasColumnType("decimal(5,2)");
 
@@ -420,13 +423,17 @@ namespace HR_system.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("WhatsAppNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Department_id");
 
                     b.HasIndex("Shift_id");
 
-                    b.ToTable("Employees");
+                    b.ToTable("Employees", (string)null);
                 });
 
             modelBuilder.Entity("HR_system.Models.LateTime", b =>
@@ -448,7 +455,7 @@ namespace HR_system.Migrations
                     b.HasIndex("Attendence_id")
                         .IsUnique();
 
-                    b.ToTable("LateTimes");
+                    b.ToTable("LateTimes", (string)null);
                 });
 
             modelBuilder.Entity("HR_system.Models.MonthlyAttendance", b =>
@@ -504,7 +511,7 @@ namespace HR_system.Migrations
                     b.HasIndex("Employee_id", "Month", "Year")
                         .IsUnique();
 
-                    b.ToTable("MonthlyAttendances");
+                    b.ToTable("MonthlyAttendances", (string)null);
                 });
 
             modelBuilder.Entity("HR_system.Models.OverTime", b =>
@@ -526,7 +533,7 @@ namespace HR_system.Migrations
                     b.HasIndex("Attendence_id")
                         .IsUnique();
 
-                    b.ToTable("OverTimes");
+                    b.ToTable("OverTimes", (string)null);
                 });
 
             modelBuilder.Entity("HR_system.Models.PayRoll", b =>
@@ -584,6 +591,10 @@ namespace HR_system.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("EmployeeNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<int>("Employee_id")
                         .HasColumnType("int");
 
@@ -613,6 +624,9 @@ namespace HR_system.Migrations
 
                     b.Property<int>("Month")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("MonthlyFixedAllowance")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("NetSalary")
                         .HasColumnType("decimal(18,2)");
@@ -695,7 +709,7 @@ namespace HR_system.Migrations
 
                     b.HasIndex("Employee_id");
 
-                    b.ToTable("PayRolls");
+                    b.ToTable("PayRolls", (string)null);
                 });
 
             modelBuilder.Entity("HR_system.Models.Shift", b =>
@@ -737,7 +751,7 @@ namespace HR_system.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Shifts");
+                    b.ToTable("Shifts", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

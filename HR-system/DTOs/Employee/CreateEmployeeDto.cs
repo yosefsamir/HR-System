@@ -22,6 +22,10 @@ namespace HR_system.DTOs.Employee
         [Display(Name = "Salary")]
         public decimal Salary { get; set; }
 
+        [Range(0, 9999999.99, ErrorMessage = "البدل الثابت الشهري يجب أن يكون صفر أو أكثر")]
+        [Display(Name = "Monthly Fixed Allowance")]
+        public decimal MonthlyFixedAllowance { get; set; } = 0m;
+
         [StringLength(10)]
         [Display(Name = "Gender")]
         public string? Gender { get; set; }
@@ -48,5 +52,10 @@ namespace HR_system.DTOs.Employee
         [Range(0.1, 10, ErrorMessage = "Late time multiplier must be between 0.1 and 10")]
         [Display(Name = "Late Time Rate Multiplier")]
         public decimal Rate_latetime_multiplier { get; set; } = 1m;
+
+        [StringLength(20)]
+        [Display(Name = "WhatsApp Number")]
+        [RegularExpression(@"^\+?[0-9]{8,15}$", ErrorMessage = "صيغة رقم واتساب غير صحيحة")]
+        public string? WhatsAppNumber { get; set; }
     }
 }

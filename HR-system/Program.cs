@@ -6,8 +6,13 @@ using HR_system.Services;
 using HR_system.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+
+QuestPDF.Settings.License = LicenseType.Community;
+QuestPDF.Settings.FontDiscoveryPaths.Add(Path.Combine(builder.Environment.WebRootPath, "fonts"));
+QuestPDF.Settings.UseEnvironmentFonts = false;
 
 // Add DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -43,6 +48,9 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 // Register Repositories
 builder.Services.AddScoped<IAttendenceRepository, AttendenceRepository>();
+builder.Services.AddScoped<IAttendanceRepository>(sp => (IAttendanceRepository)sp.GetRequiredService<IAttendenceRepository>());
+builder.Services.AddScoped<IPayrollRepository, PayrollRepository>();
+builder.Services.AddScoped<IMonthlyAttendanceRepository, MonthlyAttendanceRepository>();
 
 // Register Services (Dependency Injection)
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
@@ -50,15 +58,22 @@ builder.Services.AddScoped<IShiftService, ShiftService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IEmployeeExcelService, EmployeeExcelService>();
 builder.Services.AddScoped<IBounesService, BounesService>();
+builder.Services.AddScoped<IBonusService>(sp => (IBonusService)sp.GetRequiredService<IBounesService>());
 builder.Services.AddScoped<IDeductionService, DeductionService>();
 builder.Services.AddScoped<IAdvanceService, AdvanceService>();
 builder.Services.AddScoped<IAttendanceAdjustmentService, AttendanceAdjustmentService>();
 builder.Services.AddScoped<IAttendenceService, AttendenceService>();
+builder.Services.AddScoped<IAttendanceService>(sp => (IAttendanceService)sp.GetRequiredService<IAttendenceService>());
 builder.Services.AddScoped<IAttendanceExcelService, AttendanceExcelService>();
 builder.Services.AddScoped<ISalaryService, SalaryService>();
 builder.Services.AddScoped<IMonthlyAttendanceService, MonthlyAttendanceService>();
+builder.Services.AddScoped<HR_system.Domain.SalaryCalculation.SalaryCalculator>();
+builder.Services.AddScoped<IPayRollWhatsAppService, PayRollWhatsAppService>();
+builder.Services.AddScoped<IWhatsAppSettingsService, WhatsAppSettingsService>();
 
 builder.Services.AddScoped<IBackupService, BackupService>();
+builder.Services.AddHttpClient<IWhatsAppService, OpenWaWhatsAppService>();
+builder.Services.AddHttpContextAccessor();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -144,6 +159,8 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+app.UseMiddleware<CorrelationIdMiddleware>();
+
 app.UseRouting();
 
 app.UseAuthentication();
@@ -161,4 +178,4 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 
-app.Run("http://0.0.0.0:5000");
+app.Run();

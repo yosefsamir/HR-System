@@ -128,6 +128,9 @@ namespace HR_system.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAdvances { get; set; }
 
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal MonthlyFixedAllowance { get; set; }
+
         /// <summary>
         /// Monetary amount from attendance adjustments (bonus days/hours)
         /// </summary>
@@ -158,6 +161,9 @@ namespace HR_system.Models
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal SalaryCarryOver { get; set; }
+
+        [StringLength(1000)]
+        public string? EmployeeNote { get; set; }
 
         // Navigation property
         [ForeignKey("Employee_id")]

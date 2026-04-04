@@ -144,10 +144,23 @@ echo       "Microsoft.AspNetCore": "Warning"
 echo     }
 echo   },
 echo   "AllowedHosts": "*",
-echo   "Urls": "http://localhost:5009"
+echo   "Urls": "http://0.0.0.0:5000",
+echo   "OpenWAApi": {
+echo     "BaseUrl": "http://localhost:2785/api",
+echo     "ApiKey": "dev-admin-key",
+echo     "SessionId": "hr-system-default",
+echo     "SessionName": "hr-system",
+echo     "PublicFileBaseUrl": "http://host.docker.internal:5000"
+echo   }
 echo }
 ) > "%CONFIG_FILE%"
 echo    OK: Connected to %SQL_INSTANCE%
+
+echo.
+echo Configuring Windows Firewall for network access...
+netsh advfirewall firewall delete rule name="HR System 5000" >nul 2>&1
+netsh advfirewall firewall add rule name="HR System 5000" dir=in action=allow protocol=TCP localport=5000 >nul 2>&1
+echo    OK: Port 5000 is allowed on local network
 
 REM Create desktop shortcut
 echo.
@@ -171,7 +184,7 @@ echo ========================================
 echo    Installation completed successfully!
 echo ========================================
 echo.
-echo Installation path: C:\HRSystem
+echo Installation path: %INSTALL_DIR%
 echo Database server: %SQL_INSTANCE%
 echo.
 echo ----------------------------------------

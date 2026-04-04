@@ -26,15 +26,17 @@ namespace HR_system.Services
                     Emp_name = e.Emp_name,
                     Code = e.Code,
                     Salary = e.Salary,
+                    MonthlyFixedAllowance = e.MonthlyFixedAllowance,
                     Gender = e.Gender,
                     Age = e.Age,
                     Status = e.Status,
                     Department_id = e.Department_id,
                     Shift_id = e.Shift_id,
                     Department_name = e.Department != null ? e.Department.Department_name : null,
-                    Shift_name = e.Shift != null ? e.Shift.Shift_name : null,
+                    Shift_name = e.Shift != null ? e.Shift.Shift_name : string.Empty,
                     Rate_overtime_multiplier = e.Rate_overtime_multiplier,
-                    Rate_latetime_multiplier = e.Rate_latetime_multiplier
+                    Rate_latetime_multiplier = e.Rate_latetime_multiplier,
+                    WhatsAppNumber = e.WhatsAppNumber
                 })
                 .ToListAsync();
         }
@@ -51,15 +53,17 @@ namespace HR_system.Services
                     Emp_name = e.Emp_name,
                     Code = e.Code,
                     Salary = e.Salary,
+                    MonthlyFixedAllowance = e.MonthlyFixedAllowance,
                     Gender = e.Gender,
                     Age = e.Age,
                     Status = e.Status,
                     Department_id = e.Department_id,
                     Shift_id = e.Shift_id,
                     Department_name = e.Department != null ? e.Department.Department_name : null,
-                    Shift_name = e.Shift != null ? e.Shift.Shift_name : null,
+                    Shift_name = e.Shift != null ? e.Shift.Shift_name : string.Empty,
                     Rate_overtime_multiplier = e.Rate_overtime_multiplier,
-                    Rate_latetime_multiplier = e.Rate_latetime_multiplier
+                    Rate_latetime_multiplier = e.Rate_latetime_multiplier,
+                    WhatsAppNumber = e.WhatsAppNumber
                 })
                 .ToListAsync();
         }
@@ -76,15 +80,17 @@ namespace HR_system.Services
                     Emp_name = e.Emp_name,
                     Code = e.Code,
                     Salary = e.Salary,
+                    MonthlyFixedAllowance = e.MonthlyFixedAllowance,
                     Gender = e.Gender,
                     Age = e.Age,
                     Status = e.Status,
                     Department_id = e.Department_id,
                     Shift_id = e.Shift_id,
                     Department_name = e.Department != null ? e.Department.Department_name : null,
-                    Shift_name = e.Shift != null ? e.Shift.Shift_name : null,
+                    Shift_name = e.Shift != null ? e.Shift.Shift_name : string.Empty,
                     Rate_overtime_multiplier = e.Rate_overtime_multiplier,
-                    Rate_latetime_multiplier = e.Rate_latetime_multiplier
+                    Rate_latetime_multiplier = e.Rate_latetime_multiplier,
+                    WhatsAppNumber = e.WhatsAppNumber
                 })
                 .ToListAsync();
         }
@@ -105,18 +111,20 @@ namespace HR_system.Services
                 Emp_name = employee.Emp_name,
                 Code = employee.Code,
                 Salary = employee.Salary,
+                MonthlyFixedAllowance = employee.MonthlyFixedAllowance,
                 Gender = employee.Gender,
                 Age = employee.Age,
                 Status = employee.Status,
                 Department_id = employee.Department_id,
                 Shift_id = employee.Shift_id,
                 Department_name = employee.Department?.Department_name,
-                Shift_name = employee.Shift?.Shift_name,
+                Shift_name = employee.Shift?.Shift_name ?? string.Empty,
                 Shift_Start_time = employee.Shift?.Start_time,
                 Shift_End_time = employee.Shift?.End_time,
                 Shift_StandardHours = employee.Shift?.StandardHours,
                 Rate_overtime_multiplier = employee.Rate_overtime_multiplier,
-                Rate_latetime_multiplier = employee.Rate_latetime_multiplier
+                Rate_latetime_multiplier = employee.Rate_latetime_multiplier,
+                WhatsAppNumber = employee.WhatsAppNumber
             };
         }
 
@@ -136,15 +144,17 @@ namespace HR_system.Services
                 Emp_name = employee.Emp_name,
                 Code = employee.Code,
                 Salary = employee.Salary,
+                MonthlyFixedAllowance = employee.MonthlyFixedAllowance,
                 Gender = employee.Gender,
                 Age = employee.Age,
                 Status = employee.Status,
                 Department_id = employee.Department_id,
                 Shift_id = employee.Shift_id,
                 Department_name = employee.Department?.Department_name,
-                Shift_name = employee.Shift?.Shift_name,
+                Shift_name = employee.Shift?.Shift_name ?? string.Empty,
                 Rate_overtime_multiplier = employee.Rate_overtime_multiplier,
-                Rate_latetime_multiplier = employee.Rate_latetime_multiplier
+                Rate_latetime_multiplier = employee.Rate_latetime_multiplier,
+                WhatsAppNumber = employee.WhatsAppNumber
             };
         }
 
@@ -181,13 +191,15 @@ namespace HR_system.Services
                 Emp_name = dto.Emp_name,
                 Code = dto.Code,
                 Salary = dto.Salary,
+                MonthlyFixedAllowance = dto.MonthlyFixedAllowance,
                 Gender = dto.Gender,
                 Age = dto.Age,
                 Department_id = dto.Department_id,
                 Shift_id = dto.Shift_id,
                 Status = dto.Status,
                 Rate_overtime_multiplier = dto.Rate_overtime_multiplier,
-                Rate_latetime_multiplier = dto.Rate_latetime_multiplier
+                Rate_latetime_multiplier = dto.Rate_latetime_multiplier,
+                WhatsAppNumber = dto.WhatsAppNumber
             };
 
             _context.Employees.Add(employee);
@@ -203,15 +215,17 @@ namespace HR_system.Services
                 Emp_name = employee.Emp_name,
                 Code = employee.Code,
                 Salary = employee.Salary,
+                MonthlyFixedAllowance = employee.MonthlyFixedAllowance,
                 Gender = employee.Gender,
                 Age = employee.Age,
                 Status = employee.Status,
                 Department_id = employee.Department_id,
                 Shift_id = employee.Shift_id,
                 Department_name = employee.Department?.Department_name,
-                Shift_name = employee.Shift?.Shift_name,
+                Shift_name = employee.Shift?.Shift_name ?? string.Empty,
                 Rate_overtime_multiplier = employee.Rate_overtime_multiplier,
-                Rate_latetime_multiplier = employee.Rate_latetime_multiplier
+                Rate_latetime_multiplier = employee.Rate_latetime_multiplier,
+                WhatsAppNumber = employee.WhatsAppNumber
             };
         }
 
@@ -251,6 +265,7 @@ namespace HR_system.Services
             employee.Emp_name = dto.Emp_name;
             employee.Code = dto.Code;
             employee.Salary = dto.Salary;
+            employee.MonthlyFixedAllowance = dto.MonthlyFixedAllowance;
             employee.Gender = dto.Gender;
             employee.Age = dto.Age;
             employee.Department_id = dto.Department_id;
@@ -258,6 +273,7 @@ namespace HR_system.Services
             employee.Status = dto.Status;
             employee.Rate_overtime_multiplier = dto.Rate_overtime_multiplier;
             employee.Rate_latetime_multiplier = dto.Rate_latetime_multiplier;
+            employee.WhatsAppNumber = dto.WhatsAppNumber;
 
             await _context.SaveChangesAsync();
 
@@ -271,15 +287,17 @@ namespace HR_system.Services
                 Emp_name = employee.Emp_name,
                 Code = employee.Code,
                 Salary = employee.Salary,
+                MonthlyFixedAllowance = employee.MonthlyFixedAllowance,
                 Gender = employee.Gender,
                 Age = employee.Age,
                 Status = employee.Status,
                 Department_id = employee.Department_id,
                 Shift_id = employee.Shift_id,
                 Department_name = employee.Department?.Department_name,
-                Shift_name = employee.Shift?.Shift_name,
+                Shift_name = employee.Shift?.Shift_name ?? string.Empty,
                 Rate_overtime_multiplier = employee.Rate_overtime_multiplier,
-                Rate_latetime_multiplier = employee.Rate_latetime_multiplier
+                Rate_latetime_multiplier = employee.Rate_latetime_multiplier,
+                WhatsAppNumber = employee.WhatsAppNumber
             };
         }
 
@@ -348,15 +366,17 @@ namespace HR_system.Services
                     Emp_name = e.Emp_name,
                     Code = e.Code,
                     Salary = e.Salary,
+                    MonthlyFixedAllowance = e.MonthlyFixedAllowance,
                     Gender = e.Gender,
                     Age = e.Age,
                     Status = e.Status,
                     Department_id = e.Department_id,
                     Shift_id = e.Shift_id,
                     Department_name = e.Department != null ? e.Department.Department_name : null,
-                    Shift_name = e.Shift != null ? e.Shift.Shift_name : null,
+                    Shift_name = e.Shift != null ? e.Shift.Shift_name : string.Empty,
                     Rate_overtime_multiplier = e.Rate_overtime_multiplier,
-                    Rate_latetime_multiplier = e.Rate_latetime_multiplier
+                    Rate_latetime_multiplier = e.Rate_latetime_multiplier,
+                    WhatsAppNumber = e.WhatsAppNumber
                 })
                 .ToListAsync();
         }

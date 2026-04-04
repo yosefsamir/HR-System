@@ -37,6 +37,7 @@ namespace HR_system.DTOs.Salary
         public decimal TotalBonuses { get; set; }
         public decimal TotalDeductions { get; set; }
         public decimal TotalAdvances { get; set; }
+        public decimal TotalMonthlyFixedAllowances { get; set; }
         public decimal TotalAttendanceAdjustment { get; set; }
         public decimal TotalOvertimeAmount { get; set; }
         public decimal TotalLateTimeDeduction { get; set; }
@@ -124,6 +125,7 @@ namespace HR_system.DTOs.Salary
         public decimal TotalBonuses { get; set; }
         public decimal TotalDeductions { get; set; }
         public decimal TotalAdvances { get; set; }
+        public decimal MonthlyFixedAllowance { get; set; }
         public decimal TotalAttendanceAdjustment { get; set; }
         
         // Bonuses Breakdown

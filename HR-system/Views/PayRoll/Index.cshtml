@@ -209,6 +209,7 @@
                                 <th>الإضافي</th>
                                 <th>التأخير</th>
                                 <th>خصم الانصراف المبكر</th>
+                                <th>البدل الثابت</th>
                                 <th>المكافآت</th>
                                 <th>الخصومات</th>
                                 <th>السلف</th>
@@ -231,6 +232,7 @@
                                 <td id="footOvertime">0</td>
                                 <td id="footLateTime">0</td>
                                 <td id="footEarlyDeparture">0</td>
+                                <td id="footFixedAllowance">0</td>
                                 <td id="footBonuses">0</td>
                                 <td id="footDeductions">0</td>
                                 <td id="footAdvances">0</td>
@@ -454,6 +456,7 @@
                 <td class="positive">+${formatCurrency(emp.overtimeAmount)}</td>
                 <td class="negative">-${formatCurrency(emp.lateTimeDeduction)}</td>
                 <td class="negative">-${formatCurrency(emp.earlyDepartureDeduction)}</td>
+                <td class="positive">+${formatCurrency(emp.monthlyFixedAllowance)}</td>
                 <td class="positive">+${formatCurrency(emp.totalBonuses)}</td>
                 <td class="negative">-${formatCurrency(emp.totalDeductions)}</td>
                 <td class="negative">-${formatCurrency(emp.totalAdvances)}</td>
@@ -475,6 +478,7 @@
         document.getElementById('footWorkedSalary').textContent = formatCurrency(data.employees.reduce((sum, e) => sum + e.workedHoursSalary, 0));
         document.getElementById('footLateTime').textContent = formatCurrency(data.totalLateTimeDeduction);
         document.getElementById('footEarlyDeparture').textContent = formatCurrency(data.totalEarlyDepartureDeduction);
+        document.getElementById('footFixedAllowance').textContent = formatCurrency(data.totalMonthlyFixedAllowances);
         document.getElementById('footBonuses').textContent = formatCurrency(data.totalBonuses);
         document.getElementById('footDeductions').textContent = formatCurrency(data.totalDeductions);
         document.getElementById('footAdvances').textContent = formatCurrency(data.totalAdvances);
@@ -549,6 +553,10 @@
                                         <td class="text-end">+${formatCurrency(emp.overtimeAmount)}</td>
                                     </tr>
                                     <tr class="text-success">
+                                        <td>البدل الثابت الشهري</td>
+                                        <td class="text-end">+${formatCurrency(emp.monthlyFixedAllowance)}</td>
+                                    </tr>
+                                    <tr class="text-success">
                                         <td>المكافآت</td>
                                         <td class="text-end">+${formatCurrency(emp.totalBonuses)}</td>
                                     </tr>
@@ -559,7 +567,7 @@
                                     </tr>` : ''}
                                     <tr class="table-success">
                                         <td><strong>إجمالي الإضافات</strong></td>
-                                        <td class="text-end"><strong>+${formatCurrency(emp.overtimeAmount + emp.totalBonuses + Math.max(0, emp.totalAttendanceAdjustment || 0))}</strong></td>
+                                        <td class="text-end"><strong>+${formatCurrency(emp.overtimeAmount + emp.monthlyFixedAllowance + emp.totalBonuses + Math.max(0, emp.totalAttendanceAdjustment || 0))}</strong></td>
                                     </tr>
                                 </table>
                             </div>

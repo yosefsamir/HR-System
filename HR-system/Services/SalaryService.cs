@@ -1,4 +1,3 @@
-using HR_system.Data;
 using HR_system.Domain.SalaryCalculation;
 using HR_system.DTOs.Salary;
 using HR_system.DTOs.PayRoll;
@@ -9,7 +8,8 @@ namespace HR_system.Services
 {
     public class SalaryService : ISalaryService
     {
-        private readonly PayrollRepository _payrollRepository;
+        private readonly IPayrollRepository _payrollRepository;
+        private readonly IMonthlyAttendanceRepository _monthlyAttendanceRepository;
         private readonly SalaryCalculator _salaryCalculator;
 
         private static readonly string[] ArabicMonthNames =
@@ -18,10 +18,14 @@ namespace HR_system.Services
             "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
         };
 
-        public SalaryService(ApplicationDbContext context)
+        public SalaryService(
+            IPayrollRepository payrollRepository,
+            IMonthlyAttendanceRepository monthlyAttendanceRepository,
+            SalaryCalculator salaryCalculator)
         {
-            _payrollRepository = new PayrollRepository(context);
-            _salaryCalculator = new SalaryCalculator();
+            _payrollRepository = payrollRepository;
+            _monthlyAttendanceRepository = monthlyAttendanceRepository;
+            _salaryCalculator = salaryCalculator;
         }
 
         #region Main Calculation Methods
@@ -42,7 +46,7 @@ namespace HR_system.Services
             var employeeIds = await _payrollRepository.GetEmployeesWithRecordsInMonthAsync(month, year);
 
             // Auto-populate MonthlyAttendance from daily records (won't overwrite manual entries)
-            await _payrollRepository.PopulateMonthlyAttendanceAsync(month, year, employeeIds);
+            await _monthlyAttendanceRepository.PopulateFromDailyRecordsAsync(month, year, employeeIds);
 
             // Get all employees with their data
             var employees = await _payrollRepository.GetEmployeesWithRelatedDataAsync(employeeIds);
@@ -124,6 +128,11 @@ namespace HR_system.Services
         public async Task<bool> UpdatePaidSalaryAsync(UpdatePaidSalaryDto request)
         {
             return await _payrollRepository.UpdatePaidSalaryAsync(request);
+        }
+
+        public async Task<bool> UpdatePayrollNoteAsync(UpdatePayrollNoteDto request)
+        {
+            return await _payrollRepository.UpdatePayrollNoteAsync(request);
         }
 
         public async Task<bool> DeleteMonthPayRollAsync(int month, int year)

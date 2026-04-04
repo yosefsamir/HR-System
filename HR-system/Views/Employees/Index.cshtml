@@ -147,6 +147,7 @@
                                 <th>القسم</th>
                                 <th>الوردية</th>
                                 <th>الراتب</th>
+                                <th>البدل الثابت</th>
                                 <th>الحالة</th>
                                 <th style="width: 150px;">الإجراءات</th>
                             </tr>
@@ -193,6 +194,9 @@
                                     </td>
                                     <td>
                                         <span class="text-success fw-bold">@emp.Salary.ToString("N2")</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-info fw-bold">@emp.MonthlyFixedAllowance.ToString("N2")</span>
                                     </td>
                                     <td>
                                         @{

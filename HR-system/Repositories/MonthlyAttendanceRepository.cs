@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR_system.Repositories
 {
-    public class MonthlyAttendanceRepository
+    public class MonthlyAttendanceRepository : IMonthlyAttendanceRepository
     {
         private readonly ApplicationDbContext _context;
 

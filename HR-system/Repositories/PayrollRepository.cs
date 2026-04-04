@@ -11,7 +11,7 @@ namespace HR_system.Repositories
     /// <summary>
     /// Repository for payroll data access operations
     /// </summary>
-    public class PayrollRepository
+    public class PayrollRepository : IPayrollRepository
     {
         private readonly ApplicationDbContext _context;
 
@@ -154,16 +154,6 @@ namespace HR_system.Repositories
         }
 
         /// <summary>
-        /// Auto-populate MonthlyAttendance from daily records.
-        /// Delegates to MonthlyAttendanceRepository.
-        /// </summary>
-        public async Task PopulateMonthlyAttendanceAsync(int month, int year, List<int> employeeIds)
-        {
-            var monthlyRepo = new MonthlyAttendanceRepository(_context);
-            await monthlyRepo.PopulateFromDailyRecordsAsync(month, year, employeeIds);
-        }
-
-        /// <summary>
         /// Check if payroll exists for month/year
         /// </summary>
         public async Task<PayRollExistsDto> CheckPayrollExistsAsync(int month, int year)
@@ -302,6 +292,7 @@ namespace HR_system.Repositories
                 Bonuses = r.TotalBonuses,
                 Deductions = r.TotalDeductions,
                 Advances = r.TotalAdvances,
+                MonthlyFixedAllowance = r.MonthlyFixedAllowance,
                 TotalAttendanceAdjustment = r.TotalAttendanceAdjustment,
                 GrossSalary = r.GrossSalary,
                 TotalDeductionsAmount = r.TotalDeductionsAmount,
@@ -309,6 +300,7 @@ namespace HR_system.Repositories
                 PaidSalary = r.ActualPaidAmount,
                 IsPaid = r.IsPaid,
                 SalaryCarryOver = r.SalaryCarryOver,
+                EmployeeNote = r.EmployeeNote,
                 DateSaved = r.DateSaved
             }).ToList();
 
@@ -332,6 +324,7 @@ namespace HR_system.Repositories
                 TotalBonuses = records.Sum(r => r.TotalBonuses),
                 TotalDeductions = records.Sum(r => r.TotalDeductions),
                 TotalAdvances = records.Sum(r => r.TotalAdvances),
+                TotalMonthlyFixedAllowances = records.Sum(r => r.MonthlyFixedAllowance),
                 TotalAttendanceAdjustment = records.Sum(r => r.TotalAttendanceAdjustment),
                 TotalOvertimeAmount = records.Sum(r => r.OvertimeAmount),
                 TotalLateTimeDeduction = records.Sum(r => r.LateTimeDeduction),
@@ -356,6 +349,19 @@ namespace HR_system.Repositories
             payRoll.ActualPaidAmount = RoundUpToNearest5(request.PaidSalary);
             payRoll.IsPaid = request.IsPaid;
             payRoll.SalaryCarryOver = request.SalaryCarryOver;
+            payRoll.DateSaved = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> UpdatePayrollNoteAsync(UpdatePayrollNoteDto request)
+        {
+            var payRoll = await _context.PayRolls.FindAsync(request.PayRollId);
+            if (payRoll == null) return false;
+
+            var trimmed = request.EmployeeNote?.Trim();
+            payRoll.EmployeeNote = string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
             payRoll.DateSaved = DateTime.Now;
 
             await _context.SaveChangesAsync();
@@ -443,6 +449,7 @@ namespace HR_system.Repositories
                 TotalBonuses = empSalary.TotalBonuses,
                 TotalDeductions = empSalary.TotalDeductions,
                 TotalAdvances = empSalary.TotalAdvances,
+                MonthlyFixedAllowance = empSalary.MonthlyFixedAllowance,
                 TotalAttendanceAdjustment = empSalary.TotalAttendanceAdjustment,
 
                 // Worked Hours Salary
@@ -520,6 +527,7 @@ namespace HR_system.Repositories
             payRoll.TotalBonuses = empSalary.TotalBonuses;
             payRoll.TotalDeductions = empSalary.TotalDeductions;
             payRoll.TotalAdvances = empSalary.TotalAdvances;
+            payRoll.MonthlyFixedAllowance = empSalary.MonthlyFixedAllowance;
             payRoll.TotalAttendanceAdjustment = empSalary.TotalAttendanceAdjustment;
 
             // Worked Hours Salary
@@ -573,6 +581,15 @@ namespace HR_system.Repositories
             var workingDaysInMonth = payroll.WorkingDaysInMonth;
             var holidaysInMonth = payroll.HolidaysInMonth;
 
+            // Keep single recalculation consistent with monthly calculation: include previous month carry-over.
+            var prevMonth = month == 1 ? 12 : month - 1;
+            var prevYear = month == 1 ? year - 1 : year;
+            var previousMonthCarryOver = await _context.PayRolls
+                .Where(p => p.Employee_id == employee.Id && p.Month == prevMonth && p.Year == prevYear)
+                .OrderByDescending(p => p.DateSaved)
+                .Select(p => p.SalaryCarryOver)
+                .FirstOrDefaultAsync();
+
             // Get related data for this employee in this month
             var attendances = await _context.Attendences
                 .Include(a => a.LateTime)
@@ -604,7 +621,7 @@ namespace HR_system.Repositories
             // Recalculate salary
             var empSalary = salaryCalculator.CalculateEmployeeSalary(
                 employee, attendances, bonuses, deductions, advances, adjustments,
-                workingDaysInMonth, holidaysInMonth, year, month, monthlyAttendance);
+                workingDaysInMonth, holidaysInMonth, year, month, monthlyAttendance, previousMonthCarryOver);
 
             // Update payroll record
             payroll.EmployeeName = empSalary.EmployeeName;
@@ -641,6 +658,7 @@ namespace HR_system.Repositories
             payroll.TotalBonuses = empSalary.TotalBonuses;
             payroll.TotalDeductions = empSalary.TotalDeductions;
             payroll.TotalAdvances = empSalary.TotalAdvances;
+            payroll.MonthlyFixedAllowance = empSalary.MonthlyFixedAllowance;
             payroll.TotalAttendanceAdjustment = empSalary.TotalAttendanceAdjustment;
             payroll.WorkedHoursSalary = empSalary.WorkedHoursSalary;
             payroll.GrossSalary = empSalary.GrossSalary;
@@ -686,12 +704,14 @@ namespace HR_system.Repositories
                 Bonuses = payroll.TotalBonuses,
                 Deductions = payroll.TotalDeductions,
                 Advances = payroll.TotalAdvances,
+                MonthlyFixedAllowance = payroll.MonthlyFixedAllowance,
                 GrossSalary = payroll.GrossSalary,
                 TotalDeductionsAmount = payroll.TotalDeductionsAmount,
                 NetSalary = payroll.NetSalary,
                 PaidSalary = payroll.ActualPaidAmount,
                 IsPaid = payroll.IsPaid,
                 SalaryCarryOver = payroll.SalaryCarryOver,
+                EmployeeNote = payroll.EmployeeNote,
                 DateSaved = payroll.DateSaved
             };
         }

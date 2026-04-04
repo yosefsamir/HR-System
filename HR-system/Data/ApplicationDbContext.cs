@@ -63,6 +63,7 @@ namespace HR_system.Data
             modelBuilder.Entity<MonthlyAttendance>()
                 .HasIndex(m => new { m.Employee_id, m.Month, m.Year })
                 .IsUnique();
+                
         }
     }
 }

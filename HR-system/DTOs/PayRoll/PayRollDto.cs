@@ -45,6 +45,26 @@ namespace HR_system.DTOs.PayRoll
         public decimal SalaryCarryOver { get; set; }
     }
 
+    public class UpdatePayrollNoteDto
+    {
+        public int PayRollId { get; set; }
+        public string? EmployeeNote { get; set; }
+    }
+
+    public class SendSalaryWhatsAppDto
+    {
+        public int PayRollId { get; set; }
+    }
+
+
+    public class SendSalaryWhatsAppResultDto
+    {
+        public bool Success { get; set; }
+        public bool Partial { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
+
+
     /// <summary>
     /// Saved payroll data for display (from database)
     /// </summary>
@@ -98,6 +118,7 @@ namespace HR_system.DTOs.PayRoll
         public decimal Bonuses { get; set; }
         public decimal Deductions { get; set; }
         public decimal Advances { get; set; }
+        public decimal MonthlyFixedAllowance { get; set; }
         public decimal TotalAttendanceAdjustment { get; set; }
         
         // Final Calculations
@@ -108,6 +129,7 @@ namespace HR_system.DTOs.PayRoll
         public decimal PaidSalary { get; set; }
         public bool IsPaid { get; set; }
         public decimal SalaryCarryOver { get; set; }
+        public string? EmployeeNote { get; set; }
         
         public DateTime DateSaved { get; set; }
         
@@ -137,6 +159,7 @@ namespace HR_system.DTOs.PayRoll
         public decimal TotalBonuses { get; set; }
         public decimal TotalDeductions { get; set; }
         public decimal TotalAdvances { get; set; }
+        public decimal TotalMonthlyFixedAllowances { get; set; }
         public decimal TotalAttendanceAdjustment { get; set; }
         public decimal TotalOvertimeAmount { get; set; }
 

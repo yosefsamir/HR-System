@@ -7,9 +7,16 @@
     <div class="card-body p-0">
         <ul class="nav nav-tabs nav-tabs-bottom border-bottom-0 ms-3 me-3 pt-3">
             <li class="nav-item">
-                <a class="nav-link @(currentController == "Settings" ? "active" : "text-light")" 
+                <a class="nav-link @(currentController == "Settings" && currentAction == "Index" ? "active" : "text-light")" 
                    asp-controller="Settings" asp-action="Index">
                     <i class="bi bi-gear me-2"></i>إعدادات عامة
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link @(currentController == "Settings" && currentAction == "WhatsApp" ? "active" : "text-light")"
+                   asp-controller="Settings" asp-action="WhatsApp">
+                    <i class="bi bi-whatsapp me-2"></i>إعدادات واتساب
                 </a>
             </li>
             

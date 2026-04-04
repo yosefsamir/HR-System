@@ -70,6 +70,14 @@
                                 </select>
                                 <span asp-validation-for="Status" class="text-danger small"></span>
                             </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="WhatsAppNumber" class="form-label">رقم واتساب</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-whatsapp"></i></span>
+                                    <input asp-for="WhatsAppNumber" class="form-control" placeholder="مثال: 201001234567 أو +201001234567" dir="ltr" />
+                                </div>
+                                <span asp-validation-for="WhatsAppNumber" class="text-danger small"></span>
+                            </div>
                         </div>
 
                         <!-- Work Info Section -->
@@ -111,6 +119,15 @@
                                     <input asp-for="Salary" type="number" step="0.01" class="form-control" placeholder="0.00" />
                                 </div>
                                 <span asp-validation-for="Salary" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="MonthlyFixedAllowance" class="form-label">بدل ثابت شهري</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-plus-circle"></i></span>
+                                    <input asp-for="MonthlyFixedAllowance" type="number" step="0.01" class="form-control" placeholder="0.00" />
+                                </div>
+                                <small class="text-muted">بدل الغداء او المواصلات او غيره</small>
+                                <span asp-validation-for="MonthlyFixedAllowance" class="text-danger small d-block"></span>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label asp-for="Rate_overtime_multiplier" class="form-label">معدل ساعة إضافية</label>

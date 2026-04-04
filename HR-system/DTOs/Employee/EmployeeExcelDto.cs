@@ -8,6 +8,7 @@ namespace HR_system.DTOs.Employee
         public string Emp_name { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
         public decimal Salary { get; set; }
+        public decimal MonthlyFixedAllowance { get; set; }
         public string? Gender { get; set; }
         public int? Age { get; set; }
         public string? Department_name { get; set; }
@@ -25,6 +26,7 @@ namespace HR_system.DTOs.Employee
         public string Code { get; set; } = string.Empty;
         public string Emp_name { get; set; } = string.Empty;
         public decimal Salary { get; set; }
+        public decimal MonthlyFixedAllowance { get; set; }
         public string? Gender { get; set; }
         public int? Age { get; set; }
         public string? Department_name { get; set; }

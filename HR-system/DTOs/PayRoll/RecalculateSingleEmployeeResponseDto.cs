@@ -54,6 +54,7 @@ namespace HR_system.DTOs.PayRoll
         public decimal Bonuses { get; set; }
         public decimal Deductions { get; set; }
         public decimal Advances { get; set; }
+        public decimal MonthlyFixedAllowance { get; set; }
         public decimal GrossSalary { get; set; }
         public decimal TotalDeductionsAmount { get; set; }
         public decimal NetSalary { get; set; }
@@ -62,6 +63,7 @@ namespace HR_system.DTOs.PayRoll
         public decimal PaidSalary { get; set; }
         public bool IsPaid { get; set; }
         public decimal SalaryCarryOver { get; set; }
+        public string? EmployeeNote { get; set; }
         public DateTime DateSaved { get; set; }
 
         private static string FormatHours(decimal totalMinutes)

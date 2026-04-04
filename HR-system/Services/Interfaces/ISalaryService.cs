@@ -46,6 +46,11 @@ namespace HR_system.Services.Interfaces
         Task<bool> UpdatePaidSalaryAsync(UpdatePaidSalaryDto request);
 
         /// <summary>
+        /// Update custom payroll note for single employee
+        /// </summary>
+        Task<bool> UpdatePayrollNoteAsync(UpdatePayrollNoteDto request);
+
+        /// <summary>
         /// Delete all payroll records for month/year
         /// </summary>
         Task<bool> DeleteMonthPayRollAsync(int month, int year);

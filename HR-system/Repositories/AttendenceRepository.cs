@@ -10,7 +10,7 @@ namespace HR_system.Repositories
     /// <summary>
     /// Repository implementation for attendance data operations
     /// </summary>
-    public class AttendenceRepository : IAttendenceRepository
+    public class AttendenceRepository : IAttendenceRepository, IAttendanceRepository
     {
         private readonly ApplicationDbContext _context;
 

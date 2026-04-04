@@ -179,7 +179,14 @@ namespace HR_system.Domain.SalaryCalculation
             decimal earlyDepartureDeduction = Math.Round(earlyDepartureHours * salaryPerHour * earlyDepartureMultiplier, 2);
 
             // Calculate financial summaries
-            var financialSummary = CalculateFinancialSummary(empBonuses, empDeductions, empAdvances, empAdjustments, salaryPerHour, salaryPerDay);
+            var financialSummary = CalculateFinancialSummary(
+                empBonuses,
+                empDeductions,
+                empAdvances,
+                empAdjustments,
+                salaryPerHour,
+                salaryPerDay,
+                employee.MonthlyFixedAllowance);
 
             // Calculate final salary amounts based on calculation type
             var salaryAmounts = CalculateSalaryAmounts(
@@ -257,7 +264,8 @@ namespace HR_system.Domain.SalaryCalculation
             List<Advance> advances,
             List<AttendanceAdjustment> adjustments,
             decimal salaryPerHour,
-            decimal salaryPerDay)
+            decimal salaryPerDay,
+            decimal monthlyFixedAllowance)
         {
             // Calculate attendance adjustment monetary amount
             decimal adjustmentAmount = 0;
@@ -279,6 +287,7 @@ namespace HR_system.Domain.SalaryCalculation
                 TotalBonusesAmount = bonuses.Sum(b => b.Amount),
                 TotalDeductionsAmount = deductions.Sum(d => d.Amount),
                 TotalAdvancesAmount = advances.Sum(a => a.Amount),
+                MonthlyFixedAllowanceAmount = monthlyFixedAllowance,
                 TotalAttendanceAdjustmentAmount = adjustmentAmount
             };
         }
@@ -318,13 +327,18 @@ namespace HR_system.Domain.SalaryCalculation
                 - financialSummary.TotalDeductionsAmount
                 - financialSummary.TotalAdvancesAmount
                 + financialSummary.TotalBonusesAmount
+                + financialSummary.MonthlyFixedAllowanceAmount
                 + financialSummary.TotalAttendanceAdjustmentAmount
                 + previousMonthCarryOver;
 
             // Gross salary = BaseSalary + Overtime + Bonuses + Positive Adjustments
             decimal positiveAdjustment = Math.Max(0, financialSummary.TotalAttendanceAdjustmentAmount);
             decimal negativeAdjustment = Math.Abs(Math.Min(0, financialSummary.TotalAttendanceAdjustmentAmount));
-            decimal grossSalary = baseSalary + overtimeAmount + financialSummary.TotalBonusesAmount + positiveAdjustment;
+            decimal grossSalary = baseSalary
+                + overtimeAmount
+                + financialSummary.TotalBonusesAmount
+                + financialSummary.MonthlyFixedAllowanceAmount
+                + positiveAdjustment;
 
             // Total deductions = LateTime + EarlyDeparture + Deductions + Advances + Negative Adjustments
             decimal totalDeductionsCalc = lateTimeDeduction + earlyDepartureDeduction + financialSummary.TotalDeductionsAmount + financialSummary.TotalAdvancesAmount + negativeAdjustment;
@@ -416,6 +430,7 @@ namespace HR_system.Domain.SalaryCalculation
                 TotalBonuses = financial.TotalBonusesAmount,
                 TotalDeductions = financial.TotalDeductionsAmount,
                 TotalAdvances = financial.TotalAdvancesAmount,
+                MonthlyFixedAllowance = financial.MonthlyFixedAllowanceAmount,
                 TotalAttendanceAdjustment = financial.TotalAttendanceAdjustmentAmount,
 
                 // Bonuses List
@@ -476,6 +491,7 @@ namespace HR_system.Domain.SalaryCalculation
             result.TotalBonuses = result.Employees.Sum(e => e.TotalBonuses);
             result.TotalDeductions = result.Employees.Sum(e => e.TotalDeductions);
             result.TotalAdvances = result.Employees.Sum(e => e.TotalAdvances);
+            result.TotalMonthlyFixedAllowances = result.Employees.Sum(e => e.MonthlyFixedAllowance);
             result.TotalAttendanceAdjustment = result.Employees.Sum(e => e.TotalAttendanceAdjustment);
             result.TotalPreviousMonthCarryOver = result.Employees.Sum(e => e.PreviousMonthCarryOver);
             result.TotalOvertimeAmount = result.Employees.Sum(e => e.OvertimeAmount);
@@ -511,6 +527,7 @@ namespace HR_system.Domain.SalaryCalculation
             public decimal TotalBonusesAmount { get; set; }
             public decimal TotalDeductionsAmount { get; set; }
             public decimal TotalAdvancesAmount { get; set; }
+            public decimal MonthlyFixedAllowanceAmount { get; set; }
             public decimal TotalAttendanceAdjustmentAmount { get; set; }
         }
 

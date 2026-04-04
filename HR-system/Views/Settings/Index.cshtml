@@ -36,6 +36,23 @@
                                value="@Model.CompanyName" placeholder="أدخل اسم الشركة">
                         <div class="form-text">يظهر في أعلى إيصالات الرواتب</div>
                     </div>
+                    <div class="mb-3">
+                        <label for="companyLogo" class="form-label">شعار الشركة</label>
+                        <input type="file" class="form-control bg-dark text-light" id="companyLogo" accept=".png,.jpg,.jpeg">
+                        <div class="form-text">PNG/JPG بحد أقصى 1 ميجا</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <button type="button" class="btn btn-outline-info btn-sm" onclick="uploadCompanyLogo()">
+                            <i class="bi bi-upload me-2"></i>رفع الشعار
+                        </button>
+                        <div id="companyLogoPreview" class="d-flex align-items-center gap-2">
+                            @if ((bool)(ViewData["CompanyLogoExists"] ?? false))
+                            {
+                                <img src="/assets/company-logo.png" alt="logo" style="height: 36px;" />
+                                <span class="text-muted">تم رفع شعار</span>
+                            }
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -115,6 +132,7 @@
         }
     }
 
+
     function showAlert(message, type) {
         const alertHtml = `
             <div class="alert alert-${type} alert-dismissible fade show" role="alert">
@@ -129,6 +147,46 @@
             const alert = document.querySelector('.alert');
             if (alert) alert.remove();
         }, 3000);
+    }
+
+    async function uploadCompanyLogo() {
+        const input = document.getElementById('companyLogo');
+        if (!input.files || input.files.length === 0) {
+            showAlert('يرجى اختيار شعار الشركة', 'warning');
+            return;
+        }
+
+        const file = input.files[0];
+        if (file.size > 1024 * 1024) {
+            showAlert('حجم الشعار يجب أن لا يتجاوز 1 ميجا', 'danger');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('logo', file);
+
+        try {
+            const response = await fetch('/Settings/UploadCompanyLogo', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                showAlert(result.message, 'success');
+                const preview = document.getElementById('companyLogoPreview');
+                preview.innerHTML = `
+                    <img src="${result.logoPath}" alt="logo" style="height: 36px;" />
+                    <span class="text-muted">تم رفع شعار</span>
+                `;
+                input.value = '';
+            } else {
+                showAlert(result.message || 'تعذر رفع الشعار', 'danger');
+            }
+        } catch (error) {
+            console.error('Error uploading logo:', error);
+            showAlert('حدث خطأ أثناء رفع الشعار', 'danger');
+        }
     }
 </script>
 }

@@ -9,7 +9,7 @@
 
 | البرنامج | الوصف | رابط التحميل |
 |---------|-------|-------------|
-| .NET 9.0 Runtime | لتشغيل التطبيق | [تحميل](https://dotnet.microsoft.com/download/dotnet/9.0) |
+| .NET 9.0 Runtime (اختياري) | مطلوب فقط إذا كانت النسخة غير Self-Contained | [تحميل](https://dotnet.microsoft.com/download/dotnet/9.0) |
 | SQL Server Express | قاعدة البيانات | [تحميل](https://www.microsoft.com/sql-server/sql-server-downloads) |
 | SQL Server Management Studio | إدارة قاعدة البيانات (اختياري) | [تحميل](https://docs.microsoft.com/sql/ssms/download-sql-server-management-studio-ssms) |
 
@@ -23,7 +23,9 @@
 
 ## خطوات التثبيت | Installation Steps
 
-### الخطوة 1: تثبيت .NET Runtime
+### الخطوة 1: تثبيت .NET Runtime (اختياري)
+
+إذا كانت النسخة التي استلمتها **Self-Contained** يمكنك تخطي هذه الخطوة.
 
 1. افتح الرابط: https://dotnet.microsoft.com/download/dotnet/9.0
 2. اختر **ASP.NET Core Runtime 9.0** (Windows x64)
@@ -83,6 +85,24 @@
 2. سيفتح المتصفح تلقائياً على العنوان: http://localhost:5000
 3. ابدأ باستخدام النظام!
 
+### الوصول من أجهزة أخرى على نفس الشبكة
+
+بعد تشغيل النظام، سيظهر في نافذة التشغيل رابط الشبكة بصيغة:
+
+`http://192.168.x.x:5000`
+
+افتح هذا الرابط من أي جهاز آخر على نفس الشبكة المحلية (Wi-Fi/LAN).
+
+### الخطوة 7 (اختياري): تشغيل خدمة WhatsApp
+
+> هذه الخطوة مطلوبة فقط إذا أردت إرسال كشوف الرواتب عبر واتساب.
+
+1. ثبّت Docker Desktop على جهاز العميل.
+2. شغّل `StartWhatsAppService.bat` كمسؤول.
+3. افتح النظام ثم اذهب إلى **الإعدادات > واتساب**.
+4. اعمل **Relink** ثم امسح QR من واتساب الهاتف.
+5. لايقاف الخدمة لاحقاً، شغّل `StopWhatsAppService.bat`.
+
 ---
 
 ## هيكل الملفات | File Structure
@@ -95,6 +115,9 @@ C:\HRSystem\
 ├── StartHRSystem.bat         # تشغيل النظام
 ├── StopHRSystem.bat          # إيقاف النظام
 ├── UpdateHRSystem.bat        # تحديث النظام
+├── StartWhatsAppService.bat  # تشغيل خدمة واتساب (Docker)
+├── StopWhatsAppService.bat   # إيقاف خدمة واتساب
+├── OpenWa/                   # ملفات خدمة واتساب
 ├── wwwroot/                  # ملفات الويب
 ├── Backup/                   # نسخ احتياطية
 ├── Update/                   # ملفات التحديث

@@ -10,12 +10,18 @@ namespace HR_system.Controllers
         private readonly ISalaryService _salaryService;
         private readonly IShiftService _shiftService;
         private readonly IEmployeeService _employeeService;
+        private readonly IPayRollWhatsAppService _payRollWhatsAppService;
 
-        public PayRollController(ISalaryService salaryService, IShiftService shiftService, IEmployeeService employeeService)
+        public PayRollController(
+            ISalaryService salaryService,
+            IShiftService shiftService,
+            IEmployeeService employeeService,
+            IPayRollWhatsAppService payRollWhatsAppService)
         {
             _salaryService = salaryService;
             _shiftService = shiftService;
             _employeeService = employeeService;
+            _payRollWhatsAppService = payRollWhatsAppService;
         }
 
         // GET: PayRoll
@@ -91,7 +97,7 @@ namespace HR_system.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = $"{ex.Message} \n {ex.StackTrace}" });
+                return Json(new { success = false, message = ex.Message });
             }
         }
 
@@ -159,6 +165,21 @@ namespace HR_system.Controllers
             }
         }
 
+        // POST: PayRoll/UpdateEmployeeNote
+        [HttpPost]
+        public async Task<IActionResult> UpdateEmployeeNote([FromBody] UpdatePayrollNoteDto request)
+        {
+            try
+            {
+                var success = await _salaryService.UpdatePayrollNoteAsync(request);
+                return Json(new { success, message = success ? "تم حفظ الملاحظة" : "تعذر حفظ الملاحظة" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
         // DELETE: PayRoll/Delete?month=X&year=Y
         [HttpDelete]
         public async Task<IActionResult> Delete(int month, int year)
@@ -192,5 +213,20 @@ namespace HR_system.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
+
+        [HttpPost]
+        public async Task<IActionResult> SendSalaryWhatsApp([FromBody] SendSalaryWhatsAppDto request)
+        {
+            try
+            {
+                var result = await _payRollWhatsAppService.SendSalaryWhatsAppAsync(request.PayRollId);
+                return Json(new { success = result.Success, partial = result.Partial, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
     }
 }

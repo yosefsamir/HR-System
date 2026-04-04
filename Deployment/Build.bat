@@ -24,6 +24,11 @@ copy "..\Deployment\StartHRSystem.bat" "..\Deployment\publish\" >nul
 copy "..\Deployment\StopHRSystem.bat" "..\Deployment\publish\" >nul
 copy "..\Deployment\UpdateHRSystem.bat" "..\Deployment\publish\" >nul
 copy "..\Deployment\Install.bat" "..\Deployment\publish\" >nul
+copy "..\Deployment\CheckForUpdates.bat" "..\Deployment\publish\" >nul
+copy "..\Deployment\INSTALLATION_GUIDE.md" "..\Deployment\publish\" >nul
+copy "..\Deployment\StartWhatsAppService.bat" "..\Deployment\publish\" >nul 2>&1
+copy "..\Deployment\StopWhatsAppService.bat" "..\Deployment\publish\" >nul 2>&1
+xcopy /E /I /Y "..\OpenWa" "..\Deployment\publish\OpenWa" >nul
 
 REM Create Update folder
 if not exist "..\Deployment\publish\Update" mkdir "..\Deployment\publish\Update"

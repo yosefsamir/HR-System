@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR_system.Services
 {
-    public class BounesService : IBounesService
+    public class BounesService : IBounesService, IBonusService
     {
         private readonly ApplicationDbContext _context;
 

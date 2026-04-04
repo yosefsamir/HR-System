@@ -9,13 +9,6 @@
         background: linear-gradient(145deg, #1a1d21, #212529);
         border: 1px solid #333;
     }
-    .result-card {
-        transition: all 0.3s ease;
-    }
-    .result-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
-    }
     .summary-box {
         background: linear-gradient(145deg, #212529, #2c3034);
         border-radius: 0.5rem;
@@ -115,6 +108,66 @@
     .clear-employee:hover {
         color: #dc3545;
     }
+    .actions-cell {
+        white-space: nowrap;
+    }
+    .action-btn-group {
+        display: inline-flex;
+        gap: 0.4rem;
+        align-items: center;
+    }
+    .action-btn {
+        width: 2.2rem;
+        height: 2.2rem;
+        padding: 0;
+        border-radius: 0.55rem;
+        border: 1px solid transparent;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
+    .action-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 0.35rem 0.7rem rgba(0, 0, 0, 0.35);
+    }
+    .action-btn-recalc {
+        color: #ffc107;
+        border-color: rgba(255, 193, 7, 0.45);
+        background: rgba(255, 193, 7, 0.08);
+    }
+    .action-btn-recalc:hover {
+        color: #121212;
+        background: #ffc107;
+    }
+    .action-btn-whatsapp {
+        color: #20c997;
+        border-color: rgba(32, 201, 151, 0.45);
+        background: rgba(32, 201, 151, 0.08);
+    }
+    .action-btn-whatsapp:hover {
+        color: #121212;
+        background: #20c997;
+    }
+    .action-btn-note {
+        color: #ffd166;
+        border-color: rgba(255, 209, 102, 0.45);
+        background: rgba(255, 209, 102, 0.08);
+    }
+    .action-btn-note:hover {
+        color: #121212;
+        background: #ffd166;
+    }
+    .action-btn-details {
+        color: #66b2ff;
+        border-color: rgba(102, 178, 255, 0.45);
+        background: rgba(102, 178, 255, 0.08);
+    }
+    .action-btn-details:hover {
+        color: #121212;
+        background: #66b2ff;
+    }
 </style>
 
 <div class="container-fluid">
@@ -183,7 +236,6 @@
                 <div class="col-md-1">
                     <button type="button" class="btn btn-outline-success btn-sm w-100" id="printBtn" disabled>
                         <i class="bi bi-printer"></i>
-                    </button>
                     </button>
                 </div>
             </div>
@@ -277,15 +329,17 @@
 
         <!-- Employees Table -->
         <div class="card bg-dark border-secondary">
-            <div class="card-header border-secondary d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">
-                    <i class="bi bi-table me-2"></i>
-                    تفاصيل رواتب الموظفين
-                </h6>
-                <button type="button" class="btn btn-outline-info btn-sm" id="printSlipsBtn">
-                    <i class="bi bi-printer me-2"></i>
-                    طباعة إيصالات الرواتب
-                </button>
+                <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="bi bi-table me-2"></i>
+                        تفاصيل رواتب الموظفين
+                    </h6>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-info btn-sm" id="printSlipsBtn">
+                            <i class="bi bi-printer me-2"></i>
+                            طباعة إيصالات الرواتب
+                        </button>
+                    </div>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -296,14 +350,11 @@
                                 <th>الموظف</th>
                                 <th>القسم</th>
                                 <th>الحضور</th>
-                                <th>ساعات العمل</th>
-                                <th>ساعات إضافية</th>
-                                <th>ساعات تأخير</th>
-                                <th>ساعات الانصراف المبكر</th>
                                 <th>راتب ساعات العمل</th>
                                 <th>الإضافي</th>
                                 <th>التأخير</th>
                                 <th>الخروج المبكر</th>
+                                <th>البدل الشهري</th>
                                 <th>المكافآت</th>
                                 <th>الخصومات</th>
                                 <th>السلف</th>
@@ -321,14 +372,11 @@
                             <tr>
                                 <td colspan="3"><strong>الإجمالي</strong></td>
                                 <td>-</td>
-                                <td id="footTotalHours">0</td>
-                                <td id="footOvertimeHours">0</td>
-                                <td id="footLateHours">0</td>
-                                <td id="footEarlyDepartureHours">0</td>
                                 <td id="footWorkedSalary">0</td>
                                 <td id="footOvertime">0</td>
                                 <td id="footLateTime">0</td>
                                 <td id="footEarlyDeparture">0</td>
+                                <td id="footFixedAllowance">0</td>
                                 <td id="footBonuses">0</td>
                                 <td id="footDeductions">0</td>
                                 <td id="footAdvances">0</td>
@@ -367,12 +415,39 @@
     </div>
 </div>
 
+<!-- Employee Note Modal -->
+<div class="modal fade" id="employeeNoteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="bi bi-sticky me-2"></i>
+                    ملاحظة الراتب
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2 small text-muted" id="employeeNoteTarget">-</div>
+                <textarea id="employeeNoteText" class="form-control" rows="5" maxlength="1000"
+                          placeholder="اكتب ملاحظة ستظهر أسفل ملف PDF لهذا الموظف"></textarea>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="saveEmployeeNoteBtn">
+                    <i class="bi bi-save me-2"></i>
+                    حفظ الملاحظة
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     let savedData = null;
     let allEmployees = [];
-    let selectedEmployeeId = null;
-    const arabicMonths = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    let currentNotePayrollId = null;
+    let currentNoteEmployeeIndex = null;
 
     document.addEventListener('DOMContentLoaded', function() {
         // Set current month and year
@@ -397,6 +472,7 @@
         document.getElementById('deleteBtn').addEventListener('click', deleteMonth);
         document.getElementById('printBtn').addEventListener('click', printResults);
         document.getElementById('printSlipsBtn').addEventListener('click', printSalarySlips);
+        document.getElementById('saveEmployeeNoteBtn').addEventListener('click', saveEmployeeNote);
         document.getElementById('shiftSelect').addEventListener('change', onShiftChange);
         
         // Employee autocomplete
@@ -464,7 +540,6 @@
     function selectEmployee(id, name, code) {
         document.getElementById('employeeSearch').value = `${name} (${code})`;
         document.getElementById('employeeId').value = id;
-        selectedEmployeeId = id;
         document.getElementById('employeeAutocomplete').classList.remove('show');
         document.getElementById('clearEmployeeBtn').classList.add('show');
     }
@@ -472,7 +547,6 @@
     function clearEmployeeSelection() {
         document.getElementById('employeeSearch').value = '';
         document.getElementById('employeeId').value = '';
-        selectedEmployeeId = null;
         document.getElementById('clearEmployeeBtn').classList.remove('show');
         document.getElementById('employeeSearch').focus();
     }
@@ -564,8 +638,11 @@
 
         // Table
         const tbody = document.getElementById('employeesTableBody');
-        tbody.innerHTML = data.employees.map((emp, index) => `
-            <tr class="employee-row" data-id="${emp.id}">
+        tbody.innerHTML = data.employees.map((emp, index) => {
+            const payrollId = emp.id ?? emp.payRollId ?? emp.payrollId;
+
+            return `
+            <tr class="employee-row" data-id="${payrollId}">
                 <td>${index + 1}</td>
                 <td>
                     <strong>${emp.employeeName}</strong>
@@ -576,14 +653,11 @@
                     <span class="badge bg-success">${emp.presentDays}</span>
                     <span class="badge bg-danger">${emp.absentDays}</span>
                 </td>
-                <td>${emp.actualWorkedHours_Display}</td>
-                <td class="text-success">${emp.overtimeHours_Display}</td>
-                <td class="text-danger">${emp.lateTimeHours_Display}</td>
-                <td class="text-danger">${emp.earlyDepartureHours_Display}</td>
                 <td>${formatCurrency(emp.workedHoursSalary)}</td>
                 <td class="positive">+${formatCurrency(emp.overtimeAmount)}</td>
                 <td class="negative">-${formatCurrency(emp.lateTimeDeduction)}</td>
                 <td class="negative">-${formatCurrency(emp.earlyDepartureDeduction)}</td>
+                <td class="positive">+${formatCurrency(emp.monthlyFixedAllowance)}</td>
                 <td class="positive">+${formatCurrency(emp.bonuses)}</td>
                 <td class="negative">-${formatCurrency(emp.deductions)}</td>
                 <td class="negative">-${formatCurrency(emp.advances)}</td>
@@ -591,39 +665,45 @@
                 <td><strong>${formatCurrency(emp.netSalary)}</strong></td>
                 <td>
                     <input type="number" step="any" class="form-control form-control-sm paid-input" 
-                           value="${emp.salaryCarryOver}" data-id="${emp.id}" 
-                           onchange="updateSalaryCarryOver(${emp.id}, this.value)">
+                           value="${emp.salaryCarryOver}" data-id="${payrollId}" 
+                           onchange="updateSalaryCarryOver(${payrollId}, this.value)">
                 </td>
                 <td>
                     <input type="number" step="any" class="form-control form-control-sm paid-input" 
-                           value="${emp.paidSalary}" data-id="${emp.id}" 
-                           onchange="updatePaidSalary(${emp.id}, this.value)">
+                           value="${emp.paidSalary}" data-id="${payrollId}" 
+                           onchange="updatePaidSalary(${payrollId}, this.value)">
                 </td>
                 <td class="text-center">
                     <input type="checkbox" class="form-check-input" 
-                           ${emp.isPaid ? 'checked' : ''} data-id="${emp.id}"
-                           onchange="updatePaidStatus(${emp.id}, this.checked)">
+                           ${emp.isPaid ? 'checked' : ''} data-id="${payrollId}"
+                           onchange="updatePaidStatus(${payrollId}, this.checked)">
                 </td>
-                <td>
-                    <button class="btn btn-sm btn-outline-warning me-1" onclick="recalculateSingle(${emp.id})" title="إعادة حساب الراتب">
-                        <i class="bi bi-arrow-clockwise"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-info" onclick="showDetails(${index})" title="التفاصيل">
-                        <i class="bi bi-eye"></i>
-                    </button>
+                <td class="actions-cell">
+                    <div class="action-btn-group">
+                        <button class="action-btn action-btn-recalc" onclick="recalculateSingle(${payrollId})" title="إعادة حساب الراتب">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                        <button class="action-btn action-btn-note" onclick="openEmployeeNoteModal(${index})" title="ملاحظة الراتب">
+                            <i class="bi bi-sticky"></i>
+                        </button>
+                        <button class="action-btn action-btn-whatsapp" onclick="sendSingleSalaryWhatsApp(${payrollId}, '${emp.employeeName.replace(/'/g, "\\'")}')" title="إرسال الراتب PDF عبر واتساب">
+                            <i class="bi bi-whatsapp"></i>
+                        </button>
+                        <button class="action-btn action-btn-details" onclick="showDetails(${index})" title="التفاصيل">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
-        `).join('');
+        `;
+        }).join('');
 
         // Footer totals
-        document.getElementById('footTotalHours').textContent = formatHours(data.employees.reduce((sum, e) => sum + e.actualWorkedMinutes, 0));
-        document.getElementById('footOvertimeHours').textContent = formatHours(data.employees.reduce((sum, e) => sum + e.overtimeMinutes, 0));
-        document.getElementById('footLateHours').textContent = formatHours(data.employees.reduce((sum, e) => sum + e.lateTimeMinutes, 0));
-        document.getElementById('footEarlyDepartureHours').textContent = formatHours(data.employees.reduce((sum, e) => sum + e.earlyDepartureMinutes, 0));
         document.getElementById('footWorkedSalary').textContent = formatCurrency(data.employees.reduce((sum, e) => sum + e.workedHoursSalary, 0));
         document.getElementById('footOvertime').textContent = formatCurrency(data.totalOvertimeAmount);
         document.getElementById('footLateTime').textContent = formatCurrency(data.totalLateTimeDeduction);
         document.getElementById('footEarlyDeparture').textContent = formatCurrency(data.totalEarlyDepartureDeduction);
+        document.getElementById('footFixedAllowance').textContent = formatCurrency(data.totalMonthlyFixedAllowances);
         document.getElementById('footBonuses').textContent = formatCurrency(data.totalBonuses);
         document.getElementById('footDeductions').textContent = formatCurrency(data.totalDeductions);
         document.getElementById('footAdvances').textContent = formatCurrency(data.totalAdvances);
@@ -699,6 +779,10 @@
                                         <td class="text-end">+${formatCurrency(emp.overtimeAmount)}</td>
                                     </tr>
                                     <tr class="text-success">
+                                        <td>البدل الشهري</td>
+                                        <td class="text-end">+${formatCurrency(emp.monthlyFixedAllowance)}</td>
+                                    </tr>
+                                    <tr class="text-success">
                                         <td>المكافآت</td>
                                         <td class="text-end">+${formatCurrency(emp.bonuses)}</td>
                                     </tr>
@@ -709,7 +793,7 @@
                                     </tr>` : ''}
                                     <tr class="table-success">
                                         <td><strong>إجمالي الإضافات</strong></td>
-                                        <td class="text-end"><strong>+${formatCurrency(emp.overtimeAmount + emp.bonuses + Math.max(0, emp.totalAttendanceAdjustment || 0))}</strong></td>
+                                        <td class="text-end"><strong>+${formatCurrency(emp.overtimeAmount + emp.monthlyFixedAllowance + emp.bonuses + Math.max(0, emp.totalAttendanceAdjustment || 0))}</strong></td>
                                     </tr>
                                 </table>
                             </div>
@@ -888,26 +972,32 @@
     }
 
     async function recalculateSingle(payRollId) {
-        const emp = savedData.employees.find(e => e.id === payRollId);
-        if (!emp) return;
+        const normalizedId = Number(payRollId);
+        const emp = savedData.employees.find(e => Number(e.id ?? e.payRollId ?? e.payrollId) === normalizedId);
+        if (!emp) {
+            showAlert('تعذر تحديد سجل الراتب لإعادة الحساب', 'danger');
+            return;
+        }
 
-        const btn = document.querySelector(`tr[data-id="${payRollId}"] .btn-outline-warning`);
-        const originalIcon = btn.innerHTML;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-        btn.disabled = true;
+        const btn = document.querySelector(`tr[data-id="${normalizedId}"] .action-btn-recalc`);
+        const originalIcon = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            btn.disabled = true;
+        }
 
         try {
             const response = await fetch('/PayRoll/RecalculateSingle', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ payRollId: payRollId })
+                body: JSON.stringify({ payRollId: normalizedId })
             });
 
             const result = await response.json();
             if (result.success) {
                 // Update the employee data
                 const data = result.data;
-                const empIndex = savedData.employees.findIndex(e => e.id === payRollId);
+                const empIndex = savedData.employees.findIndex(e => Number(e.id ?? e.payRollId ?? e.payrollId) === normalizedId);
                 if (empIndex !== -1) {
                     savedData.employees[empIndex] = {
                         ...savedData.employees[empIndex],
@@ -928,10 +1018,12 @@
                         bonuses: data.bonuses,
                         deductions: data.deductions,
                         advances: data.advances,
+                        monthlyFixedAllowance: data.monthlyFixedAllowance,
                         totalAttendanceAdjustment: data.totalAttendanceAdjustment,
                         netSalary: data.netSalary,
                         paidSalary: data.paidSalary,
-                        isPaid: data.isPaid
+                        isPaid: data.isPaid,
+                        employeeNote: data.employeeNote
                     };
                 }
 
@@ -945,8 +1037,62 @@
             console.error('Error recalculating salary:', error);
             showAlert('حدث خطأ في إعادة الحساب', 'danger');
         } finally {
-            btn.innerHTML = originalIcon;
-            btn.disabled = false;
+            if (btn) {
+                btn.innerHTML = originalIcon;
+                btn.disabled = false;
+            }
+        }
+    }
+
+    function openEmployeeNoteModal(index) {
+        if (!savedData || !savedData.employees || !savedData.employees[index]) return;
+
+        const emp = savedData.employees[index];
+        const payrollId = Number(emp.id ?? emp.payRollId ?? emp.payrollId);
+
+        currentNotePayrollId = payrollId;
+        currentNoteEmployeeIndex = index;
+
+        document.getElementById('employeeNoteTarget').textContent = `${emp.employeeName} (${emp.employeeCode})`;
+        document.getElementById('employeeNoteText').value = emp.employeeNote || '';
+
+        new bootstrap.Modal(document.getElementById('employeeNoteModal')).show();
+    }
+
+    async function saveEmployeeNote() {
+        if (!savedData || currentNotePayrollId == null || currentNoteEmployeeIndex == null) return;
+
+        const noteValue = (document.getElementById('employeeNoteText').value || '').trim();
+        const saveBtn = document.getElementById('saveEmployeeNoteBtn');
+        const originalHtml = saveBtn.innerHTML;
+
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...';
+
+        try {
+            const response = await fetch('/PayRoll/UpdateEmployeeNote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    payRollId: currentNotePayrollId,
+                    employeeNote: noteValue
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                savedData.employees[currentNoteEmployeeIndex].employeeNote = noteValue;
+                bootstrap.Modal.getInstance(document.getElementById('employeeNoteModal'))?.hide();
+                showAlert('تم حفظ الملاحظة بنجاح', 'success');
+            } else {
+                showAlert(result.message || 'تعذر حفظ الملاحظة', 'danger');
+            }
+        } catch (error) {
+            console.error(error);
+            showAlert('حدث خطأ أثناء حفظ الملاحظة', 'danger');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalHtml;
         }
     }
 
@@ -979,6 +1125,27 @@
         }
     }
 
+    async function sendSingleSalaryWhatsApp(payRollId, employeeName) {
+        try {
+            const response = await fetch('/PayRoll/SendSalaryWhatsApp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payRollId })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                showAlert(`تم إرسال إيصال راتب ${employeeName} عبر واتساب`, 'success');
+            } else {
+                showAlert(result.message || `تعذر إرسال إيصال ${employeeName}`, 'danger');
+            }
+        } catch (error) {
+            console.error(error);
+            showAlert('حدث خطأ أثناء إرسال واتساب', 'danger');
+        }
+    }
+
+
     function printResults() {
         if (!savedData) return;
         
@@ -996,6 +1163,7 @@
                 <td>${formatCurrency(emp.workedHoursSalary)}</td>
                 <td>${formatCurrency(emp.overtimeAmount)}</td>
                 <td>${formatCurrency(emp.lateTimeDeduction)}</td>
+                <td>${formatCurrency(emp.monthlyFixedAllowance)}</td>
                 <td>${formatCurrency(emp.bonuses)}</td>
                 <td>${formatCurrency(emp.deductions)}</td>
                 <td>${formatCurrency(emp.advances)}</td>
@@ -1045,6 +1213,7 @@
                             <th>الراتب الأساسي</th>
                             <th>الإضافي</th>
                             <th>التأخير</th>
+                            <th>البدل الشهري</th>
                             <th>المكافآت</th>
                             <th>الخصومات</th>
                             <th>السلف</th>
@@ -1064,6 +1233,7 @@
                             <td>-</td>
                             <td>${formatCurrency(data.totalOvertimeAmount)}</td>
                             <td>${formatCurrency(data.totalLateTimeDeduction)}</td>
+                            <td>${formatCurrency(data.totalMonthlyFixedAllowances)}</td>
                             <td>${formatCurrency(data.totalBonuses)}</td>
                             <td>${formatCurrency(data.totalDeductions)}</td>
                             <td>${formatCurrency(data.totalAdvances)}</td>

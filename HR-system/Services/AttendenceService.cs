@@ -8,7 +8,7 @@ namespace HR_system.Services
     /// Application service for attendance operations
     /// Orchestrates domain logic and data access
     /// </summary>
-    public class AttendenceService : IAttendenceService
+    public class AttendenceService : IAttendenceService, IAttendanceService
     {
         private readonly IAttendenceRepository _repository;
 

@@ -16,6 +16,7 @@ namespace HR_system.Models
         [MaxLength(200)]
         public string CompanyName { get; set; } = "شركتي";
 
+
         /// <summary>
         /// Font size for salary slip printing (in pixels)
         /// </summary>

@@ -81,6 +81,7 @@ namespace HR_system.Controllers
             return View(new CreateEmployeeDto
             {
                 Status = "Active",
+                MonthlyFixedAllowance = 0m,
                 Rate_overtime_multiplier = 1.5m,
                 Rate_latetime_multiplier = 1.0m
             });
@@ -124,13 +125,15 @@ namespace HR_system.Controllers
                 Emp_name = employee.Emp_name,
                 Code = employee.Code,
                 Salary = employee.Salary,
+                MonthlyFixedAllowance = employee.MonthlyFixedAllowance,
                 Gender = employee.Gender,
                 Age = employee.Age,
                 Department_id = employee.Department_id,
                 Shift_id = employee.Shift_id,
                 Status = employee.Status,
                 Rate_overtime_multiplier = employee.Rate_overtime_multiplier,
-                Rate_latetime_multiplier = employee.Rate_latetime_multiplier
+                Rate_latetime_multiplier = employee.Rate_latetime_multiplier,
+                WhatsAppNumber = employee.WhatsAppNumber
             };
 
             ViewBag.EmployeeId = id;

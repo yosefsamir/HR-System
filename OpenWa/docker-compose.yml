@@ -1,0 +1,16 @@
+services:
+  openwa:
+    image: ghcr.io/rmyndharis/openwa:latest
+    restart: unless-stopped
+    ports:
+      - "2785:2785"
+      - "2886:2886"
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - openwa_data:/app/data
+
+volumes:
+  openwa_data:
