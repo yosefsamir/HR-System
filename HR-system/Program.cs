@@ -72,7 +72,11 @@ builder.Services.AddScoped<IPayRollWhatsAppService, PayRollWhatsAppService>();
 builder.Services.AddScoped<IWhatsAppSettingsService, WhatsAppSettingsService>();
 
 builder.Services.AddScoped<IBackupService, BackupService>();
-builder.Services.AddHttpClient<IWhatsAppService, OpenWaWhatsAppService>();
+builder.Services.AddHttpClient<IWhatsAppService, OpenWaWhatsAppService>(client =>
+{
+    // OpenWA can need extra time while booting Chromium or restoring sessions.
+    client.Timeout = TimeSpan.FromMinutes(4);
+});
 builder.Services.AddHttpContextAccessor();
 
 // Add services to the container.

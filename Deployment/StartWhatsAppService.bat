@@ -30,6 +30,11 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo Starting WhatsApp service...
+docker compose -f "OpenWa\docker-compose.yml" --env-file "OpenWa\.env" down --remove-orphans >nul 2>&1
+
+REM Cleanup stale Chromium profile locks that can remain after abrupt container stops.
+docker compose -f "OpenWa\docker-compose.yml" --env-file "OpenWa\.env" run --rm --entrypoint sh openwa -c "find /app/data -type f \( -name 'SingletonLock' -o -name 'SingletonCookie' -o -name 'SingletonSocket' \) -delete" >nul 2>&1
+
 docker compose -f "OpenWa\docker-compose.yml" --env-file "OpenWa\.env" up -d
 if %ERRORLEVEL% NEQ 0 (
     if "%AUTO_MODE%"=="1" (

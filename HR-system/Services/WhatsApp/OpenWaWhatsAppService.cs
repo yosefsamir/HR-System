@@ -51,20 +51,41 @@ namespace HR_system.Services
                     return false;
                 }
 
-                var response = await PostNoPayloadAsync($"{_baseUrl}/sessions/{sessionId}/start");
-
-                if (response.IsSuccessStatusCode)
+                for (var attempt = 1; attempt <= 2; attempt++)
                 {
-                    return true;
+                    try
+                    {
+                        var response = await PostNoPayloadAsync($"{_baseUrl}/sessions/{sessionId}/start");
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            return true;
+                        }
+
+                        var body = await response.Content.ReadAsStringAsync();
+                        if ((int)response.StatusCode == 400 && body.Contains("already", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+
+                        var isTransientServerError = (int)response.StatusCode >= 500;
+                        if (isTransientServerError && attempt < 2)
+                        {
+                            _logger.LogWarning("OpenWA start session failed transiently. Attempt: {Attempt}. Status: {StatusCode}. Retrying...", attempt, (int)response.StatusCode);
+                            await Task.Delay(TimeSpan.FromSeconds(3));
+                            continue;
+                        }
+
+                        _logger.LogWarning("OpenWA start session failed. Status: {StatusCode}. Response: {Body}", (int)response.StatusCode, body);
+                        return false;
+                    }
+                    catch (TaskCanceledException ex) when (attempt < 2)
+                    {
+                        _logger.LogWarning(ex, "OpenWA start session timed out on attempt {Attempt}. Retrying...", attempt);
+                        await Task.Delay(TimeSpan.FromSeconds(3));
+                    }
                 }
 
-                var body = await response.Content.ReadAsStringAsync();
-                if ((int)response.StatusCode == 400 && body.Contains("already", StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-
-                _logger.LogWarning("OpenWA start session failed. Status: {StatusCode}. Response: {Body}", (int)response.StatusCode, body);
                 return false;
             }
             catch (Exception ex)
